@@ -1,4 +1,6 @@
+#%%
 from openai import OpenAI
+import pyttsx3
 
 #%%
 import yaml
@@ -12,7 +14,12 @@ except FileNotFoundError:
 except yaml.YAMLError as e:
     print(f"Error al cargar el archivo config.yaml: {e}")
 
-
+#%%
+engine_sp = pyttsx3.init()
+engine_sp.setProperty('voice', "spanish")
+def leeme_esto(message):
+    engine_sp.say(message)
+    engine_sp.runAndWait()
 
 #%%
 client = OpenAI(api_key = config['openai_apikey'])
@@ -41,6 +48,8 @@ while True:
 
     reply = chat.choices[0].message
 
-    print("Jarvis: ", reply.content)
+    print("Sebastian: ", reply.content)
+    leeme_esto(reply.content)
     
     messages.append(reply)
+# %%
