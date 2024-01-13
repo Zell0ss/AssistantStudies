@@ -1,3 +1,5 @@
+
+
 ## references
 https://github.com/microsoft/IoT-For-Beginners/blob/main/6-consumer/lessons/1-speech-recognition/pi-audio.md
 
