@@ -35,8 +35,6 @@ greetings = [f"¿Que desea, amo {name}?",
 # set up openai 
 chatgpt_client = OpenAI(api_key = config['openai_apikey'])
 
-
-
 # Set up the speech recognition 
 r = sr.Recognizer()
 
@@ -80,11 +78,11 @@ def conversion_to_audio(response_text:str, lang:str="en"):
 
 #%%
 # set up tts engine
-# engine_en = pyttsx3.init()
-# engine_en.setProperty('voice', "english")
-# def read_this(message):
-#     engine_en.say(message)
-#     engine_en.runAndWait()    
+engine_en = pyttsx3.init()
+engine_en.setProperty('voice', "english")
+def read_this(message):
+    engine_en.say(message)
+    engine_en.runAndWait()    
 
 engine_sp = pyttsx3.init()
 engine_sp.setProperty('voice', "spanish")
