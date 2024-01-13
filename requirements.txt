@@ -1,0 +1,8 @@
+openai 
+python-dotenv 
+SpeechRecognition 
+pyttsx3 
+gtts 
+wheel
+PyAudio
+numpy
