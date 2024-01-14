@@ -1,8 +1,11 @@
 openai 
 python-dotenv 
 SpeechRecognition 
-pyttsx3 
+pyttsx3
+piper-tts 
+pygame
 gtts 
 wheel
 PyAudio
+wave
 numpy

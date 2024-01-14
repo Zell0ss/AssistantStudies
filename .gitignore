@@ -1,3 +1,5 @@
 .venv
 .vscode
 config.yaml
+*.wav
+*.mp3

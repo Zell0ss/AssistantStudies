@@ -1,6 +1,6 @@
 import speech_recognition as sr
 r = sr.Recognizer()
-wake_word="sebasti"
+wake_word="madre"
 with sr.Microphone() as source:
     print(f"Listening for '{wake_word}'...")
     while True:
@@ -13,4 +13,5 @@ with sr.Microphone() as source:
                 print(">>Wake word detected.")
                 break
         except sr.UnknownValueError:
+            print(">>Unknown.")
             pass

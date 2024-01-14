@@ -1,13 +1,16 @@
 #%%
 from openai import OpenAI
 import pyttsx3
+import os
 
 #%%
 import yaml
 
 # Intenta cargar el archivo config.yaml desde el mismo directorio
 try:
-    with open("config.yaml", 'r') as archivo_config:
+    ruta_fichero = os.path.abspath(__file__)
+    config_file = ruta_fichero.replace("chatgpt_text.py", "config.yaml")
+    with open(config_file, 'r') as archivo_config:
         config = yaml.safe_load(archivo_config)
 except FileNotFoundError:
     print("El archivo config.yaml no se encuentra en el directorio.")

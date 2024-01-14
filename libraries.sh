@@ -16,3 +16,9 @@ aplay -l
 # card 4: UACDemoV10 [UACDemoV1.0], device 0: USB Audio [USB Audio]
 #   Subdevices: 1/1
 #   Subdevice #0: subdevice #0
+
+sudo apt install ffmpeg
+# to reproduce gtts mp3 output
+
+sudo apt-get install sox libsox-fmt-all
+# to reproduce gtts mp3 output FAST
