@@ -49,7 +49,7 @@ while True:
     reply = chat.choices[0].message
 
     print("Sebastian: ", reply.content)
-    leeme_esto(reply.content)
+    # leeme_esto(reply.content)
     
     messages.append(reply)
 # %%

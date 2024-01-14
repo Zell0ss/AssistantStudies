@@ -1,0 +1,13 @@
+[Unit]
+Description=Sebastian chatbot
+[Service]
+Type=simple
+PIDFile=/run/sebastian.pid
+ExecStart=/bin/bash -c "/home/konnos/data/tests/.venv/bin/python chatgpt_voice.py"
+User=konnos
+Group=konnos
+WorkingDirectory=/home/konnos/data/tests
+Restart=always
+RestartSec=10
+[Install]
+WantedBy=multi-user.target
