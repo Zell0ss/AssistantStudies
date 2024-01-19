@@ -4,18 +4,24 @@ import time
 import speech_recognition as sr
 import pyttsx3
 import numpy as np
+import os
 
 #%%
 import yaml
 
 # Intenta cargar el archivo config.yaml desde el mismo directorio
 try:
-    with open("config.yaml", 'r') as archivo_config:
+    ruta_fichero = os.path.abspath(__file__)
+    config_file = ruta_fichero.replace("chatgpt_voice_LoFi.py", "config.yaml")
+    with open(config_file, 'r') as archivo_config:
         config = yaml.safe_load(archivo_config)
 except FileNotFoundError:
     print("El archivo config.yaml no se encuentra en el directorio.")
+    print(config_file)
+    raise
 except yaml.YAMLError as e:
-    print(f"Error al cargar el archivo config.yaml: {e}")
+    print(f"Error al cargar el archivo {config_file}: {e}")
+    raise
    
 
 #%%
@@ -64,6 +70,8 @@ def leeme_esto(message):
 
 #%%
 # Listen for the wake word "hey pos"
+
+os.system("clear")
 def listen_for_wake_word(source):
     print(f">>sleeping: Listening for '{WAKE_WORD}'.")
 

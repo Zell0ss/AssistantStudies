@@ -9,3 +9,4 @@ wheel
 PyAudio
 wave
 numpy
+colorama

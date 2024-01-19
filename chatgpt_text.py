@@ -2,6 +2,7 @@
 from openai import OpenAI
 import pyttsx3
 import os
+from colorama import Fore
 
 #%%
 import yaml
@@ -33,8 +34,11 @@ messages = [
         "content": "You are a helpful assistant"
     }
 ]
-
+print("")
+print("")
+os.system("clear")
 while True:
+    print(Fore.RED +"*"+Fore.LIGHTBLUE_EX+" ----------------------------------------"+Fore.MAGENTA+"o"+Fore.BLUE+"="+Fore.WHITE+"x ")
     message = input("λ> ")
 
     messages.append(
@@ -51,7 +55,10 @@ while True:
 
     reply = chat.choices[0].message
 
-    print("Sebastian: ", reply.content)
+    print("")
+    print(Fore.YELLOW+"Sebastian: "+Fore.GREEN, reply.content)
+    print(Fore.LIGHTBLUE_EX +"'-------------------------------------<EOF>-"+Fore.WHITE+"x ")
+    
     # leeme_esto(reply.content)
     
     messages.append(reply)
