@@ -26,7 +26,7 @@ except yaml.YAMLError as e:
 
 #%%
 WAKE_WORD = "sebasti"
-greetings = [f"¿Que desea, amo?",
+greetings = [f"¿Que desea, señor?",
              "¿Si, señor?",
              f"Capitán en el puente!"]
 ALTAVOZ = True

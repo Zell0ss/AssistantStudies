@@ -3,7 +3,7 @@ Description=Sebastian chatbot
 [Service]
 Type=simple
 PIDFile=/run/sebastian.pid
-ExecStart=/bin/bash -c "/home/konnos/data/tests/.venv/bin/python chatgpt_voice_LoFi.py"
+ExecStart=/bin/bash -c "/home/konnos/data/tests/.venv/bin/python sebastian_bot.py"
 User=konnos
 Group=konnos
 WorkingDirectory=/home/konnos/data/tests
