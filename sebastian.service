@@ -3,10 +3,10 @@ Description=Sebastian chatbot
 [Service]
 Type=simple
 PIDFile=/run/sebastian.pid
-ExecStart=/bin/bash -c "/home/konnos/data/tests/.venv/bin/python sebastian_bot.py"
-User=konnos
-Group=konnos
-WorkingDirectory=/home/konnos/data/tests
+ExecStart=/bin/bash -c "/home/user/data/sebasbot/.venv/bin/python sebastian_bot.py"
+User=user
+Group=group
+WorkingDirectory=/home/user/data/sebasbot
 Restart=always
 RestartSec=10
 [Install]

@@ -70,9 +70,8 @@ def send_welcome(message):
     bot.reply_to(message, f"Hola {first_name}, como estás?")
 
 @bot.message_handler(commands=['consumo'])
-def send_welcome(message):
+def get_consumo(message):
     if authorized(message.chat.username, message.chat.id):
-        
         bot.reply_to(message,  "por favor, visita directamente la página https://platform.openai.com/usage")
 
 @bot.message_handler(commands=['id_me', 'whoami'])
@@ -81,6 +80,26 @@ def id_user(message):
     first_name = message.chat.first_name
     user_id = message.chat.id
     bot.reply_to(message, f"id: {user_id}, username: {username}, first_name: {first_name}")
+
+@bot.message_handler(commands=['imagen'])
+def imagen(message):
+    if authorized(message.chat.username, message.chat.id):
+        prompt = message.text.replace("/imagen", "")
+        try:
+            response = client.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+                )
+            image_url = response.data[0].url
+            revised_prompt = response.data[0].revised_prompt
+        except Exception as exc:
+            image_url = "failure"
+            revised_prompt = exc
+
+        bot.reply_to(message, f"prompt revisado:{revised_prompt}. url imagen:{image_url}")
 
 # %%
 @bot.message_handler(func=lambda msg: True)
