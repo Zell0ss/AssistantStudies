@@ -3,3 +3,5 @@
 config.yaml
 *.wav
 *.mp3
+api_cache.sqlite
+.cache.sqlite

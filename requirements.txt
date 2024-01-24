@@ -9,4 +9,7 @@ wheel
 PyAudio
 wave
 numpy
+pandas
 colorama
+requests-cache 
+retry-requests 

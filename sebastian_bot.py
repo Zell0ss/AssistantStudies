@@ -5,6 +5,7 @@ import os
 import json
 import requests
 import datetime
+from weather.openmeteo import get_tempt_prompt
 
 #%%
 import yaml
