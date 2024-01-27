@@ -5,3 +5,4 @@ config.yaml
 *.mp3
 api_cache.sqlite
 .cache.sqlite
+__pycache__

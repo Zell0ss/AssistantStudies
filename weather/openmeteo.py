@@ -1,3 +1,8 @@
+import requests_cache
+from retry_requests import retry
+import numpy as np
+import os
+
 # latitud de ciudades
 CITIES={
     "madrid": [40.4165, -3.7026],
@@ -8,17 +13,19 @@ CITIES={
     "magan": [39.9614, -3.9316]
         }
 
-
-import requests_cache
-from retry_requests import retry
+#listado de refranes
+ruta_actual = os.path.abspath(__file__)
+directorio_actual = os.path.dirname(ruta_actual)
+refranes_txt = open(f"{directorio_actual}/refranes.txt", "r")
+REFRANES = [line.rstrip() for line in refranes_txt]
+refranes_txt.close()
 
 def get_tempt_prompt(city="madrid"):
     try:       
         cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
         retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
 
-        # Make sure all required weather variables are listed here
-        # The order of variables in hourly or daily is important to assign them correctly below
+        
         url = "https://api.open-meteo.com/v1/forecast"
         params = {
             "latitude": CITIES[city][0],
@@ -30,15 +37,15 @@ def get_tempt_prompt(city="madrid"):
         response = retry_session.get(url, params=params).json()
 
 
-        report = f"Este es el resumen meteorológico para hoy en {city}."
-        # Current values. The order of variables needs to be the same as requested.
+        report = f"Este es el resumen meteorológico para hoy en {city}. "
+        
         current = response["current"]
 
         report = report + f"Hora {current['time']}. "
         report = report + f"Temperatura actual {current['temperature_2m']}. "
         report = report + f"Precipitacion actual {current['precipitation']}. "
 
-        # Process daily data. The order of variables needs to be the same as requested.
+        
         daily = response["daily"]
         daily_temp_max = daily['temperature_2m_max'][0]
         daily_temp_min = daily['temperature_2m_min'][0]
@@ -47,8 +54,9 @@ def get_tempt_prompt(city="madrid"):
         daily_max_prob_precipitation = daily['precipitation_probability_max'][0]
 
         report = report + f"la temperatura máxima sera de {daily_temp_max}, la mínima de {daily_temp_min}. El amanecer a las {daily_sunrise} y el anochecer a las {daily_sunset}. "
-        report = report + f" La máxima probabilidad de precipitacion será de {daily_max_prob_precipitation}%"
+        report = report + f" La máxima probabilidad de precipitacion será del {daily_max_prob_precipitation}%. "
+        report = report + "El refran para hoy es: " + np.random.choice(REFRANES)
 
         return(report)
     except:
-        return("No se ha podido obtener el reporte meteorológico")
+        return("No se ha podido obtener el reporte meteorológico. El refran para hoy es: " + np.random.choice(REFRANES))

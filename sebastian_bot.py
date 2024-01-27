@@ -70,11 +70,62 @@ def send_welcome(message):
     first_name = message.chat.first_name
     bot.reply_to(message, f"Hola {first_name}, como estás?")
 
+# %%
+@bot.message_handler(commands=['ayuda', 'help'])
+def send_help(message):
+    if authorized(message.chat.username, message.chat.id):
+        bot.reply_to(message, "Estos son los comandos soportados actualmente")
+        bot.send_message(chat_id=message.chat.id, text="ayuda: muestra este texto")
+        bot.send_message(chat_id=message.chat.id, text= "id_me o whoami: retorna tu usuario y nombre en telegram")
+        bot.send_message(chat_id=message.chat.id, text=  "chat_tiempo o el_tiempo: previsión meteorológica")
+        bot.send_message(chat_id=message.chat.id, text=  "tiempo: previsión meteorológica, resumen")
+        bot.send_message(chat_id=message.chat.id, text=  "imagen: te devuelve una imagen generada en base al prompt pasado")
+        bot.send_message(chat_id=message.chat.id, text=  "consumo: te dirige a la página de consumo de chatgpt.")
+
+
+# %%
+#handling documents
+@bot.message_handler(func=lambda message: message.document.mime_type == 'text/plain',
+    content_types=['document'])
+def command_handle_document(message):
+    message.document
+    bot.send_message(message.chat.id, 'Document received, sir!')
+
+#%%
+@bot.message_handler(commands=['chat_tiempo', 'el_tiempo'])
+def send_chat_weather(message):
+    if authorized(message.chat.username, message.chat.id):
+        # bot.reply_to(message, get_tempt_prompt())
+        messages.append(
+            {
+                "role": "user",
+                "content": f"A continuación te paso la prevision meteorológica para hoy junto con un refran. \
+                     Envíamela formateada agradablemente y con algun comentario a la ropa que se puede llevar \
+                     o lo que apetece comer en eswta epoca y con la temperatura que hay \
+                     si es tipico o no del año, etc y finaliza con el refrán, que también puedes comentar, pero no lo hagas muy largo. {get_tempt_prompt()}"
+            },
+        )
+
+        chat = client.chat.completions.create(
+            messages=messages,
+            model="gpt-3.5-turbo"
+        )
+
+        reply = chat.choices[0].message
+        bot.reply_to(message, reply.content)
+
+#%%
+@bot.message_handler(commands=['tiempo'])
+def send_weather(message):
+    if authorized(message.chat.username, message.chat.id):
+        bot.reply_to(message, get_tempt_prompt())
+
+#%%        
 @bot.message_handler(commands=['consumo'])
 def get_consumo(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message,  "por favor, visita directamente la página https://platform.openai.com/usage")
-
+# %%
 @bot.message_handler(commands=['id_me', 'whoami'])
 def id_user(message):
     username = message.chat.username
@@ -123,8 +174,6 @@ def echo_all(message):
 
         reply = chat.choices[0].message
         bot.reply_to(message, reply.content)
-
-#%%
 
 
 # %%
