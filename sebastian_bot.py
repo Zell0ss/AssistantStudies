@@ -1,5 +1,6 @@
 #%%
 import telebot
+# from telegram import constants
 from openai import OpenAI
 import os
 import json
@@ -41,27 +42,23 @@ def authorized(username, userid):
         return True
     return False
 
+def classify_text_mimetype(mime_type):
+    if mime_type == 'application/pdf':
+        return "PDF"
+    elif mime_type == 'application/msword' or mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return "DOC"
+    elif mime_type == 'text/plain':
+        return "TXT"
+    else:
+        return "OTHER"
+    
+def parse_for_markdown(text:str):
+    return None
 
 openai_org_id = config["openai_org_id"]
 openai_api_key = config["openai_apikey"]
 headers = {'Authorization': f'Bearer {openai_api_key}'}
 
-
-# url = 'https://api.openai.com/v1/usage'
-
-# hoy = datetime.date.today()
-# primer_dia = datetime.date(hoy.year, 1, 1)
-# delta = datetime.timedelta(days=1)
-# while primer_dia <= hoy:
-#     params = {'date': primer_dia.strftime('%Y-%m-%d')}
-#     primer_dia += delta
-#     response = requests.get(url, headers=headers, params=params)
-#     usage_data = response.json()
-
-
-# curl -s "https://api.openai.com/dashboard/billing/usage?end_date=2024-12-31&start_date=2024-01-01" \
-# -H "Authorization: Bearer {openai_api_key}" \
-# -H "OpenAI-Organization: {openai_org_id}"  
 
 # %%
 # commands are all words that are passed preceding by /
@@ -75,20 +72,19 @@ def send_welcome(message):
 def send_help(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message, "Estos son los comandos soportados actualmente")
-        bot.send_message(chat_id=message.chat.id, text="ayuda: muestra este texto")
-        bot.send_message(chat_id=message.chat.id, text= "id_me o whoami: retorna tu usuario y nombre en telegram")
-        bot.send_message(chat_id=message.chat.id, text=  "chat_tiempo o el_tiempo: previsión meteorológica")
-        bot.send_message(chat_id=message.chat.id, text=  "tiempo: previsión meteorológica, resumen")
-        bot.send_message(chat_id=message.chat.id, text=  "imagen: te devuelve una imagen generada en base al prompt pasado")
-        bot.send_message(chat_id=message.chat.id, text=  "consumo: te dirige a la página de consumo de chatgpt.")
-
+        bot.send_message(chat_id=message.chat.id, text="*ayuda*: muestra este texto", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text= "*id\_me* o *whoami*: retorna tu usuario y nombre en telegram", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*chat\_tiempo* o *el\_tiempo*: previsión meteorológica", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*tiempo*: previsión meteorológica, resumen", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*imagen*: te devuelve una imagen generada en base al prompt pasado", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*consumo*: te dirige a la página de consumo de chatgpt", parse_mode="MarkdownV2")
 
 # %%
 #handling documents
-@bot.message_handler(func=lambda message: message.document.mime_type == 'text/plain',
+@bot.message_handler(func=lambda message: classify_text_mimetype(message.document.mime_type) != 'OTHER' ,
     content_types=['document'])
 def command_handle_document(message):
-    message.document
+    # message.document
     bot.send_message(message.chat.id, 'Document received, sir!')
 
 #%%

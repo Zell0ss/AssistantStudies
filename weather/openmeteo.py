@@ -37,24 +37,24 @@ def get_tempt_prompt(city="madrid"):
         response = retry_session.get(url, params=params).json()
 
 
-        report = f"Este es el resumen meteorológico para hoy en {city}. "
+        report = f"Este es el resumen meteorológico para hoy en {city}. \n"
         
         current = response["current"]
 
-        report = report + f"Hora {current['time']}. "
-        report = report + f"Temperatura actual {current['temperature_2m']}. "
-        report = report + f"Precipitacion actual {current['precipitation']}. "
+        report = report + f"Hora {current['time'][-5:]}. \n"
+        report = report + f"Temperatura actual {current['temperature_2m']}. \n"
+        report = report + f"Precipitacion actual {current['precipitation']}. \n"
 
         
         daily = response["daily"]
         daily_temp_max = daily['temperature_2m_max'][0]
         daily_temp_min = daily['temperature_2m_min'][0]
-        daily_sunrise = daily['sunrise'][0]
-        daily_sunset = daily['sunset'][0]
+        daily_sunrise = daily['sunrise'][0][-5:]
+        daily_sunset = daily['sunset'][0][-5:]
         daily_max_prob_precipitation = daily['precipitation_probability_max'][0]
 
-        report = report + f"la temperatura máxima sera de {daily_temp_max}, la mínima de {daily_temp_min}. El amanecer a las {daily_sunrise} y el anochecer a las {daily_sunset}. "
-        report = report + f" La máxima probabilidad de precipitacion será del {daily_max_prob_precipitation}%. "
+        report = report + f"- temperatura máxima {daily_temp_max} \n- temperatura mínima {daily_temp_min}.\n- El amanecer sera a las {daily_sunrise} \n- El anochecer sera a las {daily_sunset}.\n"
+        report = report + f"- La máxima probabilidad de precipitacion será del {daily_max_prob_precipitation}%. \n"
         report = report + "El refran para hoy es: " + np.random.choice(REFRANES)
 
         return(report)
