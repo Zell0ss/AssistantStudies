@@ -7,6 +7,7 @@ import json
 import requests
 import datetime
 from weather.openmeteo import get_tempt_prompt
+from mycalendar.googlecal import get_events
 
 #%%
 import yaml
@@ -115,6 +116,13 @@ def send_chat_weather(message):
 def send_weather(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message, get_tempt_prompt())
+
+#%%
+@bot.message_handler(commands=['calendario'])
+def send_calendar(message):
+    if authorized(message.chat.username, message.chat.id):
+        bot.reply_to(message, get_events())
+
 
 #%%        
 @bot.message_handler(commands=['consumo'])
