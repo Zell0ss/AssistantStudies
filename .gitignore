@@ -9,3 +9,4 @@ __pycache__
 client_secret_*.json
 *_api-access.json
 *_credentials.json
+config copy.yaml

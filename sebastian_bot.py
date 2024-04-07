@@ -8,6 +8,7 @@ import requests
 import datetime
 from weather.openmeteo import get_tempt_prompt
 from mycalendar.googlecal import get_events
+from mydropbox.upload_dropbox import upload_file_dbx
 
 #%%
 import yaml
@@ -45,13 +46,19 @@ def authorized(username, userid):
 
 def classify_text_mimetype(mime_type):
     if mime_type == 'application/pdf':
-        return "PDF"
+        return "pdf"
     elif mime_type == 'application/msword' or mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-        return "DOC"
+        return "doc"
     elif mime_type == 'text/plain':
-        return "TXT"
+        return "txt"
+    elif mime_type == 'image/jpeg':
+        return "jpg"
+    elif mime_type == 'image/png':
+        return "png"
+    elif mime_type == "text/plain":
+        return "txt"
     else:
-        return "OTHER"
+        return "unk"
     
 def parse_for_markdown(text:str):
     return None
@@ -78,17 +85,56 @@ def send_help(message):
         bot.send_message(chat_id=message.chat.id, text=  "*chat\_tiempo* o *el\_tiempo*: previsión meteorológica", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*tiempo*: previsión meteorológica, resumen", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*imagen*: te devuelve una imagen generada en base al prompt pasado", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*adduser*: añade el uid del usuario que se le pase a los usuarios autorizados", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*consumo*: te dirige a la página de consumo de chatgpt", parse_mode="MarkdownV2")
 
 # %%
-#handling documents
-@bot.message_handler(func=lambda message: classify_text_mimetype(message.document.mime_type) != 'OTHER' ,
+"""
+add user to allowed  ones
+"""
+@bot.message_handler(commands=['adduser'])
+def adduser(message):
+    if authorized(message.chat.username, message.chat.id):
+        uid = message.text.replace("/adduser", "").strip()
+        config["authorized_users"].append(uid) 
+        
+        with open(config_file, 'w') as archivo_config:
+            yaml.dump(config, archivo_config, default_flow_style=False)
+        bot.reply_to(message, f"uid {uid} añadido")
+       
+
+# %%
+"""
+handling files
+"""
+@bot.message_handler(func=lambda message: classify_text_mimetype(message.document.mime_type) != 'unk' ,
     content_types=['document'])
 def command_handle_document(message):
-    # message.document
-    bot.send_message(message.chat.id, 'Document received, sir!')
+    if hasattr(message, "caption") and message.caption:
+        folder=message.caption
+    elif hasattr(message, "html_caption") and message.html_caption:
+        folder=message.html_caption
+    else:
+        folder = "intercambio"
+    name=message.document.file_name
+    # retrieve address of the file in telegram site
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={message.document.file_id}"
+    response = requests.get(url)
+    res_json = response.json()
+    if res_json["ok"]:
+        remote_name = res_json["result"]["file_path"]
+    #retrieve file itself
+    url_file = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{remote_name}"
+    response_file = requests.get(url_file)
+    das_file = response_file.content
+    #to dropbox!
+    upload_file_dbx(file_blob=das_file, file_name=name, folder=folder)
+    bot.send_message(message.chat.id, f'Documento subido a {url_file} depositado en dropbox Espacio familiar/{folder}/{name}')
 
 #%%
+"""
+retrieve weather -verbose
+"""
 @bot.message_handler(commands=['chat_tiempo', 'el_tiempo'])
 def send_chat_weather(message):
     if authorized(message.chat.username, message.chat.id):
@@ -98,7 +144,7 @@ def send_chat_weather(message):
                 "role": "user",
                 "content": f"A continuación te paso la prevision meteorológica para hoy junto con un refran. \
                      Envíamela formateada agradablemente y con algun comentario a la ropa que se puede llevar \
-                     o lo que apetece comer en eswta epoca y con la temperatura que hay \
+                     o lo que apetece comer en esta epoca y con la temperatura que hay \
                      si es tipico o no del año, etc y finaliza con el refrán, que también puedes comentar, pero no lo hagas muy largo. {get_tempt_prompt()}"
             },
         )
@@ -112,19 +158,28 @@ def send_chat_weather(message):
         bot.reply_to(message, reply.content)
 
 #%%
+"""
+retrieve weather brief
+"""
 @bot.message_handler(commands=['tiempo'])
 def send_weather(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message, get_tempt_prompt())
 
 #%%
+"""
+retrieve tomorrow events
+"""
 @bot.message_handler(commands=['calendario'])
 def send_calendar(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message, get_events())
 
 
-#%%        
+#%%
+"""
+address to get chatgpt usage
+"""        
 @bot.message_handler(commands=['consumo'])
 def get_consumo(message):
     if authorized(message.chat.username, message.chat.id):
@@ -136,7 +191,7 @@ def id_user(message):
     first_name = message.chat.first_name
     user_id = message.chat.id
     bot.reply_to(message, f"id: {user_id}, username: {username}, first_name: {first_name}")
-
+#%%
 @bot.message_handler(commands=['imagen'])
 def imagen(message):
     if authorized(message.chat.username, message.chat.id):
@@ -158,6 +213,9 @@ def imagen(message):
         bot.reply_to(message, f"prompt revisado:{revised_prompt}. url imagen:{image_url}")
 
 # %%
+"""
+direct question to
+"""
 @bot.message_handler(func=lambda msg: True)
 # lambda function always returns true no matter the message 
 # so we will be answering back all messages to the user 
