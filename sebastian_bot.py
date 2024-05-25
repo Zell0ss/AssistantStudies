@@ -3,9 +3,7 @@ import telebot
 # from telegram import constants
 from openai import OpenAI
 import os
-import json
 import requests
-import datetime
 from weather.openmeteo import get_tempt_prompt
 from mycalendar.googlecal import get_events
 from mydropbox.upload_dropbox import upload_file_dbx
@@ -214,7 +212,7 @@ def imagen(message):
 
 # %%
 """
-direct question to
+direct question to chatgpt
 """
 @bot.message_handler(func=lambda msg: True)
 # lambda function always returns true no matter the message 
