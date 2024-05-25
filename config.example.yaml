@@ -1,0 +1,24 @@
+authorized_ids:
+- telegram_user_id_1
+- telegram_user_id_2
+authorized_users:
+- username_1
+- username_2
+dropbox:
+  access_token: xxx
+  app_key: xxxx
+  app_name: SebastianAssistant
+  app_secret: xxxx
+  refresh_token: xxxx
+google_installed:
+  auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs
+  auth_uri: https://accounts.google.com/o/oauth2/auth
+  client_id: xxxx
+  client_secret: xxxxx
+  project_id: xxxxx
+  redirect_uris:
+  - http://localhost
+  token_uri: https://oauth2.googleapis.com/token
+openai_apikey: xxxxxx
+openai_org_id: xxxxx
+telegram_apikey: xxxx
