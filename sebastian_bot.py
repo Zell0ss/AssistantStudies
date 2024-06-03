@@ -6,23 +6,13 @@ import os
 import requests
 from weather.openmeteo import get_tempt_prompt
 from mycalendar.googlecal import get_events
-from mydropbox.upload_dropbox import upload_file_dbx
+from utils.utils import config, config_file, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox
+import logging
 
 #%%
 import yaml
-
-# Intenta cargar el archivo config.yaml desde el mismo directorio
-try:
-    ruta_fichero = os.path.abspath(__file__)
-    config_file = ruta_fichero.replace("sebastian_bot.py", "config.yaml")
-    with open(config_file, 'r') as archivo_config:
-        config = yaml.safe_load(archivo_config)
-except FileNotFoundError:
-    print("El archivo config.yaml no se encuentra en el directorio.")
-    raise
-except yaml.YAMLError as e:
-    print(f"Error al cargar el archivo config.yaml: {e}")
-    raise
+logging.basicConfig(filename="/home/konnos/data/tests/logs/app.log", filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+logging.warning('This will get logged to a file')
 
 
 BOT_TOKEN = config["telegram_apikey"]
@@ -36,44 +26,27 @@ messages = [
         "content": "You are a helpful assistant"
     }
 ]
-
-def authorized(username, userid):
-    if  username in config["authorized_users"] or userid in config["authorized_ids"]:
-        return True
-    return False
-
-def classify_text_mimetype(mime_type):
-    if mime_type == 'application/pdf':
-        return "pdf"
-    elif mime_type == 'application/msword' or mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-        return "doc"
-    elif mime_type == 'text/plain':
-        return "txt"
-    elif mime_type == 'image/jpeg':
-        return "jpg"
-    elif mime_type == 'image/png':
-        return "png"
-    elif mime_type == "text/plain":
-        return "txt"
-    else:
-        return "unk"
-    
-def parse_for_markdown(text:str):
-    return None
+logging.warning("bot started")
 
 openai_org_id = config["openai_org_id"]
 openai_api_key = config["openai_apikey"]
 headers = {'Authorization': f'Bearer {openai_api_key}'}
 
+# commands are the words that are passed at the beginning of a message preceding by /
 
 # %%
-# commands are all words that are passed preceding by /
+"""
+simple test
+"""
 @bot.message_handler(commands=['start', 'hola'])
 def send_welcome(message):
     first_name = message.chat.first_name
     bot.reply_to(message, f"Hola {first_name}, como estás?")
 
 # %%
+"""
+send the help info
+"""
 @bot.message_handler(commands=['ayuda', 'help'])
 def send_help(message):
     if authorized(message.chat.username, message.chat.id):
@@ -94,12 +67,9 @@ add user to allowed  ones
 def adduser(message):
     if authorized(message.chat.username, message.chat.id):
         uid = message.text.replace("/adduser", "").strip()
-        config["authorized_users"].append(uid) 
-        
-        with open(config_file, 'w') as archivo_config:
-            yaml.dump(config, archivo_config, default_flow_style=False)
+        config = add_authorized_user(uid)
         bot.reply_to(message, f"uid {uid} añadido")
-       
+             
 
 # %%
 """
@@ -108,26 +78,9 @@ handling files
 @bot.message_handler(func=lambda message: classify_text_mimetype(message.document.mime_type) != 'unk' ,
     content_types=['document'])
 def command_handle_document(message):
-    if hasattr(message, "caption") and message.caption:
-        folder=message.caption
-    elif hasattr(message, "html_caption") and message.html_caption:
-        folder=message.html_caption
-    else:
-        folder = "intercambio"
-    name=message.document.file_name
-    # retrieve address of the file in telegram site
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={message.document.file_id}"
-    response = requests.get(url)
-    res_json = response.json()
-    if res_json["ok"]:
-        remote_name = res_json["result"]["file_path"]
-    #retrieve file itself
-    url_file = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{remote_name}"
-    response_file = requests.get(url_file)
-    das_file = response_file.content
-    #to dropbox!
-    upload_file_dbx(file_blob=das_file, file_name=name, folder=folder)
-    bot.send_message(message.chat.id, f'Documento subido a {url_file} depositado en dropbox Espacio familiar/{folder}/{name}')
+    if authorized(message.chat.username, message.chat.id):
+        response = upload_document_dropbox(message)
+        bot.send_message(message.chat.id,response)
 
 #%%
 """
@@ -173,7 +126,6 @@ def send_calendar(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message, get_events())
 
-
 #%%
 """
 address to get chatgpt usage
@@ -182,14 +134,22 @@ address to get chatgpt usage
 def get_consumo(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message,  "por favor, visita directamente la página https://platform.openai.com/usage")
+
 # %%
+"""
+retrieve telegram user and uid 
+"""
 @bot.message_handler(commands=['id_me', 'whoami'])
 def id_user(message):
     username = message.chat.username
     first_name = message.chat.first_name
     user_id = message.chat.id
     bot.reply_to(message, f"id: {user_id}, username: {username}, first_name: {first_name}")
+
 #%%
+"""
+processes the image
+"""
 @bot.message_handler(commands=['imagen'])
 def imagen(message):
     if authorized(message.chat.username, message.chat.id):
