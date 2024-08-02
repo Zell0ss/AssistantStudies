@@ -169,10 +169,34 @@ def imagen(message):
             revised_prompt = exc
 
         bot.reply_to(message, f"prompt revisado:{revised_prompt}. url imagen:{image_url}")
+# %%
+"""
+direct question to chatgpt 4
+"""
+@bot.message_handler(commands=['4'])
+def echo_to_four(message):
+    if authorized(message.chat.username, message.chat.id):
+        messages.append(
+            {
+                "role": "user",
+                "content": message.text
+            },
+        )
+
+        chat = client.chat.completions.create(
+            messages=messages,
+            model="gpt-4o"
+        )
+
+        reply = chat.choices[0].message
+        bot.reply_to(message, reply.content)
+
+
+
 
 # %%
 """
-direct question to chatgpt
+direct question to chatgpt 3 (default)
 """
 @bot.message_handler(func=lambda msg: True)
 # lambda function always returns true no matter the message 

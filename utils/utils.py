@@ -26,6 +26,7 @@ except yaml.YAMLError as e:
     raise
 logging.warning("config loaded")
 
+BOT_TOKEN = config["telegram_apikey"]
 
 def authorized(username, userid):
     if  username in config["authorized_users"] or userid in config["authorized_ids"]:
