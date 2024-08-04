@@ -6,7 +6,7 @@ import os
 import requests
 from weather.openmeteo import get_tempt_prompt
 from mycalendar.googlecal import get_events
-from utils.utils import config, config_file, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox
+from utils.utils import config, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox, restart_service,stop_service
 import logging
 
 #%%
@@ -19,7 +19,11 @@ BOT_TOKEN = config["telegram_apikey"]
 bot = telebot.TeleBot(BOT_TOKEN)
 
 client = OpenAI(api_key = config['openai_apikey'])
-
+GPT4 = "gpt-4o"
+GPT3 = "gpt-3.5-turbo"
+CURRENT_GPT_MODEL = GPT4
+DALLE3 = "dall-e-3"
+CURRENT_DALLE_MODEL = DALLE3
 messages = [
     {
         "role": "system",
@@ -45,6 +49,22 @@ def send_welcome(message):
 
 # %%
 """
+managing service
+"""
+@bot.message_handler(commands=['restart'])
+def restart_bot(message):
+    if authorized(message.chat.username, message.chat.id):
+        bot.reply_to(message, f"restarting service")
+        restart_service()
+
+@bot.message_handler(commands=['restart'])
+def stop_bot(message):
+    if authorized(message.chat.username, message.chat.id):
+        bot.reply_to(message, f"stopping service. must be manually restarted")
+        stop_service()
+
+# %%
+"""
 send the help info
 """
 @bot.message_handler(commands=['ayuda', 'help'])
@@ -59,12 +79,31 @@ def send_help(message):
         bot.send_message(chat_id=message.chat.id, text=  "*adduser*: añade el uid del usuario que se le pase a los usuarios autorizados", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*consumo*: te dirige a la página de consumo de chatgpt", parse_mode="MarkdownV2")
 
+#%%
+"""
+address to get chatgpt usage
+"""        
+@bot.message_handler(commands=['consumo'])
+def get_consumo(message):
+    if authorized(message.chat.username, message.chat.id):
+        bot.reply_to(message,  "por favor, visita directamente la página https://platform.openai.com/usage")
+
 # %%
 """
-add user to allowed  ones
+retrieve telegram user and uid 
+"""
+@bot.message_handler(commands=['id_me', 'whoami'])
+def get_id_user(message):
+    username = message.chat.username
+    first_name = message.chat.first_name
+    user_id = message.chat.id
+    bot.reply_to(message, f"id: {user_id}, username: {username}, first_name: {first_name}")
+# %%
+"""
+add user to allowed ones
 """
 @bot.message_handler(commands=['adduser'])
-def adduser(message):
+def add_user(message):
     if authorized(message.chat.username, message.chat.id):
         uid = message.text.replace("/adduser", "").strip()
         config = add_authorized_user(uid)
@@ -73,7 +112,7 @@ def adduser(message):
 
 # %%
 """
-handling files
+handling files to dropbox
 """
 @bot.message_handler(func=lambda message: classify_text_mimetype(message.document.mime_type) != 'unk' ,
     content_types=['document'])
@@ -84,7 +123,7 @@ def command_handle_document(message):
 
 #%%
 """
-retrieve weather -verbose
+retrieve weather -verbose and brief
 """
 @bot.message_handler(commands=['chat_tiempo', 'el_tiempo'])
 def send_chat_weather(message):
@@ -102,16 +141,12 @@ def send_chat_weather(message):
 
         chat = client.chat.completions.create(
             messages=messages,
-            model="gpt-3.5-turbo"
+            model=CURRENT_GPT_MODEL
         )
 
         reply = chat.choices[0].message
         bot.reply_to(message, reply.content)
 
-#%%
-"""
-retrieve weather brief
-"""
 @bot.message_handler(commands=['tiempo'])
 def send_weather(message):
     if authorized(message.chat.username, message.chat.id):
@@ -126,25 +161,9 @@ def send_calendar(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message, get_events())
 
-#%%
-"""
-address to get chatgpt usage
-"""        
-@bot.message_handler(commands=['consumo'])
-def get_consumo(message):
-    if authorized(message.chat.username, message.chat.id):
-        bot.reply_to(message,  "por favor, visita directamente la página https://platform.openai.com/usage")
 
-# %%
-"""
-retrieve telegram user and uid 
-"""
-@bot.message_handler(commands=['id_me', 'whoami'])
-def id_user(message):
-    username = message.chat.username
-    first_name = message.chat.first_name
-    user_id = message.chat.id
-    bot.reply_to(message, f"id: {user_id}, username: {username}, first_name: {first_name}")
+
+
 
 #%%
 """
@@ -156,7 +175,7 @@ def imagen(message):
         prompt = message.text.replace("/imagen", "")
         try:
             response = client.images.generate(
-                model="dall-e-3",
+                model=CURRENT_DALLE_MODEL,
                 prompt=prompt,
                 size="1024x1024",
                 quality="standard",
@@ -185,13 +204,32 @@ def echo_to_four(message):
 
         chat = client.chat.completions.create(
             messages=messages,
-            model="gpt-4o"
+            model=GPT4
         )
 
         reply = chat.choices[0].message
         bot.reply_to(message, reply.content)
 
+"""
+direct question to chatgpt 3
+"""
+@bot.message_handler(commands=['3'])
+def echo_to_four(message):
+    if authorized(message.chat.username, message.chat.id):
+        messages.append(
+            {
+                "role": "user",
+                "content": message.text
+            },
+        )
 
+        chat = client.chat.completions.create(
+            messages=messages,
+            model=GPT3
+        )
+
+        reply = chat.choices[0].message
+        bot.reply_to(message, reply.content)
 
 
 # %%
@@ -213,7 +251,7 @@ def echo_all(message):
 
         chat = client.chat.completions.create(
             messages=messages,
-            model="gpt-3.5-turbo"
+            model=CURRENT_GPT_MODEL
         )
 
         reply = chat.choices[0].message

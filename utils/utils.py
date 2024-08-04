@@ -2,6 +2,7 @@ import yaml
 import os
 import logging
 import requests
+import subprocess
 from mydropbox.upload_dropbox import upload_file_dbx
 logging.basicConfig(filename="/home/konnos/data/tests/logs/app.log", filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 logging.warning('Loading config')
@@ -40,8 +41,25 @@ def add_authorized_user(userid):
     #add uid to file so it will be there if we restart
     with open(config_file, 'w') as archivo_config:
         yaml.dump(config, archivo_config, default_flow_style=False)
-
     return config
+
+def restart_service():
+    # Define the command to restart the service using sudo
+    command = "sudo systemctl restart sebastian.service"
+
+    # Execute the command using subprocess
+    process = subprocess.Popen(command, shell=True)
+    process.wait()
+
+
+def stop_service():
+    # Define the command to stop the service using sudo
+    command = "sudo systemctl stop sebastian.service"
+
+    # Execute the command using subprocess
+    process = subprocess.Popen(command, shell=True)
+    process.wait()
+
 
 def retrieve_telegram_file_address(file_id):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={file_id}"
