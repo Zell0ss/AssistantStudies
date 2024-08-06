@@ -1,5 +1,6 @@
 import yaml
 import os
+import re
 import logging
 import requests
 import subprocess
@@ -111,4 +112,16 @@ def classify_text_mimetype(mime_type):
         return "unk"
     
 def parse_for_markdown(text:str):
-    return None
+    parser_chars=["\\", "_", "*", "[", "]", "(", ")", "~", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"]
+    characters_to_escape = r'_\*\[\]\(\)~`>#+-=|{}.!'
+    escaped_text = re.sub(r'([_\*\[\]\(\)~`>#+-=|{}.!])', r'\\\1', text)
+    return escaped_text
+
+def parse_nota_cata(nota_cata:str):
+    lines = nota_cata.strip().split('\n')
+    nota_cata_dic = {}
+    for line in lines:
+        key, value = line.split(':')
+        nota_cata_dic[key.strip()] = value.strip()
+
+    return nota_cata_dic

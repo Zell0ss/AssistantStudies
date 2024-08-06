@@ -6,7 +6,7 @@ import os
 import requests
 from weather.openmeteo import get_tempt_prompt
 from mycalendar.googlecal import get_events
-from utils.utils import config, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox, restart_service,stop_service
+from utils.utils import config, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox, restart_service,stop_service,parse_nota_cata
 import logging
 
 #%%
@@ -78,6 +78,9 @@ def send_help(message):
         bot.send_message(chat_id=message.chat.id, text=  "*imagen*: te devuelve una imagen generada en base al prompt pasado", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*adduser*: añade el uid del usuario que se le pase a los usuarios autorizados", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*consumo*: te dirige a la página de consumo de chatgpt", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*plantilla*: devuelve la plantilla para una nota de cata", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*presentacion*: te hace la presentación para las diferentes plataformas sociales del tema que le digas", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*nota\_cata*: te genera una nota de cata mas redactada a partir de la plantilla", parse_mode="MarkdownV2")
 
 #%%
 """
@@ -188,6 +191,78 @@ def imagen(message):
             revised_prompt = exc
 
         bot.reply_to(message, f"prompt revisado:{revised_prompt}. url imagen:{image_url}")
+#%%
+"""
+winebot entries
+"""
+@bot.message_handler(commands=['plantilla'])
+def send_plantilla(message):
+    if authorized(message.chat.username, message.chat.id):
+        bot.reply_to(message, "Estos son los campos necesarios para la nota de cata")
+        bot.send_message(chat_id=message.chat.id, text="""
+*Nombre del vino*: 
+*Bodega*: 
+*Región*:
+*Uvas*: 
+*Nota de cata visual*:
+*Nota de cata olfativa*: 
+*Nota de cata gustativa*: 
+*Puntuación personal \(acidez, tanicidad, final, fruta, madera, cuerpo\)*: """, parse_mode="MarkdownV2")
+
+
+@bot.message_handler(commands=['presentacion'])
+def get_presentacion(message):
+    if authorized(message.chat.username, message.chat.id):
+        messages.append(
+            {
+                "role": "user",
+                "content": f"Preparame una pequeña presentación para twitter, Instagram y Tumblr del artículo que he publicado en https://gotasdivinas.blogspot.com/ sobre {message.text}"
+            },
+        )
+
+        chat = client.chat.completions.create(
+            messages=messages,
+            model=CURRENT_GPT_MODEL
+        )
+
+        reply = chat.choices[0].message
+        bot.reply_to(message, reply.content)
+
+@bot.message_handler(commands=['nota_cata'])
+def get_nota_cata(message):
+    if authorized(message.chat.username, message.chat.id):
+        nota_cata_str = message.text
+        nota_cata_dict = parse_nota_cata(nota_cata_str)
+        if nota_cata_dict.get("Bodega"):
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"¿Que me puedes decir de la bodega{nota_cata_dict.get('Bodega')}?"
+                },
+            )
+            chat = client.chat.completions.create(
+                messages=messages,
+                model=CURRENT_GPT_MODEL
+            )
+
+            reply = chat.choices[0].message
+            bot.send_message(chat_id=message.chat.id, text= reply.content)
+        
+        messages.append(
+                {
+                    "role": "user",
+                    "content": f"Hazme una nota de cata basada en esta: {nota_cata_str}?"
+                },
+        )
+        chat = client.chat.completions.create(
+            messages=messages,
+            model=CURRENT_GPT_MODEL
+        )
+
+        reply = chat.choices[0].message
+        bot.send_message(chat_id=message.chat.id, text= reply.content)
+
+
 # %%
 """
 direct question to chatgpt 4
@@ -214,7 +289,7 @@ def echo_to_four(message):
 direct question to chatgpt 3
 """
 @bot.message_handler(commands=['3'])
-def echo_to_four(message):
+def echo_to_three(message):
     if authorized(message.chat.username, message.chat.id):
         messages.append(
             {
@@ -234,7 +309,7 @@ def echo_to_four(message):
 
 # %%
 """
-direct question to chatgpt 3 (default)
+direct question to chatgpt (default)
 """
 @bot.message_handler(func=lambda msg: True)
 # lambda function always returns true no matter the message 
@@ -256,6 +331,7 @@ def echo_all(message):
 
         reply = chat.choices[0].message
         bot.reply_to(message, reply.content)
+
 
 
 # %%
