@@ -228,6 +228,26 @@ def get_presentacion(message):
         reply = chat.choices[0].message
         bot.reply_to(message, reply.content)
 
+@bot.message_handler(commands=['resumen'])
+def get_resumen(message):
+    if authorized(message.chat.username, message.chat.id):
+        messages.append(
+            {
+                "role": "user",
+                "content": f"""Preparame una pequeña presentación para twitter, Instagram y Tumblr del artículo que he publicado en https://gotasdivinas.blogspot.com/. 
+                La presentación ha de ir en primera persona, como si te lo contase yo y tener un lenguaje cercano. No debe de tratar de tu al  
+                El artículo trata sobre {message.text}"""
+            },
+        )
+
+        chat = client.chat.completions.create(
+            messages=messages,
+            model=CURRENT_GPT_MODEL
+        )
+
+        reply = chat.choices[0].message
+        bot.reply_to(message, reply.content)
+
 @bot.message_handler(commands=['nota_cata'])
 def get_nota_cata(message):
     if authorized(message.chat.username, message.chat.id):
