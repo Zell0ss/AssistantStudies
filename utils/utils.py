@@ -5,9 +5,6 @@ import logging
 import requests
 import subprocess
 from mydropbox.upload_dropbox import upload_file_dbx
-logging.basicConfig(filename="/home/konnos/data/tests/logs/app.log", filemode='w', format='%(name)s - %(levelname)s - %(message)s')
-logging.warning('Loading config')
-
 
 config = {}
 config_file = ""
@@ -19,13 +16,14 @@ try:
         config = yaml.safe_load(archivo_config)
 except FileNotFoundError:
     print("El archivo config.yaml no se encuentra en el directorio.")
-    logging.error("El archivo config.yaml no se encuentra en el directorio.")
     raise
 except yaml.YAMLError as e:
     the_error = f"Error al cargar el archivo config.yaml: {e}"
     print(the_error)
-    logging.error(the_error)
     raise
+
+logging.basicConfig(filename=f'{config["logfolder"]}/app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+logging.warning('Loading config')
 logging.warning("config loaded")
 
 BOT_TOKEN = config["telegram_apikey"]
@@ -37,6 +35,21 @@ def authorized(username, userid):
 
 def add_authorized_user(userid):
     #add uid to current auth users
+    """
+    Agrega un usuario autorizado a la lista de usuarios autorizados.
+    
+    El usuario es agregado a la lista de usuarios autorizados en el archivo de configuracion.
+    
+    Parameters
+    ----------
+    userid : str
+        El UID del usuario que se va a agregar a la lista de usuarios autorizados.
+    
+    Returns
+    -------
+    config : dict
+        La configuracion actualizada con el nuevo usuario autorizado.
+    """
     config["authorized_users"].append(userid) 
     
     #add uid to file so it will be there if we restart
@@ -46,6 +59,12 @@ def add_authorized_user(userid):
 
 def restart_service():
     # Define the command to restart the service using sudo
+    """
+    Restarts the sebastian service using systemctl.
+    
+    This function will restart the sebastian service. This is useful if you want to reload the configuration.
+    
+    """
     command = "sudo systemctl restart sebastian.service"
 
     # Execute the command using subprocess
@@ -54,7 +73,12 @@ def restart_service():
 
 
 def stop_service():
-    # Define the command to stop the service using sudo
+    """
+    Stops the sebastian service using systemctl.
+    
+    This function will stop the sebastian service. This is useful if you want to stop the bot.
+    
+    """
     command = "sudo systemctl stop sebastian.service"
 
     # Execute the command using subprocess
@@ -63,6 +87,24 @@ def stop_service():
 
 
 def retrieve_telegram_file_address(file_id):
+    """
+    Retrieves the file path of a Telegram file using its file ID.
+
+    This function sends a request to the Telegram Bot API to get the file path
+    associated with the given file ID. If successful, it returns the file path
+    as a string. If the request fails, it returns None.
+
+    Parameters
+    ----------
+    file_id : str
+        The ID of the file in Telegram.
+
+    Returns
+    -------
+    str or None
+        The file path if the request is successful, or None if it fails.
+    """
+
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={file_id}"
     response = requests.get(url)
     res_json = response.json()
@@ -72,12 +114,42 @@ def retrieve_telegram_file_address(file_id):
         return None
     
 def retrieve_telegram_file(remote_name):
+    """
+    Retrieves the content of a Telegram file using its remote name.
+
+    This function sends a request to the Telegram Bot API to get the file content
+    associated with the given remote name. If successful, it returns the content
+    as a bytes object. If the request fails, it returns None.
+
+    Parameters
+    ----------
+    remote_name : str
+        The remote name of the file in Telegram, as returned by the `getFile` API.
+
+    Returns
+    -------
+    bytes or None
+        The content of the file if the request is successful, or None if it fails.
+    """
     url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{remote_name}"
     response_file = requests.get(url)
     das_file = response_file.content
     return das_file
     
 def upload_document_dropbox(message):
+    """
+    Sube un documento a dropbox en el directorio especificado por el usuario.
+    
+    Parameters
+    ----------
+    message : telebot.types.Message
+        El mensaje que contiene el documento que se va a subir.
+    
+    Returns
+    -------
+    str
+        Un mensaje que indica el resultado de la subida del documento.
+    """
     if hasattr(message, "caption") and message.caption:
         folder=message.caption
     elif hasattr(message, "html_caption") and message.html_caption:

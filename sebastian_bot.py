@@ -10,8 +10,7 @@ from utils.utils import config, authorized, classify_text_mimetype, add_authoriz
 import logging
 
 #%%
-import yaml
-logging.basicConfig(filename="/home/konnos/data/tests/logs/app.log", filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename=f'{config["logfolder"]}/app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 logging.warning('This will get logged to a file')
 
 

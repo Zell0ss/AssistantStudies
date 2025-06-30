@@ -15,7 +15,9 @@ WorkingDirectory=/home/user/data/sebasbot
  . . .
 ExecStart=/bin/bash -c "/home/user/data/sebasbot/.venv/bin/python sebastian_bot.py"
 ```
-so they actually point to the folder where you have the code, then it must be copied onto /etc/systemd/system/sebastian.service
+so they actually point to the folder where you have the code. 
+Also you need to declare a valid user and group of your server.
+Finally  it must be copied onto /etc/systemd/system/sebastian.service
 ```bash
 host:~/data/tests $ ll /etc/systemd/system/sebastian.service 
 -rw-r--r-- 1 root root 325 Jan 27  2024 /etc/systemd/system/sebastian.service
@@ -26,3 +28,6 @@ sudo systemctl enable sebastian.service
 sudo systemctl daemon-reload
 sudo systemctl start sebastian.service
 ```
+
+## google calendar api
+You need to place your google api key in mycalendar folder

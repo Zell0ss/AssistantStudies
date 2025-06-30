@@ -6,7 +6,8 @@ piper-tts
 pygame
 gtts 
 wheel
-PyAudio
+telebot
+# PyAudio
 wave
 numpy
 pandas
@@ -17,3 +18,4 @@ google-api-python-client
 google-auth-httplib2 
 google-auth-oauthlib
 dropbox
+pyyaml
