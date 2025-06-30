@@ -134,10 +134,15 @@ def send_chat_weather(message):
         messages.append(
             {
                 "role": "user",
-                "content": f"A continuación te paso la prevision meteorológica para hoy junto con un refran. \
-                     Envíamela formateada agradablemente y con algun comentario a la ropa que se puede llevar \
-                     o lo que apetece comer en esta epoca y con la temperatura que hay \
-                     si es tipico o no del año, etc y finaliza con el refrán, que también puedes comentar, pero no lo hagas muy largo. {get_tempt_prompt()}"
+                "content": f"Como experto en redactar columnas meteorológicas atractivas para periódicos, tu tarea es crear una pieza cautivadora con el pronóstico del tiempo de hoy junto con un refrán relacionado. \
+Combina el extracto meteorológico con el refrán para formar una columna concisa y entretenida que cautive a tus lectores. \
+Considera incluir detalles como la vestimenta recomendada para el día, si la temperatura se ajusta a la estación actual y cualquier fenómeno meteorológico único que valga la pena mencionar. \
+Tu columna no solo debe informar a los lectores sobre el clima del día, sino también engancharlos con un toque de creatividad y estilo. \
+Redacta una narrativa que entrelace sin esfuerzo el pronóstico del tiempo, el refrán y observaciones adicionales para que tu columna sea tanto informativa como agradable de leer. \
+Apunta a una extensión adecuada para una columna de periódico, brindando una visión general breve pero completa del clima del día mientras le imprimes personalidad y encanto. \
+Deja que tu experiencia brille mientras entregas una columna meteorológica que no solo informe, sino que también entretenga e intrigue a tu audiencia. \
+Prepárate para inspirar a tus lectores con una deliciosa combinación de información meteorológica y sabiduría literaria en la columna del clima de hoy. Aquí te paso la temperatura y el refran\
+{get_tempt_prompt()}"
             },
         )
 
