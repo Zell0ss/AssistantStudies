@@ -80,6 +80,7 @@ def send_help(message):
         bot.send_message(chat_id=message.chat.id, text=  "*plantilla*: devuelve la plantilla para una nota de cata", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*presentacion*: te hace la presentación para las diferentes plataformas sociales del tema que le digas", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*nota\_cata*: te genera una nota de cata mas redactada a partir de la plantilla", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*lzp*: te un prompt mas completo a partir de lo que le sugieras", parse_mode="MarkdownV2")
 
 #%%
 """
