@@ -55,8 +55,68 @@ def get_basic_question_chain():
 
     return basic_question_chain
 
+def get_wine_taste_note_chain():
+
+    CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL") # gpt-4o
+    chat_model = ChatOpenAI(model=CHAT_MODEL, temperature=0)
+
+    wine_taste_note_system_template_str = """As an expert sommelier, using the information provided including the wine's name, winery, region, grape varietals, your visual, olfactory, and gustatory tasting notes, as well as your personal ratings for acidity, tannins, finish, fruitiness, oak influence, and body, please gather any missing details and craft a descriptive and professional wine tasting note.
+Ensure that your note captures the essence of the wine, its unique characteristics, and overall quality in a manner that would resonate with wine enthusiasts and connoisseurs. Emphasize the sensory experience, flavor profile, and any notable nuances that make this wine stand out.
+Your tasting note should be articulate, informative, and engaging, providing a comprehensive overview that showcases your expertise and appreciation for fine wines if possible it can include food pairing, bottle prize and a link to the winery website. Aim to create a narrative that transports the reader to the vineyards and evokes the sensory journey of tasting this exceptional wine. 
+    before your answer, asses the uncertainty of your answer. If its greater then 0.3, ask him to redo the question, indicating what clarifications he need made so you can answer better.
+    """
+
+    system_prompt = SystemMessagePromptTemplate(
+        prompt=PromptTemplate.from_template(wine_taste_note_system_template_str)
+    )
+
+    human_prompt = HumanMessagePromptTemplate(
+        prompt=PromptTemplate.from_template("{question}")
+    )
+
+    messages = [system_prompt, human_prompt]
+    template = ChatPromptTemplate.from_messages(messages)
+
+    winetaste_question_chain = template | chat_model
+
+    return winetaste_question_chain
+
+def investigate_wine_chain():
+
+    CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL") # gpt-4o
+    chat_model = ChatOpenAI(model=CHAT_MODEL, temperature=0)
+
+    investigate_wine_system_template_str = """As an expert sommelier, very well bersed in buying wines, you are given a wine and you need to locate the information about the winery, the region and the grapes usedf. 
+    Try also to provide points from 1 to 5 for the acidity, tanicity, finish, fruityness, oak influence and body, but if you cant for any or all of them is ok: do not return it. 
+    If possible provide the price per bottle and a link to the winery website.
+    before your answer, asses the uncertainty of your answer. If its greater then 0.3, ask him to redo the question, indicating what clarifications he need made so you can answer better.
+    """
+
+    system_prompt = SystemMessagePromptTemplate(
+        prompt=PromptTemplate.from_template(investigate_wine_system_template_str)
+    )
+
+    human_prompt = HumanMessagePromptTemplate(
+        prompt=PromptTemplate.from_template("{question}")
+    )
+
+    messages = [system_prompt, human_prompt]
+    template = ChatPromptTemplate.from_messages(messages)
+
+    wine_question_chain = template | chat_model
+
+    return wine_question_chain
 
 def get_current_weather_chain():
+    """
+    Creates a question-answering chain using a chat model that knows the current weather forecast.
+
+    The chain is configured to act as a meteorologist that answers user questions about the current weather.
+    The chain is given the current weather forecast as a system prompt and is expected to answer accordingly.
+
+    Returns:
+        A chain object capable of processing user questions about the current weather and generating responses based on the configured prompts and chat model.
+    """
     CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL") # gpt-4o
     chat_model = ChatOpenAI(model=CHAT_MODEL, temperature=0)
 
@@ -89,12 +149,29 @@ def get_lazy_prompt(prompt:str, task:str)->str:
     "\n--- END OF ENHANCED PROMPT ---"""
     return answer
 
-
+def get_id_user(message):
+    username = message.chat.username
+    first_name = message.chat.first_name
+    user_id = message.chat.id
+    return f"id: {user_id}, username: {username}, first_name: {first_name}"
 
 def get_tools():
-    basic_question_chain = get_basic_question_chain()
-    current_weather_chain = get_current_weather_chain()
+    """
+    Returns a list of tools for the agent to use.
 
+    The tools are:
+        - BasicQuestions: A tool that answers all kind of questions except if they are about the weather today, or about generate propmpts based on the instructions in the received one.
+        - WeatherSummary: A tool that answers questions about the current weather today.
+        - LazyPrompt: A tool that takes a prompt and a task and returns an enhanced version of the prompt that should be presented to the user as-is, not executed.
+    """
+    basic_question_chain = get_basic_question_chain()
+    current_weather_chain = get_current_weather_chain()    
+    wine_taste_note_chain = get_wine_taste_note_chain()
+    wine_details_chain = investigate_wine_chain()
+
+    # for tools that call a function with parameter passing we need to create the model of the parameters 
+    # with its description for the LLM and then create an StructuredTool
+    ## LazyPrompt
     class LazyPromptInput(BaseModel):
         prompt: str = Field(description="The original prompt to be enhanced")
         task: str = Field(description="The task or purpose the prompt is for")
@@ -103,6 +180,17 @@ def get_tools():
                         description="Use when asked to enrich, expand or make better a prompt. Requires the original prompt and the task it's designed for. This tool returns an enhanced version of the prompt that should be presented to the user as-is, not executed.",
                         func=get_lazy_prompt,
                         args_schema=LazyPromptInput
+                    )
+    
+    ## LazyPrompt
+    # TODO: Requires work and integration with telegram
+    class Whoami(BaseModel):
+        message: str = Field(description="The message object of the telegram conversation")
+    whoami_tool = StructuredTool(
+                        name="Whoami",
+                        description="Use when the user asks what is his uid in telegram or his user in telegram.",
+                        func=get_id_user,
+                        args_schema=Whoami
                     )
 
     tools = [
@@ -120,6 +208,17 @@ def get_tools():
             func=current_weather_chain.invoke,
             description="Use when asked about current weather today.",
         ),
+        Tool(
+            name="WineTasteNote",
+            func=wine_taste_note_chain.invoke,
+            description="Use when asked to generate a wine tasting note with the wine data provided.",
+        ),
+        Tool(
+            name="InvestigateWine",
+            func=wine_details_chain.invoke,
+            description="Use when asked to investigate a wine given only its name or name and winery.",
+        ),
+        whoami_tool,
         lazy_prompt_tool,
     ]
 
