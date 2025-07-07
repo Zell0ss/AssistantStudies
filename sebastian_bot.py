@@ -7,6 +7,7 @@ import requests
 from weather.openmeteo import get_tempt_prompt
 from mycalendar.googlecal import get_events
 from utils.utils import config, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox, restart_service,stop_service,parse_nota_cata
+from sebastian_agent import get_sebastian_answer
 import logging
 
 #%%
@@ -56,7 +57,7 @@ def restart_bot(message):
         bot.reply_to(message, f"restarting service")
         restart_service()
 
-@bot.message_handler(commands=['restart'])
+@bot.message_handler(commands=['stop'])
 def stop_bot(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message, f"stopping service. must be manually restarted")
@@ -70,17 +71,15 @@ send the help info
 def send_help(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message, "Estos son los comandos soportados actualmente")
-        bot.send_message(chat_id=message.chat.id, text="*ayuda*: muestra este texto", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text= "*ayuda*: muestra este texto", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text= "*restart*: restart the bot", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text= "*stop*: stop the bot", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text= "*id\_me* o *whoami*: retorna tu usuario y nombre en telegram", parse_mode="MarkdownV2")
-        bot.send_message(chat_id=message.chat.id, text=  "*chat\_tiempo* o *el\_tiempo*: previsión meteorológica", parse_mode="MarkdownV2")
-        bot.send_message(chat_id=message.chat.id, text=  "*tiempo*: previsión meteorológica, resumen", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*imagen*: te devuelve una imagen generada en base al prompt pasado", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*adduser*: añade el uid del usuario que se le pase a los usuarios autorizados", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*consumo*: te dirige a la página de consumo de chatgpt", parse_mode="MarkdownV2")
-        bot.send_message(chat_id=message.chat.id, text=  "*plantilla*: devuelve la plantilla para una nota de cata", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*presentacion*: te hace la presentación para las diferentes plataformas sociales del tema que le digas", parse_mode="MarkdownV2")
-        bot.send_message(chat_id=message.chat.id, text=  "*nota\_cata*: te genera una nota de cata mas redactada a partir de la plantilla", parse_mode="MarkdownV2")
-        bot.send_message(chat_id=message.chat.id, text=  "*lzp*: te un prompt mas completo a partir de lo que le sugieras", parse_mode="MarkdownV2")
+        bot.send_message(chat_id=message.chat.id, text=  "*calendario*: te da las citas para mañana", parse_mode="MarkdownV2")
 
 #%%
 """
@@ -124,41 +123,7 @@ def command_handle_document(message):
         response = upload_document_dropbox(message)
         bot.send_message(message.chat.id,response)
 
-#%%
-"""
-retrieve weather -verbose and brief
-"""
-@bot.message_handler(commands=['chat_tiempo', 'el_tiempo'])
-def send_chat_weather(message):
-    if authorized(message.chat.username, message.chat.id):
-        # bot.reply_to(message, get_tempt_prompt())
-        messages.append(
-            {
-                "role": "user",
-                "content": f"Como experto en redactar columnas meteorológicas atractivas para periódicos, tu tarea es crear una pieza cautivadora con el pronóstico del tiempo de hoy junto con un refrán relacionado. \
-Combina el extracto meteorológico con el refrán para formar una columna concisa y entretenida que cautive a tus lectores. \
-Considera incluir detalles como la vestimenta recomendada para el día, si la temperatura se ajusta a la estación actual y cualquier fenómeno meteorológico único que valga la pena mencionar. \
-Tu columna no solo debe informar a los lectores sobre el clima del día, sino también engancharlos con un toque de creatividad y estilo. \
-Redacta una narrativa que entrelace sin esfuerzo el pronóstico del tiempo, el refrán y observaciones adicionales para que tu columna sea tanto informativa como agradable de leer. \
-Apunta a una extensión adecuada para una columna de periódico, brindando una visión general breve pero completa del clima del día mientras le imprimes personalidad y encanto. \
-Deja que tu experiencia brille mientras entregas una columna meteorológica que no solo informe, sino que también entretenga e intrigue a tu audiencia. \
-Prepárate para inspirar a tus lectores con una deliciosa combinación de información meteorológica y sabiduría literaria en la columna del clima de hoy. Aquí te paso la temperatura y el refran\
-{get_tempt_prompt()}"
-            },
-        )
 
-        chat = client.chat.completions.create(
-            messages=messages,
-            model=CURRENT_GPT_MODEL
-        )
-
-        reply = chat.choices[0].message
-        bot.reply_to(message, reply.content)
-
-@bot.message_handler(commands=['tiempo'])
-def send_weather(message):
-    if authorized(message.chat.username, message.chat.id):
-        bot.reply_to(message, get_tempt_prompt())
 
 #%%
 """
@@ -168,10 +133,6 @@ retrieve tomorrow events
 def send_calendar(message):
     if authorized(message.chat.username, message.chat.id):
         bot.reply_to(message, get_events())
-
-
-
-
 
 #%%
 """
@@ -221,7 +182,12 @@ def get_presentacion(message):
         messages.append(
             {
                 "role": "user",
-                "content": f"Preparame una pequeña presentación para twitter, Instagram y Tumblr del artículo que he publicado en https://gotasdivinas.blogspot.com/ sobre {message.text}"
+                "content": f"""### Como experto en crear contenido cautivador para redes sociales, crea una presentación concisa y atractiva adaptada para Twitter, Instagram y Tumblr para promocionar tu artículo reciente en https://gotasdivinas.blogspot.com/. El artículo profundiza en {message.text}, ofreciendo ideas únicas e información valiosa a tu audiencia.
+### Tu presentación debe ser visualmente atractiva y llamativa, utilizando hashtags e imágenes relevantes para mejorar el alcance y la participación en las tres plataformas.
+### Crea un pie de foto convincente que invite a los usuarios a hacer clic en el artículo, destacando sus puntos clave y aspectos intrigantes. Considera el tono y el estilo de cada plataforma para garantizar el máximo impacto y resonancia con tus seguidores.
+### Apunta a un mensaje conciso pero impactante que despierte la curiosidad y fomente la interacción, impulsando el tráfico a tu blog y aumentando la visibilidad de tu contenido.
+### Recuerda adaptar la presentación para satisfacer los requisitos específicos y las preferencias de la audiencia de Twitter, Instagram y Tumblr, optimizando cada publicación para obtener el máximo efecto en la promoción de tu artículo.
+### Finalmente, utiliza el formato de la presentación adecuado para cada red social, asegurando que se adapte a la estructura y estilos de cada plataforma."""
             },
         )
 
@@ -342,20 +308,22 @@ direct question to chatgpt (default)
 # all messages that are not catched in previous decorators
 def echo_all(message):
     if authorized(message.chat.username, message.chat.id):
-        messages.append(
-            {
-                "role": "user",
-                "content": message.text
-            },
-        )
+        # messages.append(
+        #     {
+        #         "role": "user",
+        #         "content": message.text
+        #     },
+        # )
+        # chat = client.chat.completions.create(
+        #     messages=messages,
+        #     model=CURRENT_GPT_MODEL
+        # )
+        # reply = chat.choices[0].message
+        # bot.reply_to(message, reply.content)
 
-        chat = client.chat.completions.create(
-            messages=messages,
-            model=CURRENT_GPT_MODEL
-        )
+        chain_answer = get_sebastian_answer(message.text)
 
-        reply = chat.choices[0].message
-        bot.reply_to(message, reply.content)
+        bot.reply_to(message, chain_answer)
 
 
 

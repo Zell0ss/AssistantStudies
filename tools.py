@@ -18,17 +18,9 @@ dotenv.load_dotenv()
 
 def get_basic_question_chain():
     """
-    Creates a question-answering chain using a chat model.
-
-    The chain is configured to act as a helpful assistant that answers user
-    questions. Before providing an answer, the chain assesses the uncertainty
-    of its response. If the uncertainty is greater than 0.3, it prompts the
-    user to reformulate the question and suggest necessary clarifications for
-    a better answer.
-
+    Creates a question-answering chain using the chat model.
     Returns:
-        A chain object capable of processing user questions and generating 
-        responses based on the configured prompts and chat model.
+        A chain object capable of processing user questions and generating responses
     """
 
     CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL") # gpt-4o
@@ -55,6 +47,9 @@ def get_basic_question_chain():
 
     return basic_question_chain
 
+"""
+winebot chains
+"""
 def get_wine_taste_note_chain():
 
     CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL") # gpt-4o
@@ -107,6 +102,37 @@ def investigate_wine_chain():
 
     return wine_question_chain
 
+def get_social_media_banner():
+    CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL") # gpt-4o
+    chat_model = ChatOpenAI(model=CHAT_MODEL, temperature=0)
+
+    basic_question_system_template_str = """
+### Como experto en crear contenido cautivador para redes sociales, tu trabajo es crear una presentación concisa y atractiva adaptada para Twitter, Instagram y Tumblr para promocionar artículos publicados en https://gotasdivinas.blogspot.com/ ofreciendo ideas únicas e información valiosa a tu audiencia.
+### La presentación debe ser visualmente atractiva y llamativa, utilizando hashtags e imágenes relevantes para mejorar el alcance y la participación en las tres plataformas.
+### Crea un pie de foto convincente que invite a los usuarios a hacer clic en el artículo, destacando sus puntos clave y aspectos intrigantes. Considera el tono y el estilo de cada plataforma para garantizar el máximo impacto y resonancia con tus seguidores.
+### Apunta a un mensaje conciso pero impactante que despierte la curiosidad y fomente la interacción, impulsando el tráfico al blog y aumentando la visibilidad delu contenido.
+### Recuerda adaptar la presentación para satisfacer los requisitos específicos y las preferencias de la audiencia de Twitter, Instagram y Tumblr, optimizando cada publicación para obtener el máximo efecto en la promoción de tu artículo.
+### Retorna una lista deinstrucciones para publicar el post de la presentacion, los hastags, las imagenes, etc para las plataformas indicadas."""
+           
+
+    system_prompt = SystemMessagePromptTemplate(
+        prompt=PromptTemplate.from_template(basic_question_system_template_str)
+    )
+
+    human_prompt = HumanMessagePromptTemplate(
+        prompt=PromptTemplate.from_template("{question}")
+    )
+
+    messages = [system_prompt, human_prompt]
+    template = ChatPromptTemplate.from_messages(messages)
+
+    basic_question_chain = template | chat_model
+
+    return basic_question_chain
+
+"""
+weatherbot chains
+"""
 def get_current_weather_chain():
     """
     Creates a question-answering chain using a chat model that knows the current weather forecast.
@@ -174,6 +200,9 @@ Prepárate para inspirar a tus lectores con una deliciosa combinación de inform
 
     return question_chain
 
+"""
+Misc chains
+"""
 def get_lazy_prompt(prompt:str, task:str)->str:
     CHAT_MODEL = os.getenv("OPENAI_LZP_MODEL") 
     chat_model = ChatOpenAI(model=CHAT_MODEL, temperature=0)
@@ -186,12 +215,10 @@ def get_lazy_prompt(prompt:str, task:str)->str:
     "\n--- END OF ENHANCED PROMPT ---"""
     return answer
 
-def get_id_user(message):
-    username = message.chat.username
-    first_name = message.chat.first_name
-    user_id = message.chat.id
-    return f"id: {user_id}, username: {username}, first_name: {first_name}"
 
+"""
+tool creation
+"""
 def get_tools():
     """
     Returns a list of tools for the agent to use.
@@ -206,6 +233,7 @@ def get_tools():
     weather_report_chain = get_weather_report_chain()    
     wine_taste_note_chain = get_wine_taste_note_chain()
     wine_details_chain = investigate_wine_chain()
+    social_media_banner = get_social_media_banner()
 
     # for tools that call a function with parameter passing we need to create the model of the parameters 
     # with its description for the LLM and then create an StructuredTool
@@ -220,16 +248,6 @@ def get_tools():
                         args_schema=LazyPromptInput
                     )
     
-    ## LazyPrompt
-    # TODO: Requires work and integration with telegram
-    class Whoami(BaseModel):
-        message: str = Field(description="The message object of the telegram conversation")
-    whoami_tool = StructuredTool(
-                        name="Whoami",
-                        description="Use when the user asks what is his uid in telegram or his user in telegram.",
-                        func=get_id_user,
-                        args_schema=Whoami
-                    )
 
     tools = [
         Tool(
@@ -257,11 +275,15 @@ def get_tools():
             description="Use when asked to generate a wine tasting note with the wine data provided.",
         ),
         Tool(
+            name="WineArticleBanner",
+            func=social_media_banner.invoke,
+            description="Use when asked to promote in social networks an article passed or described to you.",
+        ),
+        Tool(
             name="InvestigateWine",
             func=wine_details_chain.invoke,
-            description="Use when asked to investigate a wine given only its name or name and winery.",
+            description="Use when asked to investigate a wine. The question must specify that it's about wine details.",
         ),
-        whoami_tool,
         lazy_prompt_tool,
     ]
 
