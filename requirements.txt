@@ -25,3 +25,7 @@ pyyaml
 # langchain agent
 langchain_openai
 langchain
+
+# voice_to_text
+pydub
+openai-whisper

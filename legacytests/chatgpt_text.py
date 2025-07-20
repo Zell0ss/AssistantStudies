@@ -3,7 +3,9 @@ from openai import OpenAI
 import pyttsx3
 import os
 from colorama import Fore
-
+"""
+This code snippet is a simple chatbot that uses the OpenAI API to generate responses to user input.
+"""
 #%%
 import yaml
 
@@ -19,9 +21,17 @@ except yaml.YAMLError as e:
     print(f"Error al cargar el archivo config.yaml: {e}")
 
 #%%
-engine_sp = pyttsx3.init()
-engine_sp.setProperty('voice', "spanish")
+
 def leeme_esto(message):
+    """
+    Converts the given text message to speech using a Spanish voice.
+
+    Args:
+        message (str): The text message to be converted to speech.
+    """
+
+    engine_sp = pyttsx3.init()
+    engine_sp.setProperty('voice', "spanish")
     engine_sp.say(message)
     engine_sp.runAndWait()
 

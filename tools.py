@@ -81,9 +81,9 @@ def investigate_wine_chain():
     CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL") # gpt-4o
     chat_model = ChatOpenAI(model=CHAT_MODEL, temperature=0)
 
-    investigate_wine_system_template_str = """As an expert sommelier, very well bersed in buying wines, you are given a wine and you need to locate the information about the winery, the region and the grapes usedf. 
+    investigate_wine_system_template_str = """As an expert sommelier, very well versed in buying wines, you are given a wine and you need to locate the information about the kind of wine (red, cava, rose,...), the winery, the region and the grapes used. 
     Try also to provide points from 1 to 5 for the acidity, tanicity, finish, fruityness, oak influence and body, but if you cant for any or all of them is ok: do not return it. 
-    If possible provide the price per bottle and a link to the winery website.
+    If possible provide the price per bottle, pairing recommended by the winery and a link to the winery website.
     before your answer, asses the uncertainty of your answer. If its greater then 0.3, ask him to redo the question, indicating what clarifications he need made so you can answer better.
     """
 

@@ -1,7 +1,9 @@
 from openai import OpenAI
 import os
 from colorama import Fore
-
+"""
+This code snippet is a simple text-based interface that uses the OpenAI API to generate images based on user input.
+"""
 #%%
 import yaml
 

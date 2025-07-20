@@ -5,10 +5,16 @@ import logging
 import requests
 import subprocess
 from mydropbox.upload_dropbox import upload_file_dbx
+"""
+collection of utility functions for the Telegram bot
+"""
 
+"""
+load config file
+"""
 config = {}
 config_file = ""
-# Intenta cargar el archivo config.yaml desde el mismo directorio
+
 try:
     ruta_fichero = os.path.abspath(__file__)
     config_file = ruta_fichero.replace("utils.py", "../config.yaml")
@@ -29,6 +35,16 @@ logging.warning("config loaded")
 BOT_TOKEN = config["telegram_apikey"]
 
 def authorized(username, userid):
+    """
+    Checks if a user is authorized to use the bot.
+    
+    Parameters
+    username : str The username of the user.
+    userid : str The user id of the user.
+    
+    Returns
+    bool True if the user is authorized, False otherwise.
+    """
     if  username in config["authorized_users"] or userid in config["authorized_ids"]:
         return True
     return False
@@ -36,19 +52,13 @@ def authorized(username, userid):
 def add_authorized_user(userid):
     #add uid to current auth users
     """
-    Agrega un usuario autorizado a la lista de usuarios autorizados.
-    
-    El usuario es agregado a la lista de usuarios autorizados en el archivo de configuracion.
+    Agrega un usuario a la lista de usuarios autorizados en el archivo de configuracion.
     
     Parameters
-    ----------
-    userid : str
-        El UID del usuario que se va a agregar a la lista de usuarios autorizados.
+    userid : str  El UID del usuario que se va a agregar a la lista de usuarios autorizados.
     
     Returns
-    -------
-    config : dict
-        La configuracion actualizada con el nuevo usuario autorizado.
+    config : dict La configuracion actualizada con el nuevo usuario autorizado.
     """
     config["authorized_users"].append(userid) 
     
@@ -58,12 +68,8 @@ def add_authorized_user(userid):
     return config
 
 def restart_service():
-    # Define the command to restart the service using sudo
     """
-    Restarts the sebastian service using systemctl.
-    
-    This function will restart the sebastian service. This is useful if you want to reload the configuration.
-    
+    Restarts the sebastian service using systemctl. This is useful if you want to reload the configuration.
     """
     command = "sudo systemctl restart sebastian.service"
 
@@ -74,10 +80,7 @@ def restart_service():
 
 def stop_service():
     """
-    Stops the sebastian service using systemctl.
-    
-    This function will stop the sebastian service. This is useful if you want to stop the bot.
-    
+    Stops the sebastian service using systemctl. You will need to manually restart it.
     """
     command = "sudo systemctl stop sebastian.service"
 
@@ -88,21 +91,13 @@ def stop_service():
 
 def retrieve_telegram_file_address(file_id):
     """
-    Retrieves the file path of a Telegram file using its file ID.
-
-    This function sends a request to the Telegram Bot API to get the file path
-    associated with the given file ID. If successful, it returns the file path
-    as a string. If the request fails, it returns None.
+    Sends a request to the Telegram Bot API to get the file path associated with the given file ID. 
 
     Parameters
-    ----------
-    file_id : str
-        The ID of the file in Telegram.
+    file_id : str  The ID of the file in Telegram.
 
     Returns
-    -------
-    str or None
-        The file path if the request is successful, or None if it fails.
+    str or None  The file path if the request is successful, or None if it fails.
     """
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={file_id}"
@@ -115,21 +110,13 @@ def retrieve_telegram_file_address(file_id):
     
 def retrieve_telegram_file(remote_name):
     """
-    Retrieves the content of a Telegram file using its remote name.
-
-    This function sends a request to the Telegram Bot API to get the file content
-    associated with the given remote name. If successful, it returns the content
-    as a bytes object. If the request fails, it returns None.
+    Retrieves the content of a Telegram file using its remote address.
 
     Parameters
-    ----------
-    remote_name : str
-        The remote name of the file in Telegram, as returned by the `getFile` API.
+    remote_name : str The remote address of the file in Telegram, as returned by the retrieve_telegram_file_address.
 
     Returns
-    -------
-    bytes or None
-        The content of the file if the request is successful, or None if it fails.
+    bytes or None The content of the file if the request is successful, or None if it fails.
     """
     url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{remote_name}"
     response_file = requests.get(url)
@@ -141,14 +128,10 @@ def upload_document_dropbox(message):
     Sube un documento a dropbox en el directorio especificado por el usuario.
     
     Parameters
-    ----------
-    message : telebot.types.Message
-        El mensaje que contiene el documento que se va a subir.
+    message : telebot.types.Message El mensaje que contiene el documento que se va a subir.
     
     Returns
-    -------
-    str
-        Un mensaje que indica el resultado de la subida del documento.
+    str Un mensaje que indica el resultado de la subida del documento.
     """
     if hasattr(message, "caption") and message.caption:
         folder=message.caption
@@ -168,6 +151,23 @@ def upload_document_dropbox(message):
 
 
 def classify_text_mimetype(mime_type):
+    """
+    Classify the MIME type of a file and return a corresponding file type label.
+
+    Parameters
+    mime_type : str The MIME type of the file to classify.
+
+    Returns 
+    str
+        A label representing the type of file. Possible return values are:
+        - "pdf" for PDF documents
+        - "doc" for Word documents
+        - "txt" for plain text files
+        - "jpg" for JPEG images
+        - "png" for PNG images
+        - "unk" for unknown or unsupported file types
+    """
+
     if mime_type == 'application/pdf':
         return "pdf"
     elif mime_type == 'application/msword' or mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
@@ -184,12 +184,37 @@ def classify_text_mimetype(mime_type):
         return "unk"
     
 def parse_for_markdown(text:str):
-    parser_chars=["\\", "_", "*", "[", "]", "(", ")", "~", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"]
-    characters_to_escape = r'_\*\[\]\(\)~`>#+-=|{}.!'
+    """
+    Escapes special characters for a given text so that it can be formatted as markdown.
+
+    Parameters 
+    text : str The text to be escaped.
+
+    Returns 
+    str The escaped text.
+
+    Notes
+    Characters that are escaped are: \\ _ * [ ] ( ) ~ > # + = | { } . !
+    """
+    # parser_chars=["\\", "_", "*", "[", "]", "(", ")", "~", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"]
+    # characters_to_escape = r'_\*\[\]\(\)~`>#+-=|{}.!'
     escaped_text = re.sub(r'([_\*\[\]\(\)~`>#+-=|{}.!])', r'\\\1', text)
     return escaped_text
 
 def parse_nota_cata(nota_cata:str):
+    """
+    Parse a string containing a wine tasting note into a dictionary.
+
+    Parameters
+    nota_cata : str The string containing the wine tasting note. The string should be formatted with one key-value pair per line, separated by a colon.
+
+    Returns
+    dict A dictionary containing the key-value pairs from the string.
+
+    Examples
+    >>> parse_nota_cata("Bodega: Bodegas Lecea\nAñada: \nRegión: Rioja, Haro\nUvas:\nNota de cata visual: rojo picota casi violáceo con ribete morado. lágrima abundante que justifican sus 14.5 grados")
+    {'Bodega': 'Bodegas Lecea', 'Añada': '', 'Región': 'Rioja, Haro', 'Uvas': '', 'Nota de cata visual': 'rojo picota casi violáceo con ribete morado. lágrima abundante que justifican sus 14.5 grados'}
+    """
     lines = nota_cata.strip().split('\n')
     nota_cata_dic = {}
     for line in lines:
