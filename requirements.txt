@@ -29,3 +29,5 @@ langchain
 # voice_to_text
 pydub
 openai-whisper
+loguru
+tenacity
