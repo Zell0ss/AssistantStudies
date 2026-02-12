@@ -9,6 +9,20 @@ from mycalendar.googlecal import get_events
 from utils.utils import config, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox, restart_service,stop_service,parse_nota_cata
 from sebastian_agent import get_sebastian_answer
 import logging
+"""
+This is a Python script that implements a Telegram bot using the telebot library. The bot is designed to interact with users and provide various functionalities, including:
+
+    Authorization: The bot checks if the user is authorized to use certain commands.
+    Help: The bot provides a list of supported commands.
+    Restart and Stop: The bot can be restarted or stopped using specific commands.
+    ChatGPT Integration: The bot uses the openai library to interact with ChatGPT models (GPT-3 and GPT-4) and generate responses to user queries.
+    Image Generation: The bot can generate images using the DALL-E model.
+    Calendar: The bot can retrieve tomorrow's events from a calendar.
+    User Management: The bot can add users to an authorized list.
+    File Handling: The bot can upload files to Dropbox.
+    Wine Notes: The bot can generate wine notes based on user input.
+
+"""
 
 #%%
 logging.basicConfig(filename=f'{config["logfolder"]}/app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
@@ -78,7 +92,6 @@ def send_help(message):
         bot.send_message(chat_id=message.chat.id, text=  "*imagen*: te devuelve una imagen generada en base al prompt pasado", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*adduser*: añade el uid del usuario que se le pase a los usuarios autorizados", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*consumo*: te dirige a la página de consumo de chatgpt", parse_mode="MarkdownV2")
-        bot.send_message(chat_id=message.chat.id, text=  "*presentacion*: te hace la presentación para las diferentes plataformas sociales del tema que le digas", parse_mode="MarkdownV2")
         bot.send_message(chat_id=message.chat.id, text=  "*calendario*: te da las citas para mañana", parse_mode="MarkdownV2")
 
 #%%
@@ -174,30 +187,6 @@ def send_plantilla(message):
 *Nota de cata olfativa*: 
 *Nota de cata gustativa*: 
 *Puntuación personal \(acidez, tanicidad, final, fruta, madera, cuerpo\)*: """, parse_mode="MarkdownV2")
-
-
-@bot.message_handler(commands=['presentacion'])
-def get_presentacion(message):
-    if authorized(message.chat.username, message.chat.id):
-        messages.append(
-            {
-                "role": "user",
-                "content": f"""### Como experto en crear contenido cautivador para redes sociales, crea una presentación concisa y atractiva adaptada para Twitter, Instagram y Tumblr para promocionar tu artículo reciente en https://gotasdivinas.blogspot.com/. El artículo profundiza en {message.text}, ofreciendo ideas únicas e información valiosa a tu audiencia.
-### Tu presentación debe ser visualmente atractiva y llamativa, utilizando hashtags e imágenes relevantes para mejorar el alcance y la participación en las tres plataformas.
-### Crea un pie de foto convincente que invite a los usuarios a hacer clic en el artículo, destacando sus puntos clave y aspectos intrigantes. Considera el tono y el estilo de cada plataforma para garantizar el máximo impacto y resonancia con tus seguidores.
-### Apunta a un mensaje conciso pero impactante que despierte la curiosidad y fomente la interacción, impulsando el tráfico a tu blog y aumentando la visibilidad de tu contenido.
-### Recuerda adaptar la presentación para satisfacer los requisitos específicos y las preferencias de la audiencia de Twitter, Instagram y Tumblr, optimizando cada publicación para obtener el máximo efecto en la promoción de tu artículo.
-### Finalmente, utiliza el formato de la presentación adecuado para cada red social, asegurando que se adapte a la estructura y estilos de cada plataforma."""
-            },
-        )
-
-        chat = client.chat.completions.create(
-            messages=messages,
-            model=CURRENT_GPT_MODEL
-        )
-
-        reply = chat.choices[0].message
-        bot.reply_to(message, reply.content)
 
 @bot.message_handler(commands=['resumen'])
 def get_resumen(message):
@@ -300,7 +289,7 @@ def echo_to_three(message):
 
 # %%
 """
-direct question to chatgpt (default)
+direct question to chatgpt agent (default)
 """
 @bot.message_handler(func=lambda msg: True)
 # lambda function always returns true no matter the message 
@@ -308,21 +297,8 @@ direct question to chatgpt (default)
 # all messages that are not catched in previous decorators
 def echo_all(message):
     if authorized(message.chat.username, message.chat.id):
-        # messages.append(
-        #     {
-        #         "role": "user",
-        #         "content": message.text
-        #     },
-        # )
-        # chat = client.chat.completions.create(
-        #     messages=messages,
-        #     model=CURRENT_GPT_MODEL
-        # )
-        # reply = chat.choices[0].message
-        # bot.reply_to(message, reply.content)
 
         chain_answer = get_sebastian_answer(message.text)
-
         bot.reply_to(message, chain_answer)
 
 

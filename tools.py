@@ -227,6 +227,7 @@ def get_tools():
         - BasicQuestions: A tool that answers all kind of questions except if they are about the weather today, or about generate propmpts based on the instructions in the received one.
         - WeatherSummary: A tool that answers questions about the current weather today.
         - LazyPrompt: A tool that takes a prompt and a task and returns an enhanced version of the prompt that should be presented to the user as-is, not executed.
+        and others
     """
     basic_question_chain = get_basic_question_chain()
     current_weather_chain = get_current_weather_chain()

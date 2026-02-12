@@ -12,3 +12,5 @@ client_secret_*.json
 config copy.yaml
 logs/app.log
 .env
+credentials.json
+token.json
