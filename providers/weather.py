@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any
 from loguru import logger
 import requests_cache
-from retry_requests import retry as retry_requests
 import numpy as np
 from langchain.tools import Tool
 from langchain_openai import ChatOpenAI
@@ -60,9 +59,9 @@ class OpenMeteoWeatherProvider(WeatherProvider):
         with open(config.refranes_file, 'r', encoding='utf-8') as f:
             self.refranes = [line.rstrip() for line in f]
 
-        # Set up cached session with retry logic
-        cache_session = requests_cache.CachedSession('.cache', expire_after=self.cache_hours * 3600)
-        self.retry_session = retry_requests(cache_session, retries=5, backoff_factor=0.2)
+        # Set up cached session (retries handled by BaseProvider's _call_with_retry)
+        self.cache_session = requests_cache.CachedSession('.cache', expire_after=self.cache_hours * 3600)
+        self.session = self.cache_session  # No retry wrapping
 
         # Initialize chat model
         model_name = chat_model or os.getenv("OPENAI_CHAT_MODEL", "gpt-4o")
@@ -124,7 +123,7 @@ class OpenMeteoWeatherProvider(WeatherProvider):
                 "daily": ["temperature_2m_max", "temperature_2m_min", "sunrise", "sunset", "precipitation_probability_max"],
                 "forecast_days": 1
             }
-            response = self.retry_session.get(url, params=params)
+            response = self.session.get(url, params=params)
             response.raise_for_status()  # Raise exception for bad status codes
             return response.json()
 
@@ -213,7 +212,17 @@ class OpenMeteoWeatherProvider(WeatherProvider):
         Returns:
             Chain that creates newspaper-style weather columns
         """
-        system_template_str = "Como experto en redactar columnas meteorológicas atractivas para periódicos, tu tarea es crear una pieza cautivadora con el pronóstico del tiempo de hoy junto con un refrán relacionado. Combina el extracto meteorológico con el refrán para formar una columna concisa y entretenida que cautive a tus lectores."
+        system_template_str = (
+            "Como experto en redactar columnas meteorológicas atractivas para periódicos, "
+            "tu tarea es crear una pieza cautivadora con el pronóstico del tiempo de hoy "
+            "junto con un refrán relacionado. Combina el extracto meteorológico con el refrán "
+            "para formar una columna concisa y entretenida que cautive a tus lectores. "
+            "Considera incluir detalles como la vestimenta recomendada para el día, "
+            "si la temperatura se ajusta a la estación actual y cualquier fenómeno "
+            "meteorológico único que valga la pena mencionar. Tu columna no solo debe "
+            "informar a los lectores sobre el clima del día, sino también engancharlos "
+            "con un toque de creatividad y estilo."
+        )
 
         system_prompt = SystemMessagePromptTemplate(
             prompt=PromptTemplate.from_template(system_template_str)
@@ -241,18 +250,28 @@ class OpenMeteoWeatherProvider(WeatherProvider):
 
         # Define wrapper functions that fetch weather and invoke chains
         def weather_summary_func(question: str) -> str:
-            """Fetch current weather and answer question using summary chain"""
+            """Answer weather questions with current data.
+
+            Note: Currently hardcoded to Madrid for MVP. Future enhancement will
+            extract city names from user questions.
+            """
             weather_data = self.get_current_weather("madrid")
             # Combine weather data with question for context
             full_question = f"{question}\n\nContext: {weather_data}"
-            return summary_chain.invoke({"question": full_question}).content
+            result = summary_chain.invoke({"question": full_question})
+            return result.content if hasattr(result, 'content') else str(result)
 
         def weather_report_func(question: str) -> str:
-            """Fetch weather report and create newspaper column using report chain"""
+            """Generate full weather report.
+
+            Note: Currently hardcoded to Madrid for MVP. Future enhancement will
+            extract city names from user questions.
+            """
             weather_data = self.get_weather_report("madrid")
             # Combine weather data with question for context
             full_question = f"{question}\n\nContext: {weather_data}"
-            return report_chain.invoke({"question": full_question}).content
+            result = report_chain.invoke({"question": full_question})
+            return result.content if hasattr(result, 'content') else str(result)
 
         # Create tools
         tools = [
