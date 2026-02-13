@@ -1,16 +1,31 @@
 """Loguru logging configuration for Sebastian bot"""
 from loguru import logger
+from pathlib import Path
 import sys
 
 
-def setup_logging(log_folder: str = "logs", level: str = "INFO"):
+def setup_logging(log_folder: str = "logs", level: str = "INFO") -> logger.__class__:
     """
     Configure loguru for the application.
 
     Args:
         log_folder: Directory for log files
         level: Minimum log level (DEBUG, INFO, WARNING, ERROR)
+
+    Returns:
+        Configured logger instance
+
+    Raises:
+        ValueError: If level is not a valid loguru level
     """
+    # Validate level
+    valid_levels = ["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
+    if level.upper() not in valid_levels:
+        raise ValueError(f"Invalid log level: {level}. Must be one of {valid_levels}")
+
+    # Create log directory if it doesn't exist
+    Path(log_folder).mkdir(parents=True, exist_ok=True)
+
     # Remove default handler
     logger.remove()
 
