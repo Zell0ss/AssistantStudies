@@ -4,8 +4,6 @@ import telebot
 from openai import OpenAI
 import os
 import requests
-from weather.openmeteo import get_tempt_prompt
-from mycalendar.googlecal import get_events
 from utils.utils import config, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox, restart_service,stop_service,parse_nota_cata
 from sebastian_agent import get_sebastian_answer, calendar_provider, storage_provider
 import logging
@@ -183,9 +181,7 @@ def send_calendar(message):
             if calendar_provider:
                 events = calendar_provider.get_events()
             else:
-                # Fallback to old implementation
-                from mycalendar.googlecal import get_events
-                events = get_events()
+                raise RuntimeError("Calendar provider not configured")
             bot.reply_to(message, events)
         except Exception as e:
             logger.error(f"Calendar command failed: {e}")

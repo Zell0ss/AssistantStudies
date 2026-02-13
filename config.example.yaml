@@ -34,7 +34,7 @@ weather:
     oviedo: [43.3603, -5.8448]
     magán: [39.9614, -3.9316]
     magan: [39.9614, -3.9316]
-  refranes_file: weather/refranes.txt
+  refranes_file: data/refranes.txt
 
 # Google Calendar provider configuration
 google_calendar:
