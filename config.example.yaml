@@ -22,3 +22,16 @@ google_installed:
 openai_apikey: xxxxxx
 openai_org_id: xxxxx
 telegram_apikey: xxxx
+logfolder: /path/to/logs/
+
+# Weather provider configuration
+weather:
+  cache_hours: 1
+  cities:
+    madrid: [40.4165, -3.7026]
+    gijón: [43.5357, -5.6615]
+    gijon: [43.5357, -5.6615]
+    oviedo: [43.3603, -5.8448]
+    magán: [39.9614, -3.9316]
+    magan: [39.9614, -3.9316]
+  refranes_file: weather/refranes.txt
