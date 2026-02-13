@@ -43,21 +43,34 @@ Key environment variables control which OpenAI models are used:
 ### Core Components Flow
 
 ```
-Telegram Message → sebastian_bot.py → sebastian_agent.py → tools.py → OpenAI/APIs
-                    (handlers)        (LangChain agent)   (specialized chains)
+Telegram Message → sebastian_bot.py → ProviderRegistry → providers/* → External APIs
+                    (handlers)        (provider access)   (retry logic)
+
+                 ↓ (no command)
+
+               sebastian_agent.py → tools.py + provider tools → OpenAI/APIs
+               (LangChain agent)    (specialized chains)
 ```
+
+**Provider Flow**:
+- Bot startup: config.yaml → ProviderRegistry → Initialize providers → Health checks
+- Message handling: Command → Provider method → _call_with_retry() → External API
+- Agent routing: Plain text → Agent → Tool selection → Provider tool → Provider method
 
 ### Key Files
 
 **sebastian_bot.py** - Main entry point
 - Telegram bot command handlers (`/start`, `/imagen`, `/calendario`, etc.)
+- Initializes ProviderRegistry on startup
 - Authorization checking via `utils.utils.authorized()`
 - Routes default messages (no command) to the LangChain agent
 - Direct GPT calls for `/3` (GPT-3.5) and `/4` (GPT-4) commands
+- Accesses providers via `provider_registry.get('provider_name')`
 
 **sebastian_agent.py** - LangChain orchestration
 - Creates the main agent using `create_openai_functions_agent()`
-- Uses `AgentExecutor` with tools from `tools.py`
+- Uses `AgentExecutor` with tools from `tools.py` + provider tools
+- Aggregates provider tools via `provider_registry.get_all_tools()`
 - Pulls agent prompt from LangChain Hub: `"hwchase17/openai-functions-agent"`
 - Exposes `get_sebastian_answer(question)` function that returns agent response
 
@@ -82,19 +95,31 @@ Telegram Message → sebastian_bot.py → sebastian_agent.py → tools.py → Op
 
 ### Specialized Modules
 
-**weather/openmeteo.py**
+**providers/** - Modular provider system
+- All providers inherit from `BaseProvider` with automatic retry logic
+- ProviderRegistry manages initialization, health checks, and tool aggregation
+- See [docs/HOW-TO-ADD-PROVIDER.md](docs/HOW-TO-ADD-PROVIDER.md) for details
+
+**providers/weather.py** - OpenMeteoWeatherProvider
 - OpenMeteo API integration with caching (1-hour cache via requests_cache)
-- Supports multiple cities via `CITIES` dict (Madrid, Gijón, Oviedo, Magán)
+- Supports multiple cities via config (Madrid, Gijón, Oviedo, Magán)
 - Fetches current temp, precipitation, daily min/max, sunrise/sunset
-- Returns weather report + random Spanish wine saying from `refranes.txt`
+- Returns weather report + random Spanish wine saying from `data/refranes.txt`
+- Exposes WeatherSummary and WeatherReport tools for LangChain agent
 
-**mycalendar/googlecal.py**
-- Google Calendar API integration
-- Retrieves tomorrow's events via `get_events()`
+**providers/calendar.py** - GoogleCalendarProvider
+- Google Calendar API integration via service account
+- Retrieves events for upcoming days via `get_events(days_ahead)`
+- Called directly from `/calendario` bot command
 
-**mydropbox/upload_dropbox.py**
-- Dropbox API file upload functionality
+**providers/storage.py** - StorageProvider (Dropbox)
+- Dropbox API file upload functionality via OAuth2 refresh token
 - Called from bot when documents are sent to chat
+- Uploads to "Espacio familiar/intercambio" folder by default
+
+**providers/transcription.py** - TranscriptionProvider (Whisper)
+- OpenAI Whisper API integration for audio transcription
+- Called from bot when voice messages are sent to chat
 
 ## LangChain Agent System
 
@@ -163,11 +188,96 @@ Users can be authorized by username or Telegram user ID. New users can be added 
 - `/4 <question>` - Direct GPT-4 query (bypasses agent)
 - No command (plain text) - Routed to LangChain agent
 
+## Provider System
+
+### Adding New Provider
+
+See [docs/HOW-TO-ADD-PROVIDER.md](docs/HOW-TO-ADD-PROVIDER.md) for comprehensive guide.
+
+**Quick 5-step overview**:
+
+1. **Create config class** in `providers/config.py`:
+   ```python
+   class NewProviderConfig(ProviderConfig):
+       def validate(self) -> bool:
+           # Check required fields
+           pass
+   ```
+
+2. **Create provider class** in `providers/new_provider.py`:
+   ```python
+   class NewProvider(BaseProvider):
+       def health_check(self) -> bool:
+           # Verify connectivity
+           pass
+   ```
+
+3. **Register in ProviderRegistry** (`providers/__init__.py`):
+   ```python
+   if 'new_provider' in self.config:
+       config = NewProviderConfig(self.config['new_provider'])
+       self.providers['new_provider'] = NewProvider(config)
+   ```
+
+4. **Add to config.yaml**:
+   ```yaml
+   new_provider:
+     api_key: xxx
+   ```
+
+5. **Test initialization** and use in bot handlers or expose as LangChain tools
+
+### Provider Retry Logic
+
+All providers inherit from `BaseProvider` which provides automatic retry logic via `_call_with_retry()`:
+
+- **Retries transient errors** (network failures, timeouts, connection resets) **3 times**
+- **Exponential backoff**: 2 seconds → 4 seconds → 8 seconds between retries
+- **Fails fast** on non-transient errors (authentication failures, configuration errors, validation errors)
+- **All retries logged** via loguru with full context (provider name, method name, error type)
+
+**When to use**: Wrap all external API calls with `self._call_with_retry(api_function)` to get automatic retry behavior.
+
+**Example**:
+```python
+def fetch_weather(self, city: str):
+    def _api_call():
+        response = requests.get(f"https://api.weather.com/forecast?city={city}")
+        response.raise_for_status()
+        return response.json()
+
+    return self._call_with_retry(_api_call)  # Automatic retries on network errors
+```
+
+### Current Providers
+
+**WeatherProvider** (abstract → OpenMeteoWeatherProvider):
+- Fetches weather forecasts from OpenMeteo API
+- Provides LangChain tools: WeatherSummary, WeatherReport
+- Includes 1-hour HTTP cache to reduce API calls
+- Returns Spanish weather report + random refran (wine saying)
+
+**CalendarProvider** (abstract → GoogleCalendarProvider):
+- Retrieves events from Google Calendar API
+- Uses service account authentication
+- Called directly from bot commands (not exposed as agent tools)
+
+**StorageProvider** (concrete, Dropbox):
+- Uploads files to Dropbox via OAuth2
+- Handles document uploads from Telegram
+- Called directly from bot handlers (not exposed as agent tools)
+
+**TranscriptionProvider** (concrete, Whisper):
+- Transcribes audio files using OpenAI Whisper API
+- Handles voice messages from Telegram
+- Called directly from bot handlers (not exposed as agent tools)
+
 ## Logging
 
 - Log file location: `{config["logfolder"]}/app.log`
-- Configured in both sebastian_bot.py and utils/utils.py
-- Uses Python logging module with basicConfig
+- Uses **loguru** for structured logging across all modules
+- All providers log initialization, health checks, API calls, retries, and errors
+- Configured in both sebastian_bot.py and utils/logging_config.py
 
 ## Important Notes
 
@@ -177,3 +287,4 @@ Users can be authorized by username or Telegram user ID. New users can be added 
 - Agent system runs with `verbose=True` and `return_intermediate_steps=True`
 - Weather reports include random Spanish wine sayings for cultural flavor
 - All sensitive data (API keys, tokens) must be in config.yaml or .env, never in code
+- **Provider health checks** run on bot startup - critical failures will prevent bot from starting
