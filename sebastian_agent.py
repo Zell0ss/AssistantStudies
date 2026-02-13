@@ -9,8 +9,9 @@ from langchain.agents import (
 from loguru import logger
 
 # Import provider system
-from providers.config import WeatherConfig
+from providers.config import WeatherConfig, CalendarConfig
 from providers.weather import OpenMeteoWeatherProvider
+from providers.calendar import GoogleCalendarProvider
 from utils.logging_config import setup_logging
 from utils.utils import config
 
@@ -51,6 +52,17 @@ if 'weather' in config:
         logger.error(f"Failed to initialize weather provider: {e}")
         weather_provider = None
         weather_tools = []
+
+# Initialize calendar provider if configured
+calendar_provider = None
+if 'google_calendar' in config:
+    try:
+        calendar_config = CalendarConfig(config['google_calendar'])
+        calendar_provider = GoogleCalendarProvider(calendar_config)
+        logger.info("Calendar provider initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize calendar provider: {e}")
+        calendar_provider = None
 
 # Get legacy tools (includes weather for now - will be removed later)
 legacy_tools = get_tools()

@@ -35,3 +35,8 @@ weather:
     magán: [39.9614, -3.9316]
     magan: [39.9614, -3.9316]
   refranes_file: weather/refranes.txt
+
+# Google Calendar provider configuration
+google_calendar:
+  service_account_file: mycalendar/Zell0ss_api-access.json
+  calendar_id: zelloss@gmail.com

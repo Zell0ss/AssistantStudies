@@ -7,7 +7,7 @@ import requests
 from weather.openmeteo import get_tempt_prompt
 from mycalendar.googlecal import get_events
 from utils.utils import config, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox, restart_service,stop_service,parse_nota_cata
-from sebastian_agent import get_sebastian_answer
+from sebastian_agent import get_sebastian_answer, calendar_provider
 import logging
 """
 This is a Python script that implements a Telegram bot using the telebot library. The bot is designed to interact with users and provide various functionalities, including:
@@ -145,7 +145,17 @@ retrieve tomorrow events
 @bot.message_handler(commands=['calendario'])
 def send_calendar(message):
     if authorized(message.chat.username, message.chat.id):
-        bot.reply_to(message, get_events())
+        try:
+            if calendar_provider:
+                events = calendar_provider.get_events()
+            else:
+                # Fallback to old implementation
+                from mycalendar.googlecal import get_events
+                events = get_events()
+            bot.reply_to(message, events)
+        except Exception as e:
+            logger.error(f"Calendar command failed: {e}")
+            bot.reply_to(message, f"❌ Error obteniendo calendario: {str(e)}")
 
 #%%
 """

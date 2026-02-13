@@ -115,3 +115,33 @@ class WeatherConfig(ProviderConfig):
             raise FileNotFoundError(f"Refranes file not found: {self.refranes_file}")
 
         return True
+
+
+class CalendarConfig(ProviderConfig):
+    """Configuration for calendar provider"""
+
+    def __init__(self, config_dict: dict):
+        """
+        Initialize calendar configuration.
+
+        Args:
+            config_dict: Dict from config.yaml['google_calendar']
+        """
+        self.service_account_file = config_dict.get('service_account_file')
+        self.calendar_id = config_dict.get('calendar_id')
+        self.scopes = config_dict.get('scopes', ['https://www.googleapis.com/auth/calendar'])
+
+    def validate(self) -> bool:
+        """Validate calendar configuration"""
+        if not self.service_account_file:
+            raise ValueError("CalendarConfig: service_account_file not specified")
+
+        if not os.path.exists(self.service_account_file):
+            raise FileNotFoundError(
+                f"CalendarConfig: service account file not found: {self.service_account_file}"
+            )
+
+        if not self.calendar_id:
+            raise ValueError("CalendarConfig: calendar_id not specified")
+
+        return True
