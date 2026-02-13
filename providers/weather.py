@@ -221,7 +221,15 @@ class OpenMeteoWeatherProvider(WeatherProvider):
             "si la temperatura se ajusta a la estación actual y cualquier fenómeno "
             "meteorológico único que valga la pena mencionar. Tu columna no solo debe "
             "informar a los lectores sobre el clima del día, sino también engancharlos "
-            "con un toque de creatividad y estilo."
+            "con un toque de creatividad y estilo. "
+            "Redacta una narrativa que entrelace sin esfuerzo el pronóstico del tiempo, "
+            "el refrán y observaciones adicionales para que tu columna sea tanto informativa "
+            "como agradable de leer. Apunta a una extensión adecuada para una columna de periódico, "
+            "brindando una visión general breve pero completa del clima del día mientras le imprimes "
+            "personalidad y encanto. Deja que tu experiencia brille mientras entregas una columna "
+            "meteorológica que no solo informe, sino que también entretenga e intrigue a tu audiencia. "
+            "Prepárate para inspirar a tus lectores con una deliciosa combinación de información "
+            "meteorológica y sabiduría literaria en la columna del clima de hoy."
         )
 
         system_prompt = SystemMessagePromptTemplate(
