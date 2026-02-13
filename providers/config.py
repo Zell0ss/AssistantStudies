@@ -145,3 +145,32 @@ class CalendarConfig(ProviderConfig):
             raise ValueError("CalendarConfig: calendar_id not specified")
 
         return True
+
+
+class StorageConfig(ProviderConfig):
+    """Configuration for storage provider (Dropbox)"""
+
+    def __init__(self, config_dict: dict):
+        """
+        Initialize storage configuration.
+
+        Args:
+            config_dict: Dict from config.yaml['dropbox']
+        """
+        self.refresh_token = config_dict.get('refresh_token')
+        self.app_key = config_dict.get('app_key')
+        self.app_secret = config_dict.get('app_secret')
+        self.app_name = config_dict.get('app_name', 'SebastianAssistant')
+
+    def validate(self) -> bool:
+        """Validate storage configuration"""
+        if not self.refresh_token:
+            raise ValueError("StorageConfig: refresh_token not specified")
+
+        if not self.app_key:
+            raise ValueError("StorageConfig: app_key not specified")
+
+        if not self.app_secret:
+            raise ValueError("StorageConfig: app_secret not specified")
+
+        return True

@@ -9,9 +9,10 @@ from langchain.agents import (
 from loguru import logger
 
 # Import provider system
-from providers.config import WeatherConfig, CalendarConfig
+from providers.config import WeatherConfig, CalendarConfig, StorageConfig
 from providers.weather import OpenMeteoWeatherProvider
 from providers.calendar import GoogleCalendarProvider
+from providers.storage import StorageProvider
 from utils.logging_config import setup_logging
 from utils.utils import config
 
@@ -63,6 +64,17 @@ if 'google_calendar' in config:
     except Exception as e:
         logger.error(f"Failed to initialize calendar provider: {e}")
         calendar_provider = None
+
+# Initialize storage provider if configured
+storage_provider = None
+if 'dropbox' in config:
+    try:
+        storage_config = StorageConfig(config['dropbox'])
+        storage_provider = StorageProvider(storage_config)
+        logger.info("Storage provider initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize storage provider: {e}")
+        storage_provider = None
 
 # Get legacy tools (includes weather for now - will be removed later)
 legacy_tools = get_tools()

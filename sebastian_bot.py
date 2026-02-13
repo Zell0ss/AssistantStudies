@@ -7,7 +7,7 @@ import requests
 from weather.openmeteo import get_tempt_prompt
 from mycalendar.googlecal import get_events
 from utils.utils import config, authorized, classify_text_mimetype, add_authorized_user, upload_document_dropbox, restart_service,stop_service,parse_nota_cata
-from sebastian_agent import get_sebastian_answer, calendar_provider
+from sebastian_agent import get_sebastian_answer, calendar_provider, storage_provider
 import logging
 from loguru import logger
 """
@@ -134,8 +134,41 @@ handling files to dropbox
     content_types=['document'])
 def command_handle_document(message):
     if authorized(message.chat.username, message.chat.id):
-        response = upload_document_dropbox(message)
-        bot.send_message(message.chat.id,response)
+        try:
+            # Get folder from caption or default
+            if hasattr(message, "caption") and message.caption:
+                folder = message.caption
+            elif hasattr(message, "html_caption") and message.html_caption:
+                folder = message.html_caption
+            else:
+                folder = "intercambio"
+
+            name = message.document.file_name
+
+            # Retrieve file from Telegram
+            from utils.utils import retrieve_telegram_file_address, retrieve_telegram_file
+            remote_name = retrieve_telegram_file_address(message.document.file_id)
+            das_file = retrieve_telegram_file(remote_name)
+
+            # Upload using provider if available
+            if storage_provider:
+                metadata = storage_provider.upload_file(
+                    file_blob=das_file,
+                    file_name=name,
+                    folder=folder
+                )
+                response = f'✓ Documento subido a Dropbox: Espacio familiar/{folder}/{name}'
+            else:
+                # Fallback to old implementation
+                from mydropbox.upload_dropbox import upload_file_dbx
+                upload_file_dbx(file_blob=das_file, file_name=name, folder=folder)
+                response = f'Documento subido a {remote_name} depositado en dropbox Espacio familiar/{folder}/{name}'
+
+            bot.send_message(message.chat.id, response)
+
+        except Exception as e:
+            logger.error(f"Document upload failed: {e}")
+            bot.send_message(message.chat.id, f"❌ Error subiendo documento: {str(e)}")
 
 
 
