@@ -22,11 +22,11 @@ Creates a LangChain-based AI agent called "Sebastian" that can use tools to answ
 Now using modular provider system for weather functionality.
 """
 
-# Initialize logging
-setup_logging(log_folder=config.get("logfolder", "logs"))
-
 dotenv.load_dotenv()
 AGENT_MODEL = os.getenv("OPENAI_AGENT_MODEL")
+
+# Initialize logging
+setup_logging(log_folder=config.get("logfolder", "logs"))
 chat_model = ChatOpenAI(model=AGENT_MODEL,temperature=0)
 
 agent_prompt = hub.pull("hwchase17/openai-functions-agent") #se re-responde a si mismo cuando le pido que mejore un prompt!
