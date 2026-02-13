@@ -9,7 +9,7 @@ https://www.dropbox.com/oauth2/authorize?client_id=<APP_KEY>&token_access_type=o
 
 Complete the code flow on the Authorization URL. You will receive an AUTHORIZATION_CODE at the end.
 
-# 3. get the permanent refres token:
+# 3. get the permanent refresh token:
 curl --location 'https://api.dropboxapi.com/oauth2/token' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --header 'Authorization: Basic <APP_KEY>:<APP_SECRET>' \

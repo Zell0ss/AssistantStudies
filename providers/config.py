@@ -73,10 +73,10 @@ class WeatherConfig(ProviderConfig):
             return os.path.abspath(config_path)
 
         # Fallback: resolve relative to module location
-        # Assumes weather/refranes.txt exists relative to project root
+        # Assumes data/refranes.txt exists relative to project root
         module_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(module_dir)
-        fallback_path = os.path.join(project_root, 'weather', 'refranes.txt')
+        fallback_path = os.path.join(project_root, 'data', 'refranes.txt')
 
         return os.path.abspath(fallback_path)
 

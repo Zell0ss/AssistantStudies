@@ -4,7 +4,6 @@ import re
 import logging
 import requests
 import subprocess
-from mydropbox.upload_dropbox import upload_file_dbx
 """
 collection of utility functions for the Telegram bot
 """
@@ -123,13 +122,14 @@ def retrieve_telegram_file(remote_name):
     das_file = response_file.content
     return das_file
     
-def upload_document_dropbox(message):
+def upload_document_dropbox(message, storage_provider):
     """
     Sube un documento a dropbox en el directorio especificado por el usuario.
-    
+
     Parameters
     message : telebot.types.Message El mensaje que contiene el documento que se va a subir.
-    
+    storage_provider : StorageProvider The storage provider instance to use for upload.
+
     Returns
     str Un mensaje que indica el resultado de la subida del documento.
     """
@@ -145,7 +145,7 @@ def upload_document_dropbox(message):
     #retrieve file itself
     das_file = retrieve_telegram_file(remote_name)
     #to dropbox!
-    upload_file_dbx(file_blob=das_file, file_name=name, folder=folder)
+    storage_provider.upload_file(file_blob=das_file, file_name=name, folder=folder)
     response =  f'Documento subido a {remote_name} depositado en dropbox Espacio familiar/{folder}/{name}'
     return response
 

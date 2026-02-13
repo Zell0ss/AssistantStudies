@@ -11,7 +11,6 @@ from langchain import hub
 from pydantic import BaseModel, Field
 import dotenv
 import os
-from weather.openmeteo import get_tempt_prompt
 
 dotenv.load_dotenv()
 
@@ -131,76 +130,6 @@ def get_social_media_banner():
     return basic_question_chain
 
 """
-weatherbot chains
-"""
-def get_current_weather_chain():
-    """
-    Creates a question-answering chain using a chat model that knows the current weather forecast.
-
-    The chain is configured to act as a meteorologist that answers user questions about the current weather.
-    The chain is given the current weather forecast as a system prompt and is expected to answer accordingly.
-
-    Returns:
-        A chain object capable of processing user questions about the current weather and generating responses based on the configured prompts and chat model.
-    """
-    CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL") # gpt-4o
-    chat_model = ChatOpenAI(model=CHAT_MODEL, temperature=0)
-
-    system_template_str = f"You are a meteorologist. Your job is to answer to what will be todays weather. You know that today's weather forecast is {get_tempt_prompt()}."
-
-    system_prompt = SystemMessagePromptTemplate(
-        prompt=PromptTemplate.from_template(system_template_str)
-    )
-
-    human_prompt = HumanMessagePromptTemplate(
-        prompt=PromptTemplate.from_template("{question}")
-    )
-
-    messages = [system_prompt, human_prompt]
-    template = ChatPromptTemplate.from_messages(messages)
-
-    question_chain = template | chat_model
-
-    return question_chain
-
-def get_weather_report_chain():
-    """
-    Creates a question-answering chain using a chat model that knows the current weather forecast.
-
-    The chain is configured to act as a meteorologist that creates a full report about the current weather.
-    The chain is given the current weather forecast and a wine saying as a system prompt and is expected to answer accordingly.
-
-    Returns:
-        A chain object capable of processing user questions about the current weather and generating responses based on the configured prompts and chat model.
-    """
-    CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL") # gpt-4o
-    chat_model = ChatOpenAI(model=CHAT_MODEL, temperature=0)
-
-    system_template_str =  f"Como experto en redactar columnas meteorológicas atractivas para periódicos, tu tarea es crear una pieza cautivadora con el pronóstico del tiempo de hoy junto con un refrán relacionado. \
-Combina el extracto meteorológico con el refrán para formar una columna concisa y entretenida que cautive a tus lectores. \
-Considera incluir detalles como la vestimenta recomendada para el día, si la temperatura se ajusta a la estación actual y cualquier fenómeno meteorológico único que valga la pena mencionar. \
-Tu columna no solo debe informar a los lectores sobre el clima del día, sino también engancharlos con un toque de creatividad y estilo. \
-Redacta una narrativa que entrelace sin esfuerzo el pronóstico del tiempo, el refrán y observaciones adicionales para que tu columna sea tanto informativa como agradable de leer. \
-Apunta a una extensión adecuada para una columna de periódico, brindando una visión general breve pero completa del clima del día mientras le imprimes personalidad y encanto. \
-Deja que tu experiencia brille mientras entregas una columna meteorológica que no solo informe, sino que también entretenga e intrigue a tu audiencia. \
-Prepárate para inspirar a tus lectores con una deliciosa combinación de información meteorológica y sabiduría literaria en la columna del clima de hoy. Aquí estan la temperatura y el refran\ {get_tempt_prompt()}."
-
-    system_prompt = SystemMessagePromptTemplate(
-        prompt=PromptTemplate.from_template(system_template_str)
-    )
-
-    human_prompt = HumanMessagePromptTemplate(
-        prompt=PromptTemplate.from_template("{question}")
-    )
-
-    messages = [system_prompt, human_prompt]
-    template = ChatPromptTemplate.from_messages(messages)
-
-    question_chain = template | chat_model
-
-    return question_chain
-
-"""
 Misc chains
 """
 def get_lazy_prompt(prompt:str, task:str)->str:
@@ -221,22 +150,22 @@ tool creation
 """
 def get_tools():
     """
-    Returns a list of tools for the agent to use.
+    Returns a list of core tools for the agent to use.
+
+    Note: Weather tools (WeatherSummary, WeatherReport) are now provided by the
+    weather provider and are added separately via ProviderRegistry.get_all_tools()
 
     The tools are:
         - BasicQuestions: A tool that answers all kind of questions except if they are about the weather today, or about generate propmpts based on the instructions in the received one.
-        - WeatherSummary: A tool that answers questions about the current weather today.
         - LazyPrompt: A tool that takes a prompt and a task and returns an enhanced version of the prompt that should be presented to the user as-is, not executed.
         and others
     """
     basic_question_chain = get_basic_question_chain()
-    current_weather_chain = get_current_weather_chain()
-    weather_report_chain = get_weather_report_chain()    
     wine_taste_note_chain = get_wine_taste_note_chain()
     wine_details_chain = investigate_wine_chain()
     social_media_banner = get_social_media_banner()
 
-    # for tools that call a function with parameter passing we need to create the model of the parameters 
+    # for tools that call a function with parameter passing we need to create the model of the parameters
     # with its description for the LLM and then create an StructuredTool
     ## LazyPrompt
     class LazyPromptInput(BaseModel):
@@ -248,7 +177,7 @@ def get_tools():
                         func=get_lazy_prompt,
                         args_schema=LazyPromptInput
                     )
-    
+
 
     tools = [
         Tool(
@@ -259,16 +188,6 @@ def get_tools():
             entire prompt as input to the tool. For instance, if the prompt is
             "How big is the city of Oviedo?", the input should be "How big is the city of Oviedo?".
             """,
-        ),
-        Tool(
-            name="WeatherSummary",
-            func=current_weather_chain.invoke,
-            description="Use when asked about current weather today.",
-        ),
-        Tool(
-            name="WeatherReport",
-            func=weather_report_chain.invoke,
-            description="Use when asked about make a complete report or an inspired piece, newspaper-like, about current weather today.",
         ),
         Tool(
             name="WineTasteNote",
