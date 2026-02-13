@@ -11,6 +11,8 @@ from tenacity import (
 )
 import requests.exceptions
 
+from .config import ProviderConfig
+
 # Type for retry wrapper
 T = TypeVar('T')
 
@@ -33,7 +35,7 @@ class BaseProvider(ABC):
     - health_check: Verify provider is working
     """
 
-    def __init__(self, config):
+    def __init__(self, config: 'ProviderConfig'):
         """Initialize provider with configuration"""
         self.config = config
         self.config.validate()
@@ -91,11 +93,27 @@ class BaseProvider(ABC):
         try:
             return _retry_wrapper()
         except RetryError as e:
-            logger.error(
-                f"{self.__class__.__name__}.{func.__name__}: "
-                f"Failed after 3 retries: {e.last_attempt.exception()}"
-            )
-            raise e.last_attempt.exception()
+            # Extract the original exception with defensive checks
+            if e.last_attempt and hasattr(e.last_attempt, 'exception'):
+                try:
+                    original_exception = e.last_attempt.exception()
+                    logger.error(
+                        f"{self.__class__.__name__}.{func.__name__}: "
+                        f"Failed after 3 retries: {original_exception}"
+                    )
+                    raise original_exception
+                except AttributeError:
+                    logger.error(
+                        f"{self.__class__.__name__}.{func.__name__}: "
+                        f"Failed after 3 retries (could not extract exception)"
+                    )
+                    raise e
+            else:
+                logger.error(
+                    f"{self.__class__.__name__}.{func.__name__}: "
+                    f"Failed after 3 retries (no last_attempt)"
+                )
+                raise e
 
     @abstractmethod
     def health_check(self) -> bool:

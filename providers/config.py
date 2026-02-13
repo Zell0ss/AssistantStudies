@@ -12,7 +12,7 @@ class ProviderConfig(ABC):
         Validate configuration values.
 
         Returns:
-            True if valid
+            True if valid (never False - raises instead)
 
         Raises:
             ValueError: If configuration is invalid
