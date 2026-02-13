@@ -9,10 +9,11 @@ from langchain.agents import (
 from loguru import logger
 
 # Import provider system
-from providers.config import WeatherConfig, CalendarConfig, StorageConfig
+from providers.config import WeatherConfig, CalendarConfig, StorageConfig, TranscriptionConfig
 from providers.weather import OpenMeteoWeatherProvider
 from providers.calendar import GoogleCalendarProvider
 from providers.storage import StorageProvider
+from providers.transcription import TranscriptionProvider
 from utils.logging_config import setup_logging
 from utils.utils import config
 
@@ -75,6 +76,17 @@ if 'dropbox' in config:
     except Exception as e:
         logger.error(f"Failed to initialize storage provider: {e}")
         storage_provider = None
+
+# Initialize transcription provider if configured
+transcription_provider = None
+if 'openai_apikey' in config:
+    try:
+        transcription_config = TranscriptionConfig(config)
+        transcription_provider = TranscriptionProvider(transcription_config)
+        logger.info("Transcription provider initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize transcription provider: {e}")
+        transcription_provider = None
 
 # Get legacy tools (includes weather for now - will be removed later)
 legacy_tools = get_tools()

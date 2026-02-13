@@ -174,3 +174,23 @@ class StorageConfig(ProviderConfig):
             raise ValueError("StorageConfig: app_secret not specified")
 
         return True
+
+
+class TranscriptionConfig(ProviderConfig):
+    """Configuration for transcription provider (Whisper)"""
+
+    def __init__(self, config_dict: dict):
+        """
+        Initialize transcription configuration.
+
+        Args:
+            config_dict: Dict from config.yaml (needs openai_apikey)
+        """
+        self.api_key = config_dict.get('openai_apikey')
+
+    def validate(self) -> bool:
+        """Validate transcription configuration"""
+        if not self.api_key:
+            raise ValueError("TranscriptionConfig: openai_apikey not specified")
+
+        return True
