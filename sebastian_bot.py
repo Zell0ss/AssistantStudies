@@ -157,10 +157,7 @@ def command_handle_document(message):
                 )
                 response = f'✓ Documento subido a Dropbox: Espacio familiar/{folder}/{name}'
             else:
-                # Fallback to old implementation
-                from mydropbox.upload_dropbox import upload_file_dbx
-                upload_file_dbx(file_blob=das_file, file_name=name, folder=folder)
-                response = f'Documento subido a {remote_name} depositado en dropbox Espacio familiar/{folder}/{name}'
+                raise RuntimeError("Storage provider not configured")
 
             bot.send_message(message.chat.id, response)
 
