@@ -1,19 +1,32 @@
 # Sprite Expression Mapping
-# Maps expression names to sprite image files
+# Maps expression names to sprite image files (within each skin directory)
+
+# Skin directory structure: images/{skin_name}/{expression_files}
+# Each skin must have all 12 expressions with these filenames
 
 expressions:
-  neutral: images/000_neutral.png
-  thinking: images/001_thinking.png
-  confident: images/002_confident.png
-  surprised: images/003_surprised.png
-  concerned: images/004_concerned.png
-  triumphant: images/005_triumphant.png
-  confused: images/006_confused.png
-  serious: images/007_serious.png
-  skeptical: images/008_skeptical.png
-  apologetic: images/009_apologetic.png
-  excited: images/010_excited.png
-  deadpan: images/011_deadpan.png
+  neutral: 000_neutral.png
+  thinking: 001_thinking.png
+  confident: 002_confident.png
+  surprised: 003_surprised.png
+  concerned: 004_concerned.png
+  triumphant: 005_triumphant.png
+  confused: 006_confused.png
+  serious: 007_serious.png
+  skeptical: 008_skeptical.png
+  apologetic: 009_apologetic.png
+  excited: 010_excited.png
+  deadpan: 011_deadpan.png
 
 # Default expression when requested expression is not found
 default: neutral
+
+# Default skin
+default_skin: sebastian
+
+# Available skins (add new skins here as you create them)
+available_skins:
+  - sebastian
+  # - cute
+  # - serious
+  # Add more skins here...

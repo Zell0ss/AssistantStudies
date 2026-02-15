@@ -16,7 +16,7 @@ class ResponseFormatter:
         logger.info("ResponseFormatter initialized")
 
     def format_response(
-        self, router_result: dict, context: Optional[dict] = None
+        self, router_result: dict, context: Optional[dict] = None, user_skin: str = None
     ) -> dict:
         """
         Format router result into Telegram response with sprite.
@@ -25,6 +25,7 @@ class ResponseFormatter:
             router_result: {"success": bool, "result": str, "data": dict}
             context: Optional context for expression selection
                      {"module": str, "action": str, "low_stock": bool, "empty": bool}
+            user_skin: Optional skin name (e.g., "sebastian", "cute"). Uses default if None.
 
         Returns:
             {
@@ -38,14 +39,14 @@ class ResponseFormatter:
         # Select appropriate expression
         expression = self._select_expression(router_result, context)
 
-        # Get sprite path
-        sprite_path = self.sprite_system.get_sprite(expression)
+        # Get sprite path with user's selected skin
+        sprite_path = self.sprite_system.get_sprite(expression, skin=user_skin)
 
         # Extract caption from router result
         caption = router_result.get("result", "")
 
         logger.debug(
-            f"Formatted response: expression={expression}, "
+            f"Formatted response: expression={expression}, skin={user_skin or 'default'}, "
             f"caption_preview={caption[:50]}..."
         )
 

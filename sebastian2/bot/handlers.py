@@ -7,6 +7,9 @@ Integrates parser, router, formatter, and sprite system.
 from core.haiku_parser import HaikuParser
 from core.router import ModuleRouter
 from bot.formatter import ResponseFormatter
+from modules.user_settings import UserSettingsModule
+from sprites.sprite_system import SpriteSystem
+from db.connection import get_connection
 from loguru import logger
 
 
@@ -21,6 +24,7 @@ def setup_handlers(bot, config):
     # Initialize components
     parser = HaikuParser()
     formatter = ResponseFormatter()
+    sprite_system = SpriteSystem()
 
     logger.info("Setting up Telegram bot handlers")
 
@@ -112,6 +116,72 @@ def setup_handlers(bot, config):
         bot.reply_to(message, response, parse_mode='Markdown')
         logger.info(f"ID request from {message.chat.username} ({message.chat.id})")
 
+    @bot.message_handler(commands=['skins'])
+    def list_skins(message):
+        """List available sprite skins"""
+        if not authorized(message.chat.username, message.chat.id):
+            return
+
+        conn = get_connection()
+        settings = UserSettingsModule(conn, str(message.chat.id))
+        current_skin = settings.get_sprite_skin()
+        available_skins = sprite_system.get_available_skins()
+
+        skins_list = "\n".join([
+            f"{'✅' if skin == current_skin else '  '} {skin}"
+            for skin in available_skins
+        ])
+
+        response = (
+            f"🎨 **Skins disponibles:**\n\n"
+            f"{skins_list}\n\n"
+            f"Usa `/skin nombre` para cambiar\n"
+            f"Ejemplo: `/skin cute`"
+        )
+        bot.reply_to(message, response, parse_mode='Markdown')
+        logger.info(f"Skins list requested by {message.chat.username}")
+
+    @bot.message_handler(commands=['skin'])
+    def change_skin(message):
+        """Change sprite skin"""
+        if not authorized(message.chat.username, message.chat.id):
+            return
+
+        # Parse command: /skin <skin_name>
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            bot.reply_to(message,
+                "Uso: `/skin nombre`\n"
+                "Ejemplo: `/skin cute`\n\n"
+                "Usa `/skins` para ver las opciones",
+                parse_mode='Markdown'
+            )
+            return
+
+        skin_name = parts[1].strip()
+
+        # Validate skin exists
+        if not sprite_system.skin_exists(skin_name):
+            available = ", ".join(sprite_system.get_available_skins())
+            bot.reply_to(message,
+                f"❌ Skin '{skin_name}' no encontrado.\n\n"
+                f"Skins disponibles: {available}",
+                parse_mode='Markdown'
+            )
+            return
+
+        # Save skin preference
+        conn = get_connection()
+        settings = UserSettingsModule(conn, str(message.chat.id))
+        result = settings.set_sprite_skin(skin_name)
+
+        bot.reply_to(message,
+            f"✅ {result['message']}\n\n"
+            f"Ahora verás los sprites de '{skin_name}'! 🎨",
+            parse_mode='Markdown'
+        )
+        logger.info(f"{message.chat.username} changed skin to: {skin_name}")
+
     @bot.message_handler(func=lambda message: True, content_types=['text'])
     def handle_text(message):
         """
@@ -137,6 +207,11 @@ def setup_handlers(bot, config):
             result = router.route(parsed)
             logger.debug(f"Router result: {result}")
 
+            # Get user's sprite skin preference
+            conn = get_connection()
+            settings = UserSettingsModule(conn, str(message.chat.id))
+            user_skin = settings.get_sprite_skin()
+
             # Build context for formatter
             context = {
                 "module": parsed.get("module"),
@@ -145,9 +220,9 @@ def setup_handlers(bot, config):
                 "empty": result.get("data", {}) == [] or result.get("data") is None
             }
 
-            # Format response with sprite
-            response = formatter.format_response(result, context)
-            logger.debug(f"Formatted response: {response}")
+            # Format response with sprite (using user's skin)
+            response = formatter.format_response(result, context, user_skin=user_skin)
+            logger.debug(f"Formatted response with skin '{user_skin}': {response}")
 
             # Send sprite photo with caption
             try:
@@ -168,6 +243,14 @@ def setup_handlers(bot, config):
         except Exception as e:
             logger.error(f"Error processing message: {e}", exc_info=True)
 
+            # Get user's skin (or use default if error)
+            try:
+                conn = get_connection()
+                settings = UserSettingsModule(conn, str(message.chat.id))
+                user_skin = settings.get_sprite_skin()
+            except:
+                user_skin = None  # Will use default
+
             # Send error response with confused sprite
             error_result = {
                 "success": False,
@@ -175,7 +258,7 @@ def setup_handlers(bot, config):
                 "data": {}
             }
             error_context = {"module": "unknown", "action": "unknown"}
-            error_response = formatter.format_response(error_result, error_context)
+            error_response = formatter.format_response(error_result, error_context, user_skin=user_skin)
 
             try:
                 with open(error_response["sprite_path"], 'rb') as photo:
