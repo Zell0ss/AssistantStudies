@@ -1,0 +1,24 @@
+[Unit]
+Description=Sebastian 2.0 - Personal Assistant Telegram Bot
+After=network.target mariadb.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/data/AssistantStudies/sebastian2
+ExecStart=/data/AssistantStudies/sebastian2/.venv/bin/python3 /data/AssistantStudies/sebastian2/sebastian_bot.py
+Restart=on-failure
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sebastian2
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+# Security
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
