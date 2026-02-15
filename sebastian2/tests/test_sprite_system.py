@@ -30,7 +30,7 @@ class TestSpriteSystem:
         assert isinstance(path, str)
 
         # Should end with the expected filename
-        assert path.endswith('images/002_confident.png')
+        assert path.endswith('images/sebastian/002_confident.webp')
 
         # Should be an absolute path
         assert os.path.isabs(path)
@@ -42,7 +42,7 @@ class TestSpriteSystem:
 
         # Both should return the same default sprite
         assert unknown_path == default_path
-        assert unknown_path.endswith('images/000_neutral.png')
+        assert unknown_path.endswith('images/sebastian/000_neutral.webp')
 
     def test_sprite_paths_are_absolute(self, sprite_system):
         """Test that all sprite paths are absolute."""

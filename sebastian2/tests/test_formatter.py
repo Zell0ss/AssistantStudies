@@ -109,8 +109,8 @@ def test_response_includes_sprite_path(formatter):
     assert response["sprite_path"].startswith("/")
     # Should point to sprites directory
     assert "sprites" in response["sprite_path"]
-    # Should be a PNG file
-    assert response["sprite_path"].endswith(".png")
+    # Should be a WebP file
+    assert response["sprite_path"].endswith(".webp")
 
 
 def test_response_includes_caption(formatter):

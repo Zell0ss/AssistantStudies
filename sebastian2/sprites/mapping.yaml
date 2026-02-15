@@ -5,18 +5,18 @@
 # Each skin must have all 12 expressions with these filenames
 
 expressions:
-  neutral: 000_neutral.png
-  thinking: 001_thinking.png
-  confident: 002_confident.png
-  surprised: 003_surprised.png
-  concerned: 004_concerned.png
-  triumphant: 005_triumphant.png
-  confused: 006_confused.png
-  serious: 007_serious.png
-  skeptical: 008_skeptical.png
-  apologetic: 009_apologetic.png
-  excited: 010_excited.png
-  deadpan: 011_deadpan.png
+  neutral: 000_neutral.webp
+  thinking: 001_thinking.webp
+  confident: 002_confident.webp
+  surprised: 003_surprised.webp
+  concerned: 004_concerned.webp
+  triumphant: 005_triumphant.webp
+  confused: 006_confused.webp
+  serious: 007_serious.webp
+  skeptical: 008_skeptical.webp
+  apologetic: 009_apologetic.webp
+  excited: 010_excited.webp
+  deadpan: 011_deadpan.webp
 
 # Default expression when requested expression is not found
 default: neutral

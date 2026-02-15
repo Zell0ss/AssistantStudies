@@ -103,7 +103,7 @@ def test_add_inventory_full_flow(router, formatter, cleanup_db):
     # Verify formatted response has sprite and caption
     assert "sprite_path" in response
     assert "caption" in response
-    assert response["sprite_path"].endswith(".png")
+    assert response["sprite_path"].endswith(".webp")
     assert "confident" in response["sprite_path"] or "triumphant" in response["sprite_path"]
     assert "aguacates" in response["caption"]
 
