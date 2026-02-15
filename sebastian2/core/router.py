@@ -148,33 +148,58 @@ class ModuleRouter:
     def _route_shopping(self, action, intent):
         """Route shopping list actions"""
         item = intent.get('item')
+        list_name = intent.get('list_name', 'compra')  # Default to 'compra' if not specified
 
         if action == 'add':
-            self.shopping.add(item)
+            result = self.shopping.add(item, list_name)
             return {
                 'success': True,
-                'result': f"Añadido {item} a la lista de la compra."
+                'result': result['message']
             }
 
         elif action == 'remove':
-            self.shopping.remove(item)
+            result = self.shopping.remove(item, list_name)
             return {
                 'success': True,
-                'result': f"Quitado {item} de la lista de la compra."
+                'result': result['message']
+            }
+
+        elif action == 'bought':
+            result = self.shopping.mark_bought(item, list_name)
+            return {
+                'success': True,
+                'result': result['message']
             }
 
         elif action == 'list':
-            items = self.shopping.list_all()
+            items = self.shopping.list_all(list_name)
+            list_display = f"Lista {list_name}" if list_name != "compra" else "Lista de la compra"
             if items:
                 item_names = [i['name'] for i in items]
                 return {
                     'success': True,
-                    'result': f"Lista de la compra ({len(items)} items): {', '.join(item_names)}",
+                    'result': f"{list_display} ({len(items)} items): {', '.join(item_names)}",
                     'data': items
                 }
             return {
                 'success': True,
-                'result': "Lista de la compra vacía."
+                'result': f"{list_display} vacía.",
+                'data': {'empty': True}
+            }
+
+        elif action == 'list_all_lists':
+            lists = self.shopping.list_all_lists()
+            if lists:
+                list_summary = '\n'.join([f"• {l['name']}: {l['item_count']} items" for l in lists])
+                return {
+                    'success': True,
+                    'result': f"Tienes {len(lists)} listas de compra:\n{list_summary}",
+                    'data': lists
+                }
+            return {
+                'success': True,
+                'result': "No tienes listas de compra.",
+                'data': {'empty': True}
             }
 
         else:
