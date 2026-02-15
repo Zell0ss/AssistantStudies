@@ -1,0 +1,29 @@
+# Sebastian 2.0 Configuration Template
+# Copy to config.yaml and fill in your credentials
+
+# Telegram Bot
+telegram_apikey: "your_telegram_bot_token_here"
+
+# Anthropic API (Claude Haiku)
+anthropic_apikey: "your_anthropic_api_key_here"
+
+# Authorization (Telegram user IDs and usernames)
+authorized_ids:
+  - 123456789  # Replace with your Telegram user ID
+authorized_users:
+  - "username"  # Replace with your Telegram username
+
+# MariaDB
+mariadb:
+  host: "localhost"
+  port: 3306
+  database: "sebastian_db"
+  user: "sebastian_user"
+  password: "your_db_password_here"
+
+# Logging
+logfolder: "/data/AssistantStudies/sebastian2/logs"
+
+# Sprites
+sprites_path: "sprites/images"
+sprite_mapping: "sprites/mapping.yaml"
