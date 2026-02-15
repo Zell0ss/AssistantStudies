@@ -6,7 +6,7 @@ PyMySQL==1.1.0
 dbutils==3.0.3
 
 # LLM
-anthropic==0.18.0
+anthropic==0.79.0
 
 # Config & Utils
 pyyaml==6.0.1
