@@ -19,7 +19,7 @@ class TestSpriteSystem:
         # Should have loaded expressions and default
         assert hasattr(sprite_system, 'expressions')
         assert hasattr(sprite_system, 'default_expression')
-        assert len(sprite_system.expressions) >= 10
+        assert len(sprite_system.expressions) == 12
         assert sprite_system.default_expression == 'neutral'
 
     def test_get_sprite_returns_path(self, sprite_system):
@@ -30,7 +30,7 @@ class TestSpriteSystem:
         assert isinstance(path, str)
 
         # Should end with the expected filename
-        assert path.endswith('images/confident.png')
+        assert path.endswith('images/002_confident.png')
 
         # Should be an absolute path
         assert os.path.isabs(path)
@@ -42,7 +42,7 @@ class TestSpriteSystem:
 
         # Both should return the same default sprite
         assert unknown_path == default_path
-        assert unknown_path.endswith('images/neutral.png')
+        assert unknown_path.endswith('images/000_neutral.png')
 
     def test_sprite_paths_are_absolute(self, sprite_system):
         """Test that all sprite paths are absolute."""
@@ -60,7 +60,7 @@ class TestSpriteSystem:
         required_expressions = [
             'neutral', 'thinking', 'confident', 'surprised',
             'concerned', 'triumphant', 'confused', 'serious',
-            'apologetic', 'deadpan'
+            'skeptical', 'apologetic', 'excited', 'deadpan'
         ]
 
         for expression in required_expressions:
