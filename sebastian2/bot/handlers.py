@@ -224,13 +224,14 @@ def setup_handlers(bot, config):
             response = formatter.format_response(result, context, user_skin=user_skin)
             logger.debug(f"Formatted response with skin '{user_skin}': {response}")
 
-            # Send sprite photo with caption
+            # Send sprite as document to preserve transparency
             try:
-                with open(response["sprite_path"], 'rb') as photo:
-                    bot.send_photo(
+                with open(response["sprite_path"], 'rb') as sprite:
+                    bot.send_document(
                         chat_id=message.chat.id,
-                        photo=photo,
-                        caption=response["caption"]
+                        document=sprite,
+                        caption=response["caption"],
+                        disable_notification=True  # Silent notification
                     )
                 logger.info(f"Response sent successfully to {message.chat.username}")
             except FileNotFoundError:
@@ -261,11 +262,12 @@ def setup_handlers(bot, config):
             error_response = formatter.format_response(error_result, error_context, user_skin=user_skin)
 
             try:
-                with open(error_response["sprite_path"], 'rb') as photo:
-                    bot.send_photo(
+                with open(error_response["sprite_path"], 'rb') as sprite:
+                    bot.send_document(
                         chat_id=message.chat.id,
-                        photo=photo,
-                        caption=error_response["caption"]
+                        document=sprite,
+                        caption=error_response["caption"],
+                        disable_notification=True
                     )
             except FileNotFoundError:
                 # Fallback to text-only if sprite not found
