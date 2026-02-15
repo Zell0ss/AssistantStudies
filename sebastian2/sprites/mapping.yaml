@@ -1,0 +1,17 @@
+# Sprite Expression Mapping
+# Maps expression names to sprite image files
+
+expressions:
+  neutral: images/neutral.png
+  thinking: images/thinking.png
+  confident: images/confident.png
+  surprised: images/surprised.png
+  concerned: images/concerned.png
+  triumphant: images/triumphant.png
+  confused: images/confused.png
+  serious: images/serious.png
+  apologetic: images/apologetic.png
+  deadpan: images/deadpan.png
+
+# Default expression when requested expression is not found
+default: neutral
