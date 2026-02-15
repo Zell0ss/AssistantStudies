@@ -61,22 +61,22 @@ class ModuleRouter:
             elif module == 'unknown':
                 return {
                     'success': False,
-                    'error': 'no_comprendo',
-                    'message': "No entendí tu mensaje. ¿Podrías reformularlo?"
+                    'result': "No entendí tu mensaje. ¿Podrías reformularlo?",
+                    'error': 'no_comprendo'
                 }
             else:
                 return {
                     'success': False,
-                    'error': 'unknown_module',
-                    'message': f"Módulo desconocido: {module}"
+                    'result': f"Módulo desconocido: {module}",
+                    'error': 'unknown_module'
                 }
 
         except Exception as e:
             logger.error(f"Error routing intent: {e}")
             return {
                 'success': False,
-                'error': str(e),
-                'message': "Hubo un error procesando tu mensaje."
+                'result': "Hubo un error procesando tu mensaje.",
+                'error': str(e)
             }
 
     def _route_inventory(self, action, intent):
@@ -139,7 +139,11 @@ class ModuleRouter:
             }
 
         else:
-            return {'success': False, 'error': f"Acción desconocida para inventario: {action}"}
+            return {
+                'success': False,
+                'result': f"Acción desconocida para inventario: {action}",
+                'error': f"unknown_action_{action}"
+            }
 
     def _route_shopping(self, action, intent):
         """Route shopping list actions"""
@@ -174,7 +178,11 @@ class ModuleRouter:
             }
 
         else:
-            return {'success': False, 'error': f"Acción desconocida para compra: {action}"}
+            return {
+                'success': False,
+                'result': f"Acción desconocida para compra: {action}",
+                'error': f"unknown_action_{action}"
+            }
 
     def _route_packing(self, action, intent):
         """Route packing list actions"""
@@ -212,7 +220,11 @@ class ModuleRouter:
             }
 
         else:
-            return {'success': False, 'error': f"Acción desconocida para packing: {action}"}
+            return {
+                'success': False,
+                'result': f"Acción desconocida para packing: {action}",
+                'error': f"unknown_action_{action}"
+            }
 
     def _route_notes(self, action, intent):
         """Route notes actions"""
@@ -240,8 +252,44 @@ class ModuleRouter:
                 'result': "No se encontraron notas."
             }
 
+        elif action == 'list':
+            # List all notes (or by tag if provided)
+            tag = intent.get('tag')
+            if tag:
+                results = self.notes.list_by_tag(tag)
+                if results:
+                    return {
+                        'success': True,
+                        'result': f"Encontradas {len(results)} notas con tag '{tag}'.",
+                        'data': results
+                    }
+                return {
+                    'success': True,
+                    'result': f"No hay notas con tag '{tag}'."
+                }
+            else:
+                # Search with empty query returns all notes
+                results = self.notes.search('')
+                if results:
+                    note_list = '\n'.join([f"• {n['content'][:50]}..." if len(n['content']) > 50 else f"• {n['content']}" for n in results[:5]])
+                    more = f"\n(y {len(results)-5} más)" if len(results) > 5 else ""
+                    return {
+                        'success': True,
+                        'result': f"Tienes {len(results)} notas:\n{note_list}{more}",
+                        'data': results
+                    }
+                return {
+                    'success': True,
+                    'result': "No tienes notas guardadas.",
+                    'data': {'empty': True}
+                }
+
         else:
-            return {'success': False, 'error': f"Acción desconocida para notes: {action}"}
+            return {
+                'success': False,
+                'result': f"Acción desconocida para notes: {action}",
+                'error': f"unknown_action_{action}"
+            }
 
     def cleanup(self):
         """Clean up database connection"""
