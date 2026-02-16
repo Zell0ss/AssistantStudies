@@ -123,6 +123,18 @@ class ModuleRouter:
                 'result': f"Actualizado a {quantity} {unit} de {item}."
             }
 
+        elif action == 'remove':
+            removed = self.inventory.remove(item)
+            if removed:
+                return {
+                    'success': True,
+                    'result': f"Eliminado {item} del inventario."
+                }
+            return {
+                'success': True,
+                'result': f"No tienes {item} en el inventario."
+            }
+
         elif action == 'get':
             item_data = self.inventory.get(item)
             if item_data:

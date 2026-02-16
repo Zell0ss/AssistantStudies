@@ -113,6 +113,24 @@ class InventoryModule:
 
         self.conn.commit()
 
+    def remove(self, item_name: str) -> bool:
+        """
+        Remove an item from inventory
+
+        Args:
+            item_name: Name of item to remove
+
+        Returns:
+            True if item was removed, False if not found
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "DELETE FROM inventory WHERE user_id = %s AND item_name = %s",
+            (self.user_id, item_name)
+        )
+        self.conn.commit()
+        return cursor.rowcount > 0
+
     def get(self, item_name: str) -> Optional[Dict[str, Any]]:
         """
         Get inventory item details
