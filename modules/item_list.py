@@ -4,8 +4,7 @@ ItemListModule - Base class for list-based features.
 This module provides the core functionality for managing lists and their items,
 serving as the foundation for inventory, shopping lists, and packing lists.
 """
-import sqlite3
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime
 
 
@@ -17,17 +16,20 @@ class ItemListModule:
     with support for quantities, units, and notes.
 
     Attributes:
-        db: SQLite database connection
+        db: Database connection (MySQL/MariaDB via pymysql)
         list_type: Type of list (e.g., 'inventory', 'shopping', 'packing')
         user_id: Telegram user ID
+
+    Note:
+        SQL queries use %s placeholders for MySQL/MariaDB compatibility.
     """
 
-    def __init__(self, db: sqlite3.Connection, list_type: str, user_id: int):
+    def __init__(self, db: Any, list_type: str, user_id: int):
         """
         Initialize the ItemListModule.
 
         Args:
-            db: SQLite database connection
+            db: Database connection (MySQL/MariaDB via pymysql)
             list_type: Type of list (e.g., 'inventory', 'shopping', 'packing')
             user_id: Telegram user ID
         """
@@ -46,7 +48,7 @@ class ItemListModule:
 
         # Check if list exists
         cursor.execute(
-            "SELECT id FROM lists WHERE user_id = ? AND list_type = ?",
+            "SELECT id FROM lists WHERE user_id = %s AND list_type = %s",
             (self.user_id, self.list_type)
         )
         row = cursor.fetchone()
@@ -58,7 +60,7 @@ class ItemListModule:
         cursor.execute(
             """
             INSERT INTO lists (user_id, list_type)
-            VALUES (?, ?)
+            VALUES (%s, %s)
             """,
             (self.user_id, self.list_type)
         )
@@ -74,7 +76,7 @@ class ItemListModule:
         """
         cursor = self.db.cursor()
         cursor.execute(
-            "SELECT id FROM lists WHERE user_id = ? AND list_type = ?",
+            "SELECT id FROM lists WHERE user_id = %s AND list_type = %s",
             (self.user_id, self.list_type)
         )
         row = cursor.fetchone()
@@ -98,7 +100,7 @@ class ItemListModule:
         cursor.execute(
             """
             SELECT id, quantity FROM list_items
-            WHERE list_id = ? AND LOWER(item_name) = LOWER(?)
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (list_id, item_name)
         )
@@ -111,8 +113,8 @@ class ItemListModule:
             cursor.execute(
                 """
                 UPDATE list_items
-                SET quantity = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
+                SET quantity = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
                 """,
                 (new_quantity, item_id)
             )
@@ -120,8 +122,8 @@ class ItemListModule:
             # Insert new item
             cursor.execute(
                 """
-                INSERT INTO list_items (list_id, item_name, quantity, unit, notes)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO list_items (list_id, name, quantity, unit, notes)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
                 (list_id, item_name, quantity, unit, notes)
             )
@@ -146,7 +148,7 @@ class ItemListModule:
         cursor.execute(
             """
             DELETE FROM list_items
-            WHERE list_id = ? AND LOWER(item_name) = LOWER(?)
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (list_id, item_name)
         )
@@ -171,9 +173,9 @@ class ItemListModule:
         cursor = self.db.cursor()
         cursor.execute(
             """
-            SELECT id, item_name, quantity, unit, notes, checked, created_at, updated_at
+            SELECT id, name, quantity, unit, notes, checked, created_at, updated_at
             FROM list_items
-            WHERE list_id = ? AND LOWER(item_name) = LOWER(?)
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (list_id, item_name)
         )
@@ -207,10 +209,10 @@ class ItemListModule:
         cursor = self.db.cursor()
         cursor.execute(
             """
-            SELECT id, item_name, quantity, unit, notes, checked, created_at, updated_at
+            SELECT id, name, quantity, unit, notes, checked, created_at, updated_at
             FROM list_items
-            WHERE list_id = ?
-            ORDER BY item_name
+            WHERE list_id = %s
+            ORDER BY name
             """,
             (list_id,)
         )
@@ -239,20 +241,41 @@ class ItemListModule:
             delta: Amount to add (positive) or subtract (negative)
 
         Returns:
-            True if item was updated, False if not found
+            True if item was updated, False if not found or if result would be negative
         """
         list_id = self._get_list_id()
         if not list_id:
             return False
 
         cursor = self.db.cursor()
+
+        # Check current quantity to prevent negative values
+        cursor.execute(
+            """
+            SELECT quantity FROM list_items
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
+            """,
+            (list_id, item_name)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            return False
+
+        current_quantity = row[0]
+        new_quantity = current_quantity + delta
+
+        # Prevent negative quantities
+        if new_quantity < 0:
+            return False
+
         cursor.execute(
             """
             UPDATE list_items
-            SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP
-            WHERE list_id = ? AND LOWER(item_name) = LOWER(?)
+            SET quantity = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
-            (delta, list_id, item_name)
+            (new_quantity, list_id, item_name)
         )
         self.db.commit()
 
@@ -267,8 +290,12 @@ class ItemListModule:
             quantity: New quantity value
 
         Returns:
-            True if item was updated, False if not found
+            True if item was updated, False if not found or if quantity is negative
         """
+        # Prevent negative quantities
+        if quantity < 0:
+            return False
+
         list_id = self._get_list_id()
         if not list_id:
             return False
@@ -277,8 +304,8 @@ class ItemListModule:
         cursor.execute(
             """
             UPDATE list_items
-            SET quantity = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE list_id = ? AND LOWER(item_name) = LOWER(?)
+            SET quantity = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (quantity, list_id, item_name)
         )
@@ -287,12 +314,12 @@ class ItemListModule:
         return cursor.rowcount > 0
 
     @staticmethod
-    def list_all_lists(db: sqlite3.Connection, user_id: int) -> List[Dict]:
+    def list_all_lists(db: Any, user_id: int) -> List[Dict]:
         """
         List all lists for a user.
 
         Args:
-            db: SQLite database connection
+            db: Database connection (MySQL/MariaDB via pymysql)
             user_id: Telegram user ID
 
         Returns:
@@ -303,7 +330,7 @@ class ItemListModule:
             """
             SELECT id, list_type, name, created_at, updated_at
             FROM lists
-            WHERE user_id = ?
+            WHERE user_id = %s
             ORDER BY list_type
             """,
             (user_id,)
@@ -322,13 +349,13 @@ class ItemListModule:
         return lists
 
     @staticmethod
-    def create_list(db: sqlite3.Connection, user_id: int, list_type: str,
+    def create_list(db: Any, user_id: int, list_type: str,
                    name: Optional[str] = None) -> int:
         """
         Explicitly create a new list.
 
         Args:
-            db: SQLite database connection
+            db: Database connection (MySQL/MariaDB via pymysql)
             user_id: Telegram user ID
             list_type: Type of list
             name: Optional list name
@@ -340,7 +367,7 @@ class ItemListModule:
         cursor.execute(
             """
             INSERT INTO lists (user_id, list_type, name)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
             """,
             (user_id, list_type, name)
         )

@@ -31,7 +31,7 @@ def db():
         CREATE TABLE list_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             list_id INTEGER NOT NULL,
-            item_name TEXT NOT NULL,
+            name TEXT NOT NULL,
             quantity INTEGER DEFAULT 1,
             unit TEXT,
             notes TEXT,
@@ -75,7 +75,7 @@ def test_add_item_creates_list_and_item(db):
     cursor.execute("SELECT * FROM list_items WHERE list_id = ?", (list_row[0],))
     item_row = cursor.fetchone()
     assert item_row is not None
-    assert item_row[2] == "Tomates"  # item_name
+    assert item_row[2] == "Tomates"  # name
     assert item_row[3] == 5  # quantity
     assert item_row[4] == "kg"  # unit
 
@@ -93,7 +93,7 @@ def test_add_duplicate_item_updates_quantity(db):
     # Verify only one item exists with updated quantity
     cursor = db.cursor()
     cursor.execute("""
-        SELECT li.item_name, li.quantity
+        SELECT li.name, li.quantity
         FROM list_items li
         JOIN lists l ON li.list_id = l.id
         WHERE l.user_id = ? AND l.list_type = ?
