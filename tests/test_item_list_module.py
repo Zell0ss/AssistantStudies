@@ -330,3 +330,29 @@ def test_case_insensitive_item_lookup(db):
     items = module.list_all()
     assert len(items) == 1
     assert items[0]['quantity'] == 8  # 5 + 3
+
+
+def test_get_nonexistent_item(db):
+    """Test that getting a nonexistent item returns None."""
+    module = ItemListModule(db, list_type="shopping", user_id=12345)
+
+    # Try to get item from empty list
+    item = module.get("nonexistent")
+    assert item is None
+
+    # Add an item and try to get a different one
+    module.add("Pan", quantity=1)
+    item = module.get("Leche")
+    assert item is None
+
+
+def test_list_all_empty_list(db):
+    """Test that listing an empty list returns empty array."""
+    module = ItemListModule(db, list_type="shopping", user_id=12345)
+
+    # List empty list (list exists but has no items)
+    items = module.list_all()
+
+    assert items is not None
+    assert len(items) == 0
+    assert items == []
