@@ -8,53 +8,9 @@ class PackingModule(ItemListModule):
     """Packing lists module with recurring items support."""
 
     def add(self, item_name: str, quantity: float = 1, unit: str = 'unidades',
-            recurring: bool = False, notes: Optional[str] = None) -> None:
-        """Add item to packing list with optional recurring flag.
-
-        Args:
-            item_name: Name of the item
-            quantity: Quantity to add (default: 1)
-            unit: Unit of measurement (default: 'unidades')
-            recurring: Whether item should persist after being checked (default: False)
-            notes: Additional notes (optional)
-        """
-        list_id = self._ensure_list_exists()
-        cursor = self.db.cursor()
-
-        # Check if item already exists (case-insensitive)
-        cursor.execute(
-            """
-            SELECT id, quantity FROM list_items
-            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
-            """,
-            (list_id, item_name)
-        )
-        row = cursor.fetchone()
-
-        if row:
-            # Update existing item - add to quantity and update recurring flag
-            item_id, current_quantity = row
-            new_quantity = current_quantity + quantity
-            cursor.execute(
-                """
-                UPDATE list_items
-                SET quantity = %s, recurring = %s, updated_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-                """,
-                (new_quantity, recurring, item_id)
-            )
-        else:
-            # Insert new item with recurring flag
-            cursor.execute(
-                """
-                INSERT INTO list_items (list_id, name, quantity, unit, notes, recurring)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """,
-                (list_id, item_name, quantity, unit, notes, recurring)
-            )
-
-        self.db.commit()
-        cursor.close()
+            recurring: bool = False, **kwargs) -> Dict[str, Any]:
+        """Add item to packing list with optional recurring flag."""
+        return super().add(item_name, quantity, unit, recurring=recurring, **kwargs)
 
     def get(self, item_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -115,7 +71,7 @@ class PackingModule(ItemListModule):
         if not item:
             return {
                 'status': 'error',
-                'message': f'{item_name} no está en la lista'
+                'message': f'{item_name} no está en {self.list_name}'
             }
 
         if item['recurring']:

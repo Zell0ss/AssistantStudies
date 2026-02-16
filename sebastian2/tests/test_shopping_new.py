@@ -129,7 +129,8 @@ def test_shopping_inherits_from_item_list(db):
     shopping = ShoppingModule(db, 'shopping', 'test_user')
 
     # Test add and get work correctly
-    shopping.add('manzanas', quantity=5, unit='unidades')
+    result = shopping.add('manzanas', quantity=5, unit='unidades')
+    assert result['status'] == 'added'
 
     item = shopping.get('manzanas')
     assert item is not None
