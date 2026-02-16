@@ -213,11 +213,16 @@ def setup_handlers(bot, config):
             user_skin = settings.get_sprite_skin()
 
             # Build context for formatter
+            data = result.get("data", {})
             context = {
                 "module": parsed.get("module"),
                 "action": parsed.get("action"),
                 "low_stock": result.get("low_stock", False),
-                "empty": result.get("data", {}) == [] or result.get("data") is None
+                "empty": (
+                    data == [] or
+                    data is None or
+                    (isinstance(data, dict) and data.get("empty", False))
+                )
             }
 
             # Format response with sprite (using user's skin)
