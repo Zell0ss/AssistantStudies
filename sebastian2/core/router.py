@@ -50,7 +50,13 @@ class ModuleRouter:
 
             logger.info(f"Routing: module={module}, action={action}")
 
-            if module == 'inventory':
+            if module == 'system':
+                # System/initialization commands
+                return {
+                    'success': True,
+                    'result': parsed_intent.get('message', 'Sistema listo. Puedo ayudarte con inventario, listas de compra, equipaje y notas.')
+                }
+            elif module == 'inventory':
                 return self._route_inventory(action, parsed_intent)
             elif module == 'shopping':
                 return self._route_shopping(action, parsed_intent)
@@ -132,10 +138,21 @@ class ModuleRouter:
 
         elif action == 'list':
             items = self.inventory.list_all()
+            if items:
+                # Format items with markdown
+                item_list = '\n'.join([
+                    f"• **{item['item_name']}**: {item['quantity']} {item['unit']}"
+                    for item in items
+                ])
+                return {
+                    'success': True,
+                    'result': f"**Inventario** ({len(items)} items):\n{item_list}",
+                    'data': items
+                }
             return {
                 'success': True,
-                'result': f"Inventario ({len(items)} items)",
-                'data': items
+                'result': "Tu inventario está vacío.",
+                'data': {'empty': True}
             }
 
         else:
@@ -150,7 +167,14 @@ class ModuleRouter:
         item = intent.get('item')
         list_name = intent.get('list_name', 'compra')  # Default to 'compra' if not specified
 
-        if action == 'add':
+        if action == 'create':
+            result = self.shopping.create_list(list_name)
+            return {
+                'success': True,
+                'result': result['message']
+            }
+
+        elif action == 'add':
             result = self.shopping.add(item, list_name)
             return {
                 'success': True,
@@ -173,12 +197,13 @@ class ModuleRouter:
 
         elif action == 'list':
             items = self.shopping.list_all(list_name)
-            list_display = f"Lista {list_name}" if list_name != "compra" else "Lista de la compra"
+            list_display = f"Lista **{list_name}**" if list_name != "compra" else "**Lista de la compra**"
             if items:
-                item_names = [i['name'] for i in items]
+                # Format with markdown bullet list
+                item_list = '\n'.join([f"• {i['name']}" for i in items])
                 return {
                     'success': True,
-                    'result': f"{list_display} ({len(items)} items): {', '.join(item_names)}",
+                    'result': f"{list_display} ({len(items)} items):\n{item_list}",
                     'data': items
                 }
             return {

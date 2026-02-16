@@ -45,7 +45,7 @@ class HaikuParser:
 
 El usuario puede pedir operaciones sobre:
 - **inventory**: inventario de items en casa (aguacates, leche, etc.)
-- **shopping**: lista de la compra (items a comprar)
+- **shopping**: listas de compra (compra, mercadona, carrefour, etc.) - items a comprar
 - **packing**: listas de empaque para viajes (gijón_llevar, etc.)
 - **notes**: notas de texto libre con tags
 
@@ -53,19 +53,27 @@ Acciones posibles:
 - **add**: añadir/agregar cantidad (inventory) o item (lists)
 - **set**: establecer cantidad absoluta (inventory)
 - **remove**: quitar/eliminar item
-- **list**: listar/mostrar items
+- **create**: crear una lista vacía (solo shopping)
+- **list**: listar/mostrar items de UNA lista
+- **list_all_lists**: listar TODAS las listas de compra disponibles
 - **check**: marcar como hecho (packing lists)
 - **search**: buscar notas
 - **get**: obtener cantidad/info de un item
 
+IMPORTANTE - Distinción shopping vs packing:
+- **shopping**: listas de compra (mercado, supermercado) → "compra", "mercadona", "carrefour", "lidl"
+- **packing**: listas de viaje (maletas, equipaje) → "gijón", "madrid", "llevar", "equipaje"
+- Cuando mencionen "lista", "compra" o supermercados → usar shopping
+- Cuando mencionen viajes, ciudades, o "llevar" → usar packing
+
 Devuelve SOLO JSON válido con esta estructura:
 {
   "module": "inventory | shopping | packing | notes",
-  "action": "add | set | remove | list | check | search | get",
+  "action": "add | set | remove | create | list | list_all_lists | check | search | get",
   "item": "nombre del item",
   "quantity": número (opcional),
   "unit": "unidades | kg | litros | etc" (opcional),
-  "list_name": "compra | gijón_llevar | etc" (opcional),
+  "list_name": "compra | mercadona | gijón_llevar | etc" (opcional),
   "tags": ["tag1", "tag2"] (opcional, para notes),
   "recurring": true/false (opcional, para packing),
   "threshold": número (opcional, para set_threshold)
@@ -74,8 +82,14 @@ Devuelve SOLO JSON válido con esta estructura:
 Ejemplos:
 "compré 6 aguacates" → {"module": "inventory", "action": "add", "item": "aguacates", "quantity": 6, "unit": "unidades"}
 "me quedan 2 aguacates" → {"module": "inventory", "action": "set", "item": "aguacates", "quantity": 2}
-"añade leche a la compra" → {"module": "shopping", "action": "add", "item": "leche"}
-"lista de la compra" → {"module": "shopping", "action": "list"}
+"dime que tengo en mi inventario" → {"module": "inventory", "action": "list"}
+"añade leche a la compra" → {"module": "shopping", "action": "add", "item": "leche", "list_name": "compra"}
+"añade pan a mercadona" → {"module": "shopping", "action": "add", "item": "pan", "list_name": "mercadona"}
+"crea una lista que se llame bugs" → {"module": "shopping", "action": "create", "list_name": "bugs"}
+"lista de la compra" → {"module": "shopping", "action": "list", "list_name": "compra"}
+"dime que listas tengo" → {"module": "shopping", "action": "list_all_lists"}
+"que tengo en la lista mercadona" → {"module": "shopping", "action": "list", "list_name": "mercadona"}
+"elimina bugs de la lista bugs" → {"module": "shopping", "action": "remove", "item": "bugs", "list_name": "bugs"}
 "añade leche a gijón, siempre" → {"module": "packing", "action": "add", "item": "leche", "list_name": "gijón_llevar", "recurring": true}
 "apunta que rebe prefiere manzanas verdes" → {"module": "notes", "action": "add", "item": "rebe prefiere manzanas verdes", "tags": ["rebe"]}
 

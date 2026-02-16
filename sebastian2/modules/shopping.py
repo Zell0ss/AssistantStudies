@@ -180,6 +180,42 @@ class ShoppingListModule:
 
         return items
 
+    def create_list(self, list_name: str = "compra") -> Dict[str, Any]:
+        """Create an empty shopping list
+
+        Args:
+            list_name: Name of the list to create
+
+        Returns:
+            Result with status and message
+        """
+        cursor = self.conn.cursor()
+
+        # Check if list already exists
+        cursor.execute(
+            "SELECT id FROM lists WHERE user_id = %s AND name = %s",
+            (self.user_id, list_name)
+        )
+        if cursor.fetchone():
+            list_display = f" '{list_name}'" if list_name != "compra" else " de compra"
+            return {
+                'status': 'exists',
+                'message': f'La lista{list_display} ya existe. Puedes añadir items con "añade X a {list_name}"'
+            }
+
+        # Create empty list
+        cursor.execute(
+            "INSERT INTO lists (user_id, name, list_type) VALUES (%s, %s, 'shopping')",
+            (self.user_id, list_name)
+        )
+        self.conn.commit()
+
+        list_display = f" '{list_name}'" if list_name != "compra" else " de compra"
+        return {
+            'status': 'created',
+            'message': f'Lista{list_display} creada. Añade items con "añade X a {list_name}"'
+        }
+
     def list_all_lists(self) -> List[Dict[str, Any]]:
         """List all shopping lists for this user
 
