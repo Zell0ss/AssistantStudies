@@ -1,6 +1,8 @@
 -- Migration 003: Unify list system
--- Adds list_category to lists table and quantity/unit to list_items
+-- Adds list_category to lists table and low_threshold to list_items
 -- Migrates inventory table data to unified lists structure
+
+START TRANSACTION;
 
 -- Step 1: Add list_category to existing lists table
 ALTER TABLE lists ADD COLUMN list_category
@@ -14,10 +16,13 @@ UPDATE lists SET list_category =
     ELSE 'shopping'
   END;
 
--- Step 2: Add quantity/unit/threshold to existing list_items
+-- Add NOT NULL constraint after setting defaults
+ALTER TABLE lists MODIFY COLUMN list_category
+  ENUM('inventory', 'shopping', 'packing') NOT NULL DEFAULT 'shopping';
+
+-- Step 2: Add low_threshold to existing list_items
+-- Note: quantity and unit already exist in list_items from initial schema
 ALTER TABLE list_items
-  ADD COLUMN quantity DECIMAL(10,2) DEFAULT 1,
-  ADD COLUMN unit VARCHAR(50) DEFAULT 'unidades',
   ADD COLUMN low_threshold DECIMAL(10,2) NULL;
 
 -- Step 3: Migrate inventory table → lists + list_items
@@ -40,3 +45,5 @@ WHERE l.list_category = 'inventory' AND l.name = 'inventario';
 
 -- Step 4: Rename old inventory table (don't drop yet - safety)
 ALTER TABLE inventory RENAME TO inventory_backup;
+
+COMMIT;
