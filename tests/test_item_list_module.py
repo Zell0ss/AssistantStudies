@@ -114,12 +114,29 @@ def test_remove_item(db):
     module.add("Cebollas", quantity=3)
 
     # Remove one item
-    module.remove("Tomates")
+    removed = module.remove("Tomates")
 
     # Verify item was removed
+    assert removed is True
     items = module.list_all()
     assert len(items) == 1
     assert items[0]['item_name'] == "Cebollas"
+
+
+def test_remove_nonexistent_item(db):
+    """Test that removing a nonexistent item returns False."""
+    module = ItemListModule(db, list_type="shopping", user_id=12345)
+
+    # Try to remove item from empty list
+    removed = module.remove("nonexistent")
+
+    assert removed is False
+
+    # Add an item and try to remove a different one
+    module.add("Pan", quantity=1)
+    removed = module.remove("Leche")
+
+    assert removed is False
 
 
 def test_get_item(db):
