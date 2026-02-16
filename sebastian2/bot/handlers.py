@@ -229,19 +229,24 @@ def setup_handlers(bot, config):
             response = formatter.format_response(result, context, user_skin=user_skin)
             logger.debug(f"Formatted response with skin '{user_skin}': {response}")
 
-            # Send sprite as document to preserve transparency
+            # Send text message first
+            bot.send_message(
+                chat_id=message.chat.id,
+                text=response["caption"]
+            )
+
+            # Then send sprite as document to preserve transparency
             try:
                 with open(response["sprite_path"], 'rb') as sprite:
                     bot.send_document(
                         chat_id=message.chat.id,
                         document=sprite,
-                        caption=response["caption"],
                         disable_notification=True  # Silent notification
                     )
                 logger.info(f"Response sent successfully to {message.chat.username}")
             except FileNotFoundError:
                 logger.error(f"Sprite file not found: {response['sprite_path']}")
-                bot.reply_to(message, response["caption"])
+                # Text already sent, so just log the error
 
             # Cleanup router connection
             router.cleanup()
@@ -266,17 +271,23 @@ def setup_handlers(bot, config):
             error_context = {"module": "unknown", "action": "unknown"}
             error_response = formatter.format_response(error_result, error_context, user_skin=user_skin)
 
+            # Send error message
+            bot.send_message(
+                chat_id=message.chat.id,
+                text=error_response["caption"]
+            )
+
+            # Send error sprite
             try:
                 with open(error_response["sprite_path"], 'rb') as sprite:
                     bot.send_document(
                         chat_id=message.chat.id,
                         document=sprite,
-                        caption=error_response["caption"],
                         disable_notification=True
                     )
             except FileNotFoundError:
-                # Fallback to text-only if sprite not found
-                bot.reply_to(message, error_response["caption"])
+                # Text already sent, just log the error
+                logger.error(f"Error sprite not found: {error_response['sprite_path']}")
 
     @bot.message_handler(content_types=['voice'])
     def handle_voice(message):
