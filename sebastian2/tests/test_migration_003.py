@@ -12,62 +12,72 @@ def db():
 def test_lists_table_has_list_category(db):
     """Test that lists table has list_category column after migration."""
     cursor = db.cursor()
-    cursor.execute("SHOW COLUMNS FROM lists LIKE 'list_category'")
-    result = cursor.fetchone()
-    assert result is not None, "list_category column should exist"
-    assert 'enum' in result['Type'].lower(), "list_category should be ENUM type"
+    try:
+        cursor.execute("SHOW COLUMNS FROM lists LIKE 'list_category'")
+        result = cursor.fetchone()
+        assert result is not None, "list_category column should exist"
+
+        # Validate ENUM type and values
+        enum_type = result['Type']
+        assert 'enum' in enum_type.lower(), "list_category should be ENUM type"
+        assert 'inventory' in enum_type, "ENUM should contain 'inventory' value"
+        assert 'shopping' in enum_type, "ENUM should contain 'shopping' value"
+        assert 'packing' in enum_type, "ENUM should contain 'packing' value"
+    finally:
+        cursor.close()
 
 
 def test_list_items_has_quantity_unit(db):
     """Test that list_items has quantity and unit columns."""
     cursor = db.cursor()
+    try:
+        # Check quantity column
+        cursor.execute("SHOW COLUMNS FROM list_items LIKE 'quantity'")
+        result = cursor.fetchone()
+        assert result is not None, "quantity column should exist"
 
-    # Check quantity column
-    cursor.execute("SHOW COLUMNS FROM list_items LIKE 'quantity'")
-    result = cursor.fetchone()
-    assert result is not None, "quantity column should exist"
+        # Check unit column
+        cursor.execute("SHOW COLUMNS FROM list_items LIKE 'unit'")
+        result = cursor.fetchone()
+        assert result is not None, "unit column should exist"
 
-    # Check unit column
-    cursor.execute("SHOW COLUMNS FROM list_items LIKE 'unit'")
-    result = cursor.fetchone()
-    assert result is not None, "unit column should exist"
-
-    # Check low_threshold column
-    cursor.execute("SHOW COLUMNS FROM list_items LIKE 'low_threshold'")
-    result = cursor.fetchone()
-    assert result is not None, "low_threshold column should exist"
+        # Check low_threshold column
+        cursor.execute("SHOW COLUMNS FROM list_items LIKE 'low_threshold'")
+        result = cursor.fetchone()
+        assert result is not None, "low_threshold column should exist"
+    finally:
+        cursor.close()
 
 
 def test_inventory_table_renamed(db):
     """Test that inventory table was renamed to inventory_backup."""
     cursor = db.cursor()
-    cursor.execute("SHOW TABLES LIKE 'inventory_backup'")
-    result = cursor.fetchone()
-    assert result is not None, "inventory_backup table should exist"
+    try:
+        cursor.execute("SHOW TABLES LIKE 'inventory_backup'")
+        result = cursor.fetchone()
+        assert result is not None, "inventory_backup table should exist"
+    finally:
+        cursor.close()
 
 
 def test_inventory_data_migrated(db):
     """Test that inventory data was migrated to lists structure."""
     cursor = db.cursor()
+    try:
+        # Get count from backup table
+        cursor.execute("SELECT COUNT(*) as count FROM inventory_backup")
+        backup_count = cursor.fetchone()['count']
 
-    # Check that inventory lists exist (or 0 if no inventory data existed before)
-    cursor.execute("""
-        SELECT COUNT(*) as count FROM lists
-        WHERE list_category = 'inventory' AND name = 'inventario'
-    """)
-    result = cursor.fetchone()
-    count = result['count']
-    # Migration creates inventory list only if inventory table had data
-    # So count can be 0 or more
-    assert count >= 0, "Should have migrated inventory list (or 0 if no data)"
+        # Get count from migrated data
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM list_items li
+            JOIN lists l ON li.list_id = l.id
+            WHERE l.list_category = 'inventory'
+        """)
+        migrated_count = cursor.fetchone()['count']
 
-    # Check that items were migrated
-    cursor.execute("""
-        SELECT COUNT(*) as count FROM list_items li
-        JOIN lists l ON li.list_id = l.id
-        WHERE l.list_category = 'inventory'
-    """)
-    result = cursor.fetchone()
-    count = result['count']
-    # Should have migrated items (or 0 if no data before)
-    assert count >= 0, "Should have migrated inventory items"
+        # Verify that all items were migrated
+        assert migrated_count == backup_count, \
+            f"Migrated items ({migrated_count}) should match backup ({backup_count})"
+    finally:
+        cursor.close()
