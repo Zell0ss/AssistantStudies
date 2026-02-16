@@ -9,9 +9,54 @@ import sqlite3
 from modules.item_list import ItemListModule
 
 
+class MySQLCompatibleCursor:
+    """Cursor wrapper that converts MySQL %s placeholders to SQLite ? placeholders."""
+
+    def __init__(self, sqlite_cursor):
+        self._cursor = sqlite_cursor
+
+    def execute(self, query, params=None):
+        """Execute query after converting %s to ?."""
+        if params:
+            # Convert MySQL %s placeholders to SQLite ? placeholders
+            query = query.replace('%s', '?')
+        return self._cursor.execute(query, params or ())
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+
+    @property
+    def lastrowid(self):
+        return self._cursor.lastrowid
+
+
+class MySQLCompatibleConnection:
+    """Connection wrapper that returns MySQL-compatible cursors."""
+
+    def __init__(self, sqlite_conn):
+        self._conn = sqlite_conn
+
+    def cursor(self):
+        """Return a MySQL-compatible cursor."""
+        return MySQLCompatibleCursor(self._conn.cursor())
+
+    def commit(self):
+        return self._conn.commit()
+
+    def close(self):
+        return self._conn.close()
+
+
 @pytest.fixture
 def db():
-    """Create a test database with schema."""
+    """Create a test database with schema (MySQL-compatible wrapper)."""
     conn = sqlite3.connect(':memory:')
     cursor = conn.cursor()
 
@@ -51,7 +96,10 @@ def db():
     ''')
 
     conn.commit()
-    yield conn
+
+    # Wrap connection to provide MySQL-compatible interface
+    wrapped_conn = MySQLCompatibleConnection(conn)
+    yield wrapped_conn
     conn.close()
 
 

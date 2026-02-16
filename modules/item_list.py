@@ -21,7 +21,7 @@ class ItemListModule:
         user_id: Telegram user ID
 
     Note:
-        SQL queries use ? placeholders for SQLite compatibility.
+        SQL queries use %s placeholders for MySQL/MariaDB compatibility.
     """
 
     def __init__(self, db: Any, list_type: str, user_id: int):
@@ -29,7 +29,7 @@ class ItemListModule:
         Initialize the ItemListModule.
 
         Args:
-            db: Database connection (SQLite or MySQL/MariaDB)
+            db: Database connection (MySQL/MariaDB)
             list_type: Type of list (e.g., 'inventory', 'shopping', 'packing')
             user_id: Telegram user ID
         """
@@ -48,7 +48,7 @@ class ItemListModule:
 
         # Check if list exists
         cursor.execute(
-            "SELECT id FROM lists WHERE user_id = ? AND list_type = ?",
+            "SELECT id FROM lists WHERE user_id = %s AND list_type = %s",
             (self.user_id, self.list_type)
         )
         row = cursor.fetchone()
@@ -60,7 +60,7 @@ class ItemListModule:
         cursor.execute(
             """
             INSERT INTO lists (user_id, list_type)
-            VALUES (?, ?)
+            VALUES (%s, %s)
             """,
             (self.user_id, self.list_type)
         )
@@ -76,7 +76,7 @@ class ItemListModule:
         """
         cursor = self.db.cursor()
         cursor.execute(
-            "SELECT id FROM lists WHERE user_id = ? AND list_type = ?",
+            "SELECT id FROM lists WHERE user_id = %s AND list_type = %s",
             (self.user_id, self.list_type)
         )
         row = cursor.fetchone()
@@ -100,7 +100,7 @@ class ItemListModule:
         cursor.execute(
             """
             SELECT id, quantity FROM list_items
-            WHERE list_id = ? AND LOWER(name) = LOWER(?)
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (list_id, item_name)
         )
@@ -113,8 +113,8 @@ class ItemListModule:
             cursor.execute(
                 """
                 UPDATE list_items
-                SET quantity = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
+                SET quantity = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
                 """,
                 (new_quantity, item_id)
             )
@@ -123,7 +123,7 @@ class ItemListModule:
             cursor.execute(
                 """
                 INSERT INTO list_items (list_id, name, quantity, unit, notes)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
                 (list_id, item_name, quantity, unit, notes)
             )
@@ -148,7 +148,7 @@ class ItemListModule:
         cursor.execute(
             """
             DELETE FROM list_items
-            WHERE list_id = ? AND LOWER(name) = LOWER(?)
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (list_id, item_name)
         )
@@ -175,7 +175,7 @@ class ItemListModule:
             """
             SELECT id, name, quantity, unit, notes, checked, created_at, updated_at
             FROM list_items
-            WHERE list_id = ? AND LOWER(name) = LOWER(?)
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (list_id, item_name)
         )
@@ -211,7 +211,7 @@ class ItemListModule:
             """
             SELECT id, name, quantity, unit, notes, checked, created_at, updated_at
             FROM list_items
-            WHERE list_id = ?
+            WHERE list_id = %s
             ORDER BY name
             """,
             (list_id,)
@@ -253,7 +253,7 @@ class ItemListModule:
         cursor.execute(
             """
             SELECT quantity FROM list_items
-            WHERE list_id = ? AND LOWER(name) = LOWER(?)
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (list_id, item_name)
         )
@@ -272,8 +272,8 @@ class ItemListModule:
         cursor.execute(
             """
             UPDATE list_items
-            SET quantity = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE list_id = ? AND LOWER(name) = LOWER(?)
+            SET quantity = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (new_quantity, list_id, item_name)
         )
@@ -304,8 +304,8 @@ class ItemListModule:
         cursor.execute(
             """
             UPDATE list_items
-            SET quantity = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE list_id = ? AND LOWER(name) = LOWER(?)
+            SET quantity = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
             (quantity, list_id, item_name)
         )
@@ -319,7 +319,7 @@ class ItemListModule:
         List all lists for a user.
 
         Args:
-            db: Database connection (SQLite or MySQL/MariaDB)
+            db: Database connection (MySQL/MariaDB)
             user_id: Telegram user ID
 
         Returns:
@@ -330,7 +330,7 @@ class ItemListModule:
             """
             SELECT id, list_type, name, created_at, updated_at
             FROM lists
-            WHERE user_id = ?
+            WHERE user_id = %s
             ORDER BY list_type
             """,
             (user_id,)
@@ -355,7 +355,7 @@ class ItemListModule:
         Explicitly create a new list.
 
         Args:
-            db: Database connection (SQLite or MySQL/MariaDB)
+            db: Database connection (MySQL/MariaDB)
             user_id: Telegram user ID
             list_type: Type of list
             name: Optional list name
@@ -367,7 +367,7 @@ class ItemListModule:
         cursor.execute(
             """
             INSERT INTO lists (user_id, list_type, name)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
             """,
             (user_id, list_type, name)
         )
