@@ -8,18 +8,18 @@ def inventory_module():
     """Fixture to create InventoryModule instance"""
     conn = get_connection()
     user_id = "test_user_inventory"
-    module = InventoryModule(conn, user_id)
+    module = InventoryModule(conn, user_id, 'test_inventory', 'inventory')
 
     # Clean up any existing test data
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM inventory WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM lists WHERE user_id = %s", (user_id,))
     conn.commit()
 
     yield module
 
     # Cleanup after test
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM inventory WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM lists WHERE user_id = %s", (user_id,))
     conn.commit()
     close_connection()
 
@@ -43,8 +43,8 @@ def test_add_to_inventory_increments_existing(inventory_module):
 
 def test_set_inventory_updates_quantity(inventory_module):
     """Test setting absolute quantity"""
-    inventory_module.add("aguacates", 10, "unidades")
-    inventory_module.set("aguacates", 2, "unidades")
+    inventory_module.add("aguacates", quantity=10, unit="unidades")
+    inventory_module.set_quantity("aguacates", 2)
 
     item = inventory_module.get("aguacates")
     assert item['quantity'] == 2
@@ -66,21 +66,21 @@ def test_list_all_returns_all_items(inventory_module):
 
 def test_check_threshold_returns_true_when_low(inventory_module):
     """Test threshold check when quantity is low"""
-    inventory_module.add("aguacates", 2, "unidades")  # Default threshold is 2
-    is_low = inventory_module.check_threshold("aguacates")
-    assert is_low is True
+    inventory_module.add("aguacates", quantity=1, unit="unidades", threshold=2)
+    low_items = inventory_module.check_low_stock()
+    assert len(low_items) == 1
+    assert low_items[0]['name'] == 'aguacates'
 
 def test_check_threshold_returns_false_when_sufficient(inventory_module):
     """Test threshold check when quantity is sufficient"""
-    inventory_module.add("aguacates", 5, "unidades")
-    is_low = inventory_module.check_threshold("aguacates")
-    assert is_low is False
+    inventory_module.add("aguacates", quantity=5, unit="unidades", threshold=2)
+    low_items = inventory_module.check_low_stock()
+    assert len(low_items) == 0
 
 def test_set_threshold_updates_threshold(inventory_module):
     """Test setting custom threshold"""
-    inventory_module.add("aguacates", 5, "unidades")
-    inventory_module.set_threshold("aguacates", 10)
-
+    inventory_module.add("aguacates", quantity=5, unit="unidades", threshold=10)
     # Now 5 should be below threshold of 10
-    is_low = inventory_module.check_threshold("aguacates")
-    assert is_low is True
+    low_items = inventory_module.check_low_stock()
+    assert len(low_items) == 1
+    assert low_items[0]['name'] == 'aguacates'

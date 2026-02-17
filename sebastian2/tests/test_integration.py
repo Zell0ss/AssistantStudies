@@ -38,11 +38,6 @@ def cleanup_db(test_user_id):
     cursor = conn.cursor()
 
     # Cleanup before test
-    cursor.execute("DELETE FROM inventory WHERE user_id = %s", (test_user_id,))
-    cursor.execute(
-        "DELETE FROM list_items WHERE list_id IN (SELECT id FROM lists WHERE user_id = %s)",
-        (test_user_id,)
-    )
     cursor.execute("DELETE FROM lists WHERE user_id = %s", (test_user_id,))
     cursor.execute("DELETE FROM notes WHERE user_id = %s", (test_user_id,))
     conn.commit()
@@ -50,11 +45,6 @@ def cleanup_db(test_user_id):
     yield
 
     # Cleanup after test
-    cursor.execute("DELETE FROM inventory WHERE user_id = %s", (test_user_id,))
-    cursor.execute(
-        "DELETE FROM list_items WHERE list_id IN (SELECT id FROM lists WHERE user_id = %s)",
-        (test_user_id,)
-    )
     cursor.execute("DELETE FROM lists WHERE user_id = %s", (test_user_id,))
     cursor.execute("DELETE FROM notes WHERE user_id = %s", (test_user_id,))
     conn.commit()
@@ -85,7 +75,9 @@ def test_add_inventory_full_flow(router, formatter, cleanup_db):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT * FROM inventory WHERE user_id = %s AND item_name = 'aguacates'",
+        """SELECT li.* FROM list_items li
+           JOIN lists l ON li.list_id = l.id
+           WHERE l.user_id = %s AND li.name = 'aguacates' AND l.list_type = 'inventory'""",
         ("test_integration_user",)
     )
     db_row = cursor.fetchone()

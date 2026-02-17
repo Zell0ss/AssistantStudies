@@ -41,8 +41,8 @@ class MySQLCompatibleConnection:
     def __init__(self, sqlite_conn):
         self._conn = sqlite_conn
 
-    def cursor(self, dictionary=False):
-        """Return a MySQL-compatible cursor."""
+    def cursor(self, dictionary=True):
+        """Return a MySQL-compatible cursor (DictCursor by default to match MariaDB)."""
         if dictionary:
             self._conn.row_factory = sqlite3.Row
             cursor = self._conn.cursor()
@@ -81,7 +81,7 @@ def db():
         CREATE TABLE lists (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
-            list_type TEXT NOT NULL,
+            list_category TEXT NOT NULL,
             name TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -105,7 +105,7 @@ def db():
     ''')
 
     cursor.execute('''
-        CREATE INDEX idx_lists_user_type ON lists(user_id, list_type)
+        CREATE INDEX idx_lists_user_category ON lists(user_id, list_category)
     ''')
 
     cursor.execute('''
@@ -125,7 +125,7 @@ def db():
 
 def test_add_with_threshold_no_warning(db):
     """Test adding item above threshold - should not warn."""
-    inventory = InventoryModule(db, 'inventory', 'test_user')
+    inventory = InventoryModule(db, 'test_user', 'test_inventory', 'inventory')
 
     result = inventory.add('pasta', quantity=5, unit='paquetes', threshold=2)
 
@@ -137,7 +137,7 @@ def test_add_with_threshold_no_warning(db):
 
 def test_add_with_quantity_below_threshold_warns(db):
     """Test adding item below threshold - should warn with ⚠️ emoji."""
-    inventory = InventoryModule(db, 'inventory', 'test_user')
+    inventory = InventoryModule(db, 'test_user', 'test_inventory', 'inventory')
 
     result = inventory.add('leche', quantity=1, unit='litros', threshold=2)
 
@@ -150,7 +150,7 @@ def test_add_with_quantity_below_threshold_warns(db):
 
 def test_update_quantity_below_threshold_warns(db):
     """Test updating quantity to below threshold - should warn."""
-    inventory = InventoryModule(db, 'inventory', 'test_user')
+    inventory = InventoryModule(db, 'test_user', 'test_inventory', 'inventory')
 
     # Add item above threshold
     inventory.add('arroz', quantity=5, unit='kilos', threshold=2)
@@ -166,7 +166,7 @@ def test_update_quantity_below_threshold_warns(db):
 
 def test_check_low_stock(db):
     """Test check_low_stock returns items below threshold."""
-    inventory = InventoryModule(db, 'inventory', 'test_user')
+    inventory = InventoryModule(db, 'test_user', 'test_inventory', 'inventory')
 
     # Add items with different stock levels
     inventory.add('azúcar', quantity=1, unit='kilos', threshold=2)  # Below threshold

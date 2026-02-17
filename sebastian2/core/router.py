@@ -6,13 +6,10 @@ from typing import Dict, Any, Optional
 from loguru import logger
 from db.connection import get_connection, close_connection
 from modules.inventory import InventoryModule
-from modules.shopping import ShoppingListModule
-from modules.packing import PackingListModule
-from modules.notes import NotesModule
-from modules.item_list import ItemListModule
-from modules.inventory import InventoryModule as InventoryModuleNew
 from modules.shopping import ShoppingModule
 from modules.packing import PackingModule
+from modules.notes import NotesModule
+from modules.item_list import ItemListModule
 
 class ModuleRouter:
     """
@@ -34,10 +31,10 @@ class ModuleRouter:
         self.user_id = user_id
         self.conn = get_connection()
 
-        # Initialize modules
-        self.inventory = InventoryModule(self.conn, user_id)
-        self.shopping = ShoppingListModule(self.conn, user_id)
-        self.packing = PackingListModule(self.conn, user_id)
+        # Initialize modules (legacy - no longer used after unified design)
+        # self.inventory = InventoryModule(self.conn, user_id)
+        # self.shopping = ShoppingModule(self.conn, user_id)
+        # self.packing = PackingModule(self.conn, user_id)
         self.notes = NotesModule(self.conn, user_id)
 
         logger.info(f"ModuleRouter initialized for user {user_id}")
@@ -175,8 +172,8 @@ class ModuleRouter:
         threshold = intent.get('threshold', 2)
         list_name = intent.get('list_name')
 
-        # Use new InventoryModule with resolved list_name
-        inv = InventoryModuleNew(self.conn, self.user_id, list_name, 'inventory')
+        # Use InventoryModule with resolved list_name
+        inv = InventoryModule(self.conn, self.user_id, list_name, 'inventory')
 
         if action == 'add':
             result = inv.add(item, quantity=quantity, unit=unit, threshold=threshold)

@@ -41,8 +41,8 @@ class MySQLCompatibleConnection:
     def __init__(self, sqlite_conn):
         self._conn = sqlite_conn
 
-    def cursor(self, dictionary=False):
-        """Return a MySQL-compatible cursor."""
+    def cursor(self, dictionary=True):
+        """Return a MySQL-compatible cursor (DictCursor by default to match MariaDB)."""
         if dictionary:
             self._conn.row_factory = sqlite3.Row
             cursor = self._conn.cursor()
@@ -81,7 +81,7 @@ def db():
         CREATE TABLE lists (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
-            list_type TEXT NOT NULL,
+            list_category TEXT NOT NULL,
             name TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -106,7 +106,7 @@ def db():
     ''')
 
     cursor.execute('''
-        CREATE INDEX idx_lists_user_type ON lists(user_id, list_type)
+        CREATE INDEX idx_lists_user_category ON lists(user_id, list_category)
     ''')
 
     cursor.execute('''
@@ -126,7 +126,7 @@ def db():
 
 def test_shopping_inherits_from_item_list(db):
     """Test that ShoppingModule inherits all ItemListModule functionality."""
-    shopping = ShoppingModule(db, 'shopping', 'test_user')
+    shopping = ShoppingModule(db, 'test_user', 'test_shopping', 'shopping')
 
     # Test add and get work correctly
     result = shopping.add('manzanas', quantity=5, unit='unidades')

@@ -37,14 +37,32 @@ class MySQLCompatibleCursor:
         return self._cursor.lastrowid
 
 
+class DictCursor(MySQLCompatibleCursor):
+    """Cursor that returns results as dictionaries."""
+
+    def fetchone(self):
+        row = self._cursor.fetchone()
+        if row:
+            return dict(row)
+        return None
+
+    def fetchall(self):
+        rows = self._cursor.fetchall()
+        return [dict(row) for row in rows]
+
+
 class MySQLCompatibleConnection:
     """Connection wrapper that returns MySQL-compatible cursors."""
 
     def __init__(self, sqlite_conn):
         self._conn = sqlite_conn
 
-    def cursor(self):
-        """Return a MySQL-compatible cursor."""
+    def cursor(self, dictionary=True):
+        """Return a MySQL-compatible cursor (DictCursor by default to match MariaDB)."""
+        if dictionary:
+            self._conn.row_factory = sqlite3.Row
+            cursor = self._conn.cursor()
+            return DictCursor(cursor)
         return MySQLCompatibleCursor(self._conn.cursor())
 
     def commit(self):
@@ -65,7 +83,7 @@ def db():
         CREATE TABLE lists (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
-            list_type TEXT NOT NULL,
+            list_category TEXT NOT NULL,
             name TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -88,7 +106,7 @@ def db():
     ''')
 
     cursor.execute('''
-        CREATE INDEX idx_lists_user_type ON lists(user_id, list_type)
+        CREATE INDEX idx_lists_user_category ON lists(user_id, list_category)
     ''')
 
     cursor.execute('''
@@ -105,7 +123,7 @@ def db():
 
 def test_add_item_creates_list_and_item(db):
     """Test that adding an item creates both list and item records."""
-    module = ItemListModule(db, list_type="inventory", user_id=12345)
+    module = ItemListModule(db, 12345, 'test_list', 'inventory')
 
     # Add an item
     module.add("Tomates", quantity=5, unit="kg")
@@ -130,7 +148,7 @@ def test_add_item_creates_list_and_item(db):
 
 def test_add_duplicate_item_updates_quantity(db):
     """Test that adding a duplicate item updates the quantity."""
-    module = ItemListModule(db, list_type="shopping", user_id=12345)
+    module = ItemListModule(db, 12345, 'test_list', 'shopping')
 
     # Add item first time
     module.add("Pan", quantity=2)
@@ -155,7 +173,7 @@ def test_add_duplicate_item_updates_quantity(db):
 
 def test_remove_item(db):
     """Test removing an item from the list."""
-    module = ItemListModule(db, list_type="inventory", user_id=12345)
+    module = ItemListModule(db, 12345, 'test_list', 'inventory')
 
     # Add items
     module.add("Tomates", quantity=5)
@@ -173,7 +191,7 @@ def test_remove_item(db):
 
 def test_remove_nonexistent_item(db):
     """Test that removing a nonexistent item returns False."""
-    module = ItemListModule(db, list_type="shopping", user_id=12345)
+    module = ItemListModule(db, 12345, 'test_list', 'shopping')
 
     # Try to remove item from empty list
     removed = module.remove("nonexistent")
@@ -189,7 +207,7 @@ def test_remove_nonexistent_item(db):
 
 def test_get_item(db):
     """Test retrieving a specific item."""
-    module = ItemListModule(db, list_type="shopping", user_id=12345)
+    module = ItemListModule(db, 12345, 'test_list', 'shopping')
 
     # Add item
     module.add("Leche", quantity=2, unit="litros", notes="Desnatada")
@@ -207,7 +225,7 @@ def test_get_item(db):
 
 def test_list_all_items(db):
     """Test listing all items in a list."""
-    module = ItemListModule(db, list_type="packing", user_id=12345)
+    module = ItemListModule(db, 12345, 'test_list', 'packing')
 
     # Add multiple items
     module.add("Camisetas", quantity=3)
@@ -226,7 +244,7 @@ def test_list_all_items(db):
 
 def test_update_quantity(db):
     """Test updating item quantity by delta."""
-    module = ItemListModule(db, list_type="inventory", user_id=12345)
+    module = ItemListModule(db, 12345, 'test_list', 'inventory')
 
     # Add item
     module.add("Manzanas", quantity=10)
@@ -244,7 +262,7 @@ def test_update_quantity(db):
 
 def test_set_quantity(db):
     """Test setting item quantity to absolute value."""
-    module = ItemListModule(db, list_type="shopping", user_id=12345)
+    module = ItemListModule(db, 12345, 'test_list', 'shopping')
 
     # Add item
     module.add("Huevos", quantity=6)
@@ -258,13 +276,13 @@ def test_set_quantity(db):
 def test_list_all_lists(db):
     """Test listing all lists for a user."""
     # Create multiple lists
-    module1 = ItemListModule(db, list_type="inventory", user_id=12345)
+    module1 = ItemListModule(db, 12345, 'test_list', 'inventory')
     module1.add("Item1")
 
-    module2 = ItemListModule(db, list_type="shopping", user_id=12345)
+    module2 = ItemListModule(db, 12345, 'test_list', 'shopping')
     module2.add("Item2")
 
-    module3 = ItemListModule(db, list_type="packing", user_id=12345)
+    module3 = ItemListModule(db, 12345, 'test_list', 'packing')
     module3.add("Item3")
 
     # List all lists for user
@@ -280,12 +298,7 @@ def test_list_all_lists(db):
 def test_create_list(db):
     """Test explicitly creating a named list."""
     # Create a named list
-    list_id = ItemListModule.create_list(
-        db,
-        user_id=12345,
-        list_type="shopping",
-        name="Compra semanal"
-    )
+    list_id = ItemListModule.create_list(db, 12345, "Compra semanal", "shopping")
 
     # Verify list was created
     cursor = db.cursor()
@@ -300,10 +313,10 @@ def test_create_list(db):
 
 def test_multiple_users_separate_lists(db):
     """Test that different users have separate lists."""
-    module1 = ItemListModule(db, list_type="inventory", user_id=111)
+    module1 = ItemListModule(db, 111, 'test_list', 'inventory')
     module1.add("User1 Item")
 
-    module2 = ItemListModule(db, list_type="inventory", user_id=222)
+    module2 = ItemListModule(db, 222, 'test_list', 'inventory')
     module2.add("User2 Item")
 
     # Verify each user sees only their items
@@ -318,7 +331,7 @@ def test_multiple_users_separate_lists(db):
 
 def test_case_insensitive_item_lookup(db):
     """Test that item names are matched case-insensitively."""
-    module = ItemListModule(db, list_type="shopping", user_id=12345)
+    module = ItemListModule(db, 12345, 'test_list', 'shopping')
 
     # Add item
     module.add("Tomates", quantity=5)
