@@ -123,8 +123,8 @@ class ModuleRouter:
 
             logger.info(f"Routing: module={module}, action={action}")
 
-            # Resolve list name with smart defaults
-            if module in ['inventory', 'shopping', 'packing']:
+            # Resolve list name with smart defaults (skip for list_all_lists action)
+            if module in ['inventory', 'shopping', 'packing'] and action != 'list_all_lists':
                 resolved_name = self._resolve_list_name(module, list_name)
                 if resolved_name is None and list_name is None:
                     # Ambiguous - return error with options

@@ -386,20 +386,26 @@ class ItemListModule:
         if category:
             cursor.execute(
                 """
-                SELECT id, list_category, name, created_at
-                FROM lists
-                WHERE user_id = %s AND list_category = %s
-                ORDER BY name
+                SELECT l.id, l.list_category, l.name, l.created_at,
+                       COUNT(li.id) as item_count
+                FROM lists l
+                LEFT JOIN list_items li ON l.id = li.list_id
+                WHERE l.user_id = %s AND l.list_category = %s
+                GROUP BY l.id, l.list_category, l.name, l.created_at
+                ORDER BY l.name
                 """,
                 (user_id, category)
             )
         else:
             cursor.execute(
                 """
-                SELECT id, list_category, name, created_at
-                FROM lists
-                WHERE user_id = %s
-                ORDER BY list_category, name
+                SELECT l.id, l.list_category, l.name, l.created_at,
+                       COUNT(li.id) as item_count
+                FROM lists l
+                LEFT JOIN list_items li ON l.id = li.list_id
+                WHERE l.user_id = %s
+                GROUP BY l.id, l.list_category, l.name, l.created_at
+                ORDER BY l.list_category, l.name
                 """,
                 (user_id,)
             )
@@ -410,7 +416,8 @@ class ItemListModule:
                 'id': row['id'],
                 'list_category': row['list_category'],
                 'name': row['name'],
-                'created_at': row['created_at']
+                'created_at': row['created_at'],
+                'item_count': row['item_count']
             })
 
         return lists
