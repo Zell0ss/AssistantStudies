@@ -120,8 +120,20 @@ class ModuleRouter:
 
             logger.info(f"Routing: module={module}, action={action}")
 
-            # Resolve list name with smart defaults (skip for list_all_lists action)
-            if module in ['inventory', 'shopping', 'packing'] and action != 'list_all_lists':
+            # Cross-category action: handle before module routing
+            if action == 'list_all_lists':
+                return self._route_list_all_lists()
+
+            # Destructive action: require explicit list name, no smart defaults
+            if action == 'clear_all' and module in ['inventory', 'shopping', 'packing']:
+                if not list_name:
+                    return {
+                        'success': False,
+                        'result': "¿De qué lista quieres borrar todo? Especifica el nombre."
+                    }
+
+            # Resolve list name with smart defaults (skip for clear_all - already handled above)
+            elif module in ['inventory', 'shopping', 'packing']:
                 resolved_name = self._resolve_list_name(module, list_name)
                 if resolved_name is None and list_name is None:
                     # Ambiguous - return error with options
@@ -341,25 +353,6 @@ class ModuleRouter:
                 'data': {'empty': True}
             }
 
-        elif action == 'list_all_lists':
-            # Use static method from ItemListModule to get all shopping lists
-            lists = ItemListModule.list_all_lists(self.conn, self.user_id, category='shopping')
-            if lists:
-                list_summary = '\n'.join([
-                    f"• **{lst['name']}**: {lst['item_count']} items"
-                    for lst in lists
-                ])
-                return {
-                    'success': True,
-                    'result': f"Listas de compra ({len(lists)}):\n{list_summary}",
-                    'data': lists
-                }
-            return {
-                'success': True,
-                'result': "No tienes listas de compra.",
-                'data': {'empty': True}
-            }
-
         else:
             return {
                 'success': False,
@@ -424,6 +417,50 @@ class ModuleRouter:
                 'result': f"Acción desconocida para packing: {action}",
                 'error': f"unknown_action_{action}"
             }
+
+    def _route_list_all_lists(self) -> Dict[str, Any]:
+        """Show all lists across all categories, grouped."""
+        lists = ItemListModule.list_all_lists(self.conn, self.user_id)
+
+        if not lists:
+            return {
+                'success': True,
+                'result': "No tienes ninguna lista todavía.",
+                'data': {'empty': True}
+            }
+
+        # Group by category preserving display order
+        by_category = {}
+        for lst in lists:
+            cat = lst['list_category']
+            if cat not in by_category:
+                by_category[cat] = []
+            by_category[cat].append(lst)
+
+        category_labels = {
+            'inventory': 'Inventarios',
+            'shopping': 'Compra',
+            'packing': 'Equipaje'
+        }
+
+        sections = []
+        for cat in ['inventory', 'shopping', 'packing']:
+            if cat not in by_category:
+                continue
+            label = category_labels.get(cat, cat)
+            cat_lists = by_category[cat]
+            items_str = '\n'.join([
+                f"  • **{lst['name']}**: {lst['item_count']} items"
+                for lst in cat_lists
+            ])
+            sections.append(f"**{label}** ({len(cat_lists)}):\n{items_str}")
+
+        total = len(lists)
+        return {
+            'success': True,
+            'result': f"Tienes {total} listas:\n\n" + '\n\n'.join(sections),
+            'data': lists
+        }
 
     def _route_notes(self, action, intent):
         """Route notes actions"""

@@ -56,7 +56,7 @@ Acciones posibles:
 - **clear_all**: vaciar/borrar TODOS los items de una lista
 - **create**: crear una lista vacía (solo shopping)
 - **list**: listar/mostrar items de UNA lista
-- **list_all_lists**: listar TODAS las listas de compra disponibles
+- **list_all_lists**: listar TODAS las listas (inventarios, compra, equipaje) sin filtro de categoría
 - **check**: marcar como hecho (packing lists)
 - **search**: buscar notas
 - **get**: obtener cantidad/info de un item
@@ -103,6 +103,8 @@ Ejemplos:
 "crea una lista que se llame bugs" → {"module": "shopping", "action": "create", "list_name": "bugs"}
 "lista de la compra" → {"module": "shopping", "action": "list", "list_name": "compra"}
 "dime que listas tengo" → {"module": "shopping", "action": "list_all_lists"}
+"dime todas las listas que tienes" → {"module": "shopping", "action": "list_all_lists"}
+"qué listas hay" → {"module": "shopping", "action": "list_all_lists"}
 "que tengo en la lista mercadona" → {"module": "shopping", "action": "list", "list_name": "mercadona"}
 "elimina bugs de la lista bugs" → {"module": "shopping", "action": "remove", "item": "bugs", "list_name": "bugs"}
 "borra todos los ítems de la lista bugs" → {"module": "shopping", "action": "clear_all", "list_name": "bugs"}
