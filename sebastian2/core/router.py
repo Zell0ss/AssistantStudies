@@ -127,6 +127,24 @@ class ModuleRouter:
             if action == 'explain':
                 return self._route_explain_lists()
 
+            if action == 'list_categories':
+                return self._route_list_categories()
+
+            if action == 'move_list':
+                return self._route_move_list(parsed_intent)
+
+            if action == 'create' and module not in ['inventory', 'shopping', 'packing']:
+                list_name = parsed_intent.get('list_name', '')
+                return {
+                    'success': False,
+                    'result': (
+                        f"¿Qué tipo de lista es '{list_name}'?\n"
+                        f"• \"crea una lista de compra llamada {list_name}\"\n"
+                        f"• \"crea una lista de inventario llamada {list_name}\"\n"
+                        f"• \"crea una lista de equipaje llamada {list_name}\""
+                    )
+                }
+
             # Destructive action: require explicit list name, no smart defaults
             if action == 'clear_all' and module in ['inventory', 'shopping', 'packing']:
                 if not list_name:
@@ -464,6 +482,52 @@ class ModuleRouter:
             'result': f"Tienes {total} listas:\n\n" + '\n\n'.join(sections),
             'data': lists
         }
+
+    def _route_list_categories(self) -> Dict[str, Any]:
+        """Show available list categories."""
+        return {
+            'success': True,
+            'result': (
+                "Hay 3 categorías de listas:\n\n"
+                "**Compra** — listas de supermercado\n"
+                "  Crea con: \"crea una lista de compra llamada mercadona\"\n\n"
+                "**Inventario** — lo que tienes en casa\n"
+                "  Crea con: \"crea una lista de inventario llamada despensa madrid\"\n\n"
+                "**Equipaje** — para viajes\n"
+                "  Crea con: \"crea una lista de equipaje llamada gijón\"\n\n"
+                "Para mover una lista mal clasificada: \"mueve la lista X a compra\""
+            )
+        }
+
+    def _route_move_list(self, intent: Dict[str, Any]) -> Dict[str, Any]:
+        """Move a list to a different category."""
+        list_name = intent.get('list_name')
+        target_category = intent.get('target_category')
+
+        # Normalize category names (Spanish → English)
+        category_map = {
+            'compra': 'shopping', 'shopping': 'shopping',
+            'inventario': 'inventory', 'inventory': 'inventory', 'despensa': 'inventory',
+            'equipaje': 'packing', 'packing': 'packing', 'viaje': 'packing',
+        }
+        category = category_map.get(target_category, target_category)
+        category_labels = {'inventory': 'Inventarios', 'shopping': 'Compra', 'packing': 'Equipaje'}
+
+        if not list_name:
+            return {'success': False, 'result': "¿Qué lista quieres mover? Especifica el nombre."}
+
+        if category not in ['shopping', 'inventory', 'packing']:
+            return {
+                'success': False,
+                'result': f"Categoría desconocida: '{target_category}'. Usa compra, inventario o equipaje."
+            }
+
+        changed = ItemListModule.change_category(self.conn, self.user_id, list_name, category)
+        label = category_labels.get(category, category)
+
+        if changed:
+            return {'success': True, 'result': f"Lista **{list_name}** movida a **{label}**."}
+        return {'success': False, 'result': f"No encontré ninguna lista llamada '{list_name}'."}
 
     def _route_explain_lists(self) -> Dict[str, Any]:
         """Explain how the list system works."""

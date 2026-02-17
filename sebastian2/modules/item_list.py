@@ -388,6 +388,31 @@ class ItemListModule:
         return cursor.rowcount > 0
 
     @staticmethod
+    def change_category(db: Any, user_id: int, list_name: str, new_category: str) -> bool:
+        """
+        Move a list to a different category.
+
+        Args:
+            db: Database connection
+            user_id: Telegram user ID
+            list_name: Name of the list to move
+            new_category: New category ('inventory', 'shopping', 'packing')
+
+        Returns:
+            True if the list was found and updated, False otherwise
+        """
+        cursor = db.cursor()
+        cursor.execute(
+            """
+            UPDATE lists SET list_category = %s
+            WHERE user_id = %s AND LOWER(name) = LOWER(%s)
+            """,
+            (new_category, user_id, list_name)
+        )
+        db.commit()
+        return cursor.rowcount > 0
+
+    @staticmethod
     def list_all_lists(db: Any, user_id: int, category: Optional[str] = None) -> List[Dict]:
         """
         List all lists for a user, optionally filtered by category.

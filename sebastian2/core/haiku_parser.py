@@ -61,6 +61,9 @@ Acciones posibles:
 - **search**: buscar notas
 - **get**: obtener cantidad/info de un item
 - **explain**: explicar cómo funcionan las listas (cuando preguntan por el sistema)
+- **list_categories**: mostrar qué categorías de listas existen
+- **move_list**: mover una lista a otra categoría (requiere list_name y target_category)
+- **create**: crear lista vacía — SOLO usar module conocido si hay palabra de categoría explícita ("compra", "inventario", "equipaje"). Si el nombre es ambiguo sin categoría → module: "unknown"
 
 IMPORTANTE - Distinción shopping vs packing:
 - **shopping**: listas de compra (mercado, supermercado) → "compra", "mercadona", "carrefour", "lidl"
@@ -82,11 +85,12 @@ Ejemplos de nombres de listas por módulo:
 Devuelve SOLO JSON válido con esta estructura:
 {
   "module": "inventory | shopping | packing | notes",
-  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | explain",
+  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | explain | list_categories | move_list",
   "item": "nombre del item",
   "quantity": número (opcional),
   "unit": "unidades | kg | litros | etc" (opcional),
   "list_name": "nombre de la lista o null" (opcional),
+  "target_category": "inventory | shopping | packing (para move_list)",
   "tags": ["tag1", "tag2"] (opcional, para notes),
   "recurring": true/false (opcional, para packing),
   "threshold": número (opcional, para set_threshold)
@@ -119,6 +123,15 @@ Ejemplos:
 "explícame el sistema de listas" → {"module": "shopping", "action": "explain"}
 "qué tipos de listas hay?" → {"module": "shopping", "action": "explain"}
 "cómo puedo mover una lista a otra categoría?" → {"module": "shopping", "action": "explain"}
+"qué categorías de listas hay?" → {"module": "shopping", "action": "list_categories"}
+"cuántos tipos de listas existen?" → {"module": "shopping", "action": "list_categories"}
+"mueve la lista bugs a compra" → {"module": "shopping", "action": "move_list", "list_name": "bugs", "target_category": "shopping"}
+"cambia bugs a inventario" → {"module": "shopping", "action": "move_list", "list_name": "bugs", "target_category": "inventory"}
+"mueve gijón a equipaje" → {"module": "shopping", "action": "move_list", "list_name": "gijón", "target_category": "packing"}
+"crea una lista de compra llamada mercadona" → {"module": "shopping", "action": "create", "list_name": "mercadona"}
+"crea una lista de inventario llamada despensa" → {"module": "inventory", "action": "create", "list_name": "despensa"}
+"crea una lista de equipaje llamada playa" → {"module": "packing", "action": "create", "list_name": "playa"}
+"crea una lista llamada bugs" → {"module": "unknown", "action": "create", "list_name": "bugs"}
 
 Si no puedes parsear el mensaje, devuelve: {"module": "unknown", "action": "unknown"}"""
 
