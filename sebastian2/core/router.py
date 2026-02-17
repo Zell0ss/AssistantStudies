@@ -168,86 +168,67 @@ class ModuleRouter:
             }
 
     def _route_inventory(self, action, intent):
-        """Route inventory actions"""
+        """Route inventory actions to InventoryModule"""
         item = intent.get('item')
-        quantity = intent.get('quantity')
-        unit = intent.get('unit')
+        quantity = intent.get('quantity', 1)
+        unit = intent.get('unit', 'unidades')
+        threshold = intent.get('threshold', 2)
         list_name = intent.get('list_name')
 
-        # Use new module if list_name is provided (smart defaults)
-        if list_name:
-            inventory_module = InventoryModuleNew(self.conn, self.user_id, list_name, 'inventory')
-        else:
-            inventory_module = self.inventory
+        # Use new InventoryModule with resolved list_name
+        inv = InventoryModuleNew(self.conn, self.user_id, list_name, 'inventory')
 
         if action == 'add':
-            if list_name:
-                # Use new module API
-                result = inventory_module.add(item, quantity=quantity, unit=unit)
-                return {
-                    'success': True,
-                    'result': result.get('message', f"Añadido {quantity} {unit} de {item}.")
-                }
-            else:
-                # Use old module API
-                inventory_module.add(item, quantity, unit)
-            # Check if now low stock
-            is_low = self.inventory.check_threshold(item)
-            if is_low:
-                self.shopping.add(item)
-                return {
-                    'success': True,
-                    'result': f"Añadido {quantity} {unit} de {item}. Stock bajo, añadido a la compra.",
-                    'low_stock': True
-                }
-            return {
+            result = inv.add(item, quantity=quantity, unit=unit, threshold=threshold)
+            # Build response with warning if present
+            response = {
                 'success': True,
-                'result': f"Añadido {quantity} {unit} de {item}."
+                'result': result.get('message', f"Añadido {quantity} {unit} de {item}.")
             }
+            if result.get('warning'):
+                # Append warning to message
+                warning_msg = result.get('message', '')
+                response['result'] = warning_msg
+            return response
 
         elif action == 'set':
-            self.inventory.set(item, quantity, unit)
-            # Check if now low stock
-            is_low = self.inventory.check_threshold(item)
-            if is_low:
-                self.shopping.add(item)
-                return {
-                    'success': True,
-                    'result': f"Actualizado a {quantity} {unit} de {item}. Stock bajo, añadido a la compra.",
-                    'low_stock': True
-                }
-            return {
+            result = inv.set_quantity(item, quantity)
+            response = {
                 'success': True,
-                'result': f"Actualizado a {quantity} {unit} de {item}."
+                'result': result.get('message', f"Actualizado {item} a {quantity} {unit}.")
             }
+            if result.get('warning'):
+                warning_msg = result.get('message', '')
+                response['result'] = warning_msg
+            return response
 
         elif action == 'remove':
-            removed = self.inventory.remove(item)
+            removed = inv.remove(item)
             if removed:
                 return {
                     'success': True,
-                    'result': f"Eliminado {item} del inventario."
+                    'result': f"Eliminado {item} de {list_name}."
                 }
             return {
                 'success': True,
-                'result': f"No tienes {item} en el inventario."
+                'result': f"{item} no está en {list_name}."
             }
 
         elif action == 'get':
-            item_data = self.inventory.get(item)
+            item_data = inv.get(item)
             if item_data:
                 return {
                     'success': True,
-                    'result': f"Tienes {item_data['quantity']} {item_data['unit']} de {item}.",
+                    'result': f"**{item}**: {item_data['quantity']} {item_data['unit']}",
                     'data': item_data
                 }
             return {
                 'success': True,
-                'result': f"No tienes {item} en el inventario."
+                'result': f"{item} no está en {list_name}."
             }
 
         elif action == 'list':
-            items = self.inventory.list_all()
+            items = inv.list_all()
             if items:
                 # Format items with markdown
                 item_list = '\n'.join([
@@ -256,13 +237,31 @@ class ModuleRouter:
                 ])
                 return {
                     'success': True,
-                    'result': f"**Inventario** ({len(items)} items):\n{item_list}",
+                    'result': f"**{list_name}** ({len(items)} items):\n{item_list}",
                     'data': items
                 }
             return {
                 'success': True,
-                'result': "Tu inventario está vacío.",
+                'result': f"**{list_name}** está vacío.",
                 'data': {'empty': True}
+            }
+
+        elif action == 'check_low_stock':
+            low_items = inv.check_low_stock()
+            if low_items:
+                # Format with warning emoji
+                item_list = '\n'.join([
+                    f"⚠️ **{item['name']}**: {item['quantity']} {item['unit']} (umbral: {item['low_threshold']})"
+                    for item in low_items
+                ])
+                return {
+                    'success': True,
+                    'result': f"Items con stock bajo en **{list_name}**:\n{item_list}",
+                    'data': low_items
+                }
+            return {
+                'success': True,
+                'result': "Todo bien, no hay items con stock bajo."
             }
 
         else:
@@ -273,62 +272,75 @@ class ModuleRouter:
             }
 
     def _route_shopping(self, action, intent):
-        """Route shopping list actions"""
+        """Route shopping list actions to ShoppingModule"""
         item = intent.get('item')
-        list_name = intent.get('list_name', 'compra')  # Default to 'compra' if not specified
+        quantity = intent.get('quantity', 1)
+        unit = intent.get('unit', 'unidades')
+        list_name = intent.get('list_name')
+
+        # Use new ShoppingModule with resolved list_name
+        shop = ShoppingModule(self.conn, self.user_id, list_name, 'shopping')
 
         if action == 'create':
-            result = self.shopping.create_list(list_name)
+            # Create new list (list_name should be different from current)
+            new_list_name = intent.get('new_list_name', list_name)
+            new_shop = ShoppingModule(self.conn, self.user_id, new_list_name, 'shopping')
+            # Just ensure it exists
+            new_shop._ensure_list_exists()
             return {
                 'success': True,
-                'result': result['message']
+                'result': f"Lista de compra **{new_list_name}** creada."
             }
 
         elif action == 'add':
-            result = self.shopping.add(item, list_name)
+            result = shop.add(item, quantity=quantity, unit=unit)
             return {
                 'success': True,
-                'result': result['message']
+                'result': result.get('message', f"Añadido {item} a {list_name}.")
             }
 
         elif action == 'remove':
-            result = self.shopping.remove(item, list_name)
+            removed = shop.remove(item)
+            if removed:
+                return {
+                    'success': True,
+                    'result': f"Eliminado {item} de {list_name}."
+                }
             return {
                 'success': True,
-                'result': result['message']
-            }
-
-        elif action == 'bought':
-            result = self.shopping.mark_bought(item, list_name)
-            return {
-                'success': True,
-                'result': result['message']
+                'result': f"{item} no está en {list_name}."
             }
 
         elif action == 'list':
-            items = self.shopping.list_all(list_name)
-            list_display = f"Lista **{list_name}**" if list_name != "compra" else "**Lista de la compra**"
+            items = shop.list_all()
             if items:
                 # Format with markdown bullet list
-                item_list = '\n'.join([f"• {i['name']}" for i in items])
+                item_list = '\n'.join([
+                    f"• **{item['item_name']}**: {item['quantity']} {item['unit']}"
+                    for item in items
+                ])
                 return {
                     'success': True,
-                    'result': f"{list_display} ({len(items)} items):\n{item_list}",
+                    'result': f"**{list_name}** ({len(items)} items):\n{item_list}",
                     'data': items
                 }
             return {
                 'success': True,
-                'result': f"{list_display} vacía.",
+                'result': f"**{list_name}** está vacía.",
                 'data': {'empty': True}
             }
 
         elif action == 'list_all_lists':
-            lists = self.shopping.list_all_lists()
+            # Use static method from ItemListModule to get all shopping lists
+            lists = ItemListModule.list_all_lists(self.conn, self.user_id, category='shopping')
             if lists:
-                list_summary = '\n'.join([f"• {l['name']}: {l['item_count']} items" for l in lists])
+                list_summary = '\n'.join([
+                    f"• **{lst['name']}**: {lst['item_count']} items"
+                    for lst in lists
+                ])
                 return {
                     'success': True,
-                    'result': f"Tienes {len(lists)} listas de compra:\n{list_summary}",
+                    'result': f"Listas de compra ({len(lists)}):\n{list_summary}",
                     'data': lists
                 }
             return {
@@ -345,38 +357,47 @@ class ModuleRouter:
             }
 
     def _route_packing(self, action, intent):
-        """Route packing list actions"""
+        """Route packing list actions to PackingModule"""
         item = intent.get('item')
-        list_name = intent.get('list_name', 'gijón_llevar')
+        quantity = intent.get('quantity', 1)
+        unit = intent.get('unit', 'unidades')
         recurring = intent.get('recurring', False)
+        list_name = intent.get('list_name')
+
+        # Use new PackingModule with resolved list_name
+        pack = PackingModule(self.conn, self.user_id, list_name, 'packing')
 
         if action == 'add':
-            self.packing.add(list_name, item, recurring)
-            recurring_str = " (se mantendrá en la lista)" if recurring else ""
+            result = pack.add(item, quantity=quantity, unit=unit, recurring=recurring)
+            recurring_str = " 🔄" if recurring else ""
             return {
                 'success': True,
-                'result': f"Añadido {item} a la lista {list_name}{recurring_str}."
+                'result': result.get('message', f"Añadido {item} a {list_name}{recurring_str}.")
             }
 
         elif action == 'check':
-            self.packing.check(list_name, item)
+            result = pack.check_item(item)
             return {
                 'success': True,
-                'result': f"Marcado {item} en lista {list_name}."
+                'result': result.get('message', f"Marcado {item}.")
             }
 
         elif action == 'list':
-            items = self.packing.list_items(list_name)
+            items = pack.list_all()
             if items:
-                item_names = [i['name'] for i in items]
+                # Format with markdown and recurring emoji
+                item_list = '\n'.join([
+                    f"• **{item['item_name']}**: {item['quantity']} {item['unit']} {'🔄' if item.get('recurring') else ''}"
+                    for item in items
+                ])
                 return {
                     'success': True,
-                    'result': f"Lista {list_name} ({len(items)} items): {', '.join(item_names)}",
+                    'result': f"**{list_name}** ({len(items)} items):\n{item_list}",
                     'data': items
                 }
             return {
                 'success': True,
-                'result': f"Lista {list_name} vacía."
+                'result': f"**{list_name}** está vacía."
             }
 
         else:

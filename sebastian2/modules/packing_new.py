@@ -42,16 +42,54 @@ class PackingModule(ItemListModule):
             return None
 
         return {
-            'id': row[0],
-            'item_name': row[1],
-            'quantity': row[2],
-            'unit': row[3],
-            'notes': row[4],
-            'checked': row[5],
-            'recurring': bool(row[6]),
-            'created_at': row[7],
-            'updated_at': row[8]
+            'id': row['id'],
+            'item_name': row['name'],
+            'quantity': row['quantity'],
+            'unit': row['unit'],
+            'notes': row['notes'],
+            'checked': row['checked'],
+            'recurring': bool(row['recurring']),
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at']
         }
+
+    def list_all(self) -> list:
+        """
+        List all items in packing list (override to include recurring field).
+
+        Returns:
+            List of item dicts with recurring field included
+        """
+        list_id = self._get_list_id()
+        if not list_id:
+            return []
+
+        cursor = self.db.cursor()
+        cursor.execute(
+            """
+            SELECT id, name, quantity, unit, notes, checked, recurring, created_at, updated_at
+            FROM list_items
+            WHERE list_id = %s
+            ORDER BY name
+            """,
+            (list_id,)
+        )
+
+        items = []
+        for row in cursor.fetchall():
+            items.append({
+                'id': row['id'],
+                'item_name': row['name'],
+                'quantity': row['quantity'],
+                'unit': row['unit'],
+                'notes': row['notes'],
+                'checked': row['checked'],
+                'recurring': bool(row['recurring']),
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at']
+            })
+
+        return items
 
     def check_item(self, item_name: str) -> Dict[str, Any]:
         """

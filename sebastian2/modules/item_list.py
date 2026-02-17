@@ -126,7 +126,8 @@ class ItemListModule:
 
         if row:
             # Update existing item - add to quantity
-            item_id, current_quantity = row
+            item_id = row['id']
+            current_quantity = row['quantity']
             new_quantity = current_quantity + quantity
 
             # Build UPDATE statement with dynamic fields from kwargs
@@ -239,14 +240,14 @@ class ItemListModule:
             return None
 
         return {
-            'id': row[0],
-            'item_name': row[1],
-            'quantity': row[2],
-            'unit': row[3],
-            'notes': row[4],
-            'checked': row[5],
-            'created_at': row[6],
-            'updated_at': row[7]
+            'id': row['id'],
+            'item_name': row['name'],
+            'quantity': row['quantity'],
+            'unit': row['unit'],
+            'notes': row['notes'],
+            'checked': row['checked'],
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at']
         }
 
     def list_all(self) -> List[Dict]:
@@ -274,14 +275,14 @@ class ItemListModule:
         items = []
         for row in cursor.fetchall():
             items.append({
-                'id': row[0],
-                'item_name': row[1],
-                'quantity': row[2],
-                'unit': row[3],
-                'notes': row[4],
-                'checked': row[5],
-                'created_at': row[6],
-                'updated_at': row[7]
+                'id': row['id'],
+                'item_name': row['name'],
+                'quantity': row['quantity'],
+                'unit': row['unit'],
+                'notes': row['notes'],
+                'checked': row['checked'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at']
             })
 
         return items
