@@ -2,12 +2,17 @@
 """
 Module Router - routes parsed intents to appropriate modules.
 """
+from typing import Dict, Any, Optional
 from loguru import logger
 from db.connection import get_connection, close_connection
 from modules.inventory import InventoryModule
 from modules.shopping import ShoppingListModule
 from modules.packing import PackingListModule
 from modules.notes import NotesModule
+from modules.item_list import ItemListModule
+from modules.inventory_new import InventoryModule as InventoryModuleNew
+from modules.shopping_new import ShoppingModule
+from modules.packing_new import PackingModule
 
 class ModuleRouter:
     """
@@ -34,6 +39,79 @@ class ModuleRouter:
 
         logger.info(f"ModuleRouter initialized for user {user_id}")
 
+    def _resolve_list_name(self, module: str, list_name: Optional[str]) -> Optional[str]:
+        """
+        Resolve list name using smart defaults.
+
+        - If list_name is provided → use it
+        - If user has only 1 list of that category → auto-select
+        - If user has 2+ lists → return None (caller should error)
+        - If user has 0 lists → use default name
+
+        Args:
+            module: Module name (inventory, shopping, packing)
+            list_name: User-provided list name (or None)
+
+        Returns:
+            Resolved list name or None if ambiguous
+        """
+        if list_name:
+            return list_name  # Explicit name provided
+
+        # Map module to category
+        category_map = {
+            'inventory': 'inventory',
+            'shopping': 'shopping',
+            'packing': 'packing'
+        }
+        category = category_map.get(module)
+
+        if not category:
+            return None
+
+        # Get user's lists for this category
+        lists = ItemListModule.list_all_lists(self.conn, self.user_id, category=category)
+
+        if len(lists) == 0:
+            # No lists yet - use default names
+            defaults = {
+                'inventory': 'inventario',
+                'shopping': 'compra',
+                'packing': 'equipaje'
+            }
+            return defaults.get(category)
+        elif len(lists) == 1:
+            # Auto-select the only list
+            return lists[0]['name']
+        else:
+            # Ambiguous - multiple lists
+            return None
+
+    def _build_list_options_error(self, module: str) -> Dict[str, Any]:
+        """
+        Build error message with list of available lists.
+
+        Args:
+            module: Module name
+
+        Returns:
+            Error dict with list options
+        """
+        category_map = {
+            'inventory': 'inventory',
+            'shopping': 'shopping',
+            'packing': 'packing'
+        }
+        category = category_map.get(module)
+
+        lists = ItemListModule.list_all_lists(self.conn, self.user_id, category=category)
+        list_names = [lst['name'] for lst in lists]
+
+        return {
+            'success': False,
+            'result': f"¿A qué lista? Tienes: {', '.join(list_names)}"
+        }
+
     def route(self, parsed_intent):
         """
         Route parsed intent to appropriate module.
@@ -47,9 +125,19 @@ class ModuleRouter:
         try:
             module = parsed_intent.get('module')
             action = parsed_intent.get('action')
+            list_name = parsed_intent.get('list_name')
 
             logger.info(f"Routing: module={module}, action={action}")
 
+            # Resolve list name with smart defaults
+            if module in ['inventory', 'shopping', 'packing']:
+                resolved_name = self._resolve_list_name(module, list_name)
+                if resolved_name is None and list_name is None:
+                    # Ambiguous - return error with options
+                    return self._build_list_options_error(module)
+                list_name = resolved_name
+                # Update parsed_intent with resolved list_name
+                parsed_intent['list_name'] = list_name
             if module == 'system':
                 # System/initialization commands
                 return {
@@ -90,9 +178,25 @@ class ModuleRouter:
         item = intent.get('item')
         quantity = intent.get('quantity')
         unit = intent.get('unit')
+        list_name = intent.get('list_name')
+
+        # Use new module if list_name is provided (smart defaults)
+        if list_name:
+            inventory_module = InventoryModuleNew(self.conn, self.user_id, list_name, 'inventory')
+        else:
+            inventory_module = self.inventory
 
         if action == 'add':
-            self.inventory.add(item, quantity, unit)
+            if list_name:
+                # Use new module API
+                result = inventory_module.add(item, quantity=quantity, unit=unit)
+                return {
+                    'success': True,
+                    'result': result.get('message', f"Añadido {quantity} {unit} de {item}.")
+                }
+            else:
+                # Use old module API
+                inventory_module.add(item, quantity, unit)
             # Check if now low stock
             is_low = self.inventory.check_threshold(item)
             if is_low:

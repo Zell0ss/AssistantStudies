@@ -16,35 +16,40 @@ class ItemListModule:
     with support for quantities, units, and notes.
 
     Attributes:
-        db: Database connection (SQLite or MySQL/MariaDB)
-        list_type: Type of list (e.g., 'inventory', 'shopping', 'packing')
+        conn: Database connection (MySQL/MariaDB)
         user_id: Telegram user ID
+        list_name: Name of the list
+        list_category: Category ('inventory', 'shopping', 'packing')
 
     Note:
         SQL queries use %s placeholders for MySQL/MariaDB compatibility.
     """
 
-    def __init__(self, db: Any, list_type: str, user_id: int):
+    def __init__(self, conn: Any, user_id: int, list_name: str, list_category: str):
         """
         Initialize the ItemListModule.
 
         Args:
-            db: Database connection (MySQL/MariaDB)
-            list_type: Type of list (e.g., 'inventory', 'shopping', 'packing')
+            conn: Database connection (MySQL/MariaDB)
             user_id: Telegram user ID
+            list_name: Name of the list
+            list_category: Category ('inventory', 'shopping', 'packing')
         """
-        self.db = db
-        self.list_type = list_type
+        self.conn = conn
+        self.db = conn  # Alias for backward compatibility
         self.user_id = user_id
+        self._list_name = list_name
+        self.list_category = list_category
+        self.list_type = list_name  # Alias for backward compatibility
 
     @property
     def list_name(self) -> str:
         """Get a human-readable name for the list."""
-        return self.list_type
+        return self._list_name
 
     def _ensure_list_exists(self) -> int:
         """
-        Ensure a list exists for this user and type, create if needed.
+        Ensure a list exists for this user and name, create if needed.
 
         Returns:
             The list ID
@@ -53,39 +58,39 @@ class ItemListModule:
 
         # Check if list exists
         cursor.execute(
-            "SELECT id FROM lists WHERE user_id = %s AND list_type = %s",
-            (self.user_id, self.list_type)
+            "SELECT id FROM lists WHERE user_id = %s AND name = %s",
+            (self.user_id, self._list_name)
         )
         row = cursor.fetchone()
 
         if row:
-            return row[0]
+            return row['id']
 
         # Create new list
         cursor.execute(
             """
-            INSERT INTO lists (user_id, list_type)
-            VALUES (%s, %s)
+            INSERT INTO lists (user_id, name, list_category)
+            VALUES (%s, %s, %s)
             """,
-            (self.user_id, self.list_type)
+            (self.user_id, self._list_name, self.list_category)
         )
         self.db.commit()
         return cursor.lastrowid
 
     def _get_list_id(self) -> Optional[int]:
         """
-        Get the list ID for this user and type.
+        Get the list ID for this user and name.
 
         Returns:
             The list ID if it exists, None otherwise
         """
         cursor = self.db.cursor()
         cursor.execute(
-            "SELECT id FROM lists WHERE user_id = %s AND list_type = %s",
-            (self.user_id, self.list_type)
+            "SELECT id FROM lists WHERE user_id = %s AND name = %s",
+            (self.user_id, self._list_name)
         )
         row = cursor.fetchone()
-        return row[0] if row else None
+        return row['id'] if row else None
 
     def add(self, item_name: str, quantity: float = 1, unit: str = 'unidades', **kwargs) -> Dict[str, Any]:
         """
@@ -363,62 +368,141 @@ class ItemListModule:
         return cursor.rowcount > 0
 
     @staticmethod
-    def list_all_lists(db: Any, user_id: int) -> List[Dict]:
+    def list_all_lists(db: Any, user_id: int, category: Optional[str] = None) -> List[Dict]:
         """
-        List all lists for a user.
+        List all lists for a user, optionally filtered by category.
 
         Args:
             db: Database connection (MySQL/MariaDB)
             user_id: Telegram user ID
+            category: Optional category filter ('inventory', 'shopping', 'packing')
 
         Returns:
             List of dictionaries with list data
         """
         cursor = db.cursor()
-        cursor.execute(
-            """
-            SELECT id, list_type, name, created_at, updated_at
-            FROM lists
-            WHERE user_id = %s
-            ORDER BY list_type
-            """,
-            (user_id,)
-        )
+
+        if category:
+            cursor.execute(
+                """
+                SELECT id, list_category, name, created_at
+                FROM lists
+                WHERE user_id = %s AND list_category = %s
+                ORDER BY name
+                """,
+                (user_id, category)
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT id, list_category, name, created_at
+                FROM lists
+                WHERE user_id = %s
+                ORDER BY list_category, name
+                """,
+                (user_id,)
+            )
 
         lists = []
         for row in cursor.fetchall():
             lists.append({
-                'id': row[0],
-                'list_type': row[1],
-                'name': row[2],
-                'created_at': row[3],
-                'updated_at': row[4]
+                'id': row['id'],
+                'list_category': row['list_category'],
+                'name': row['name'],
+                'created_at': row['created_at']
             })
 
         return lists
 
     @staticmethod
-    def create_list(db: Any, user_id: int, list_type: str,
-                   name: Optional[str] = None) -> int:
+    def create_list(db: Any, user_id: int, name: str, category: str) -> Dict[str, Any]:
         """
-        Explicitly create a new list.
+        Create a new empty list.
 
         Args:
             db: Database connection (MySQL/MariaDB)
             user_id: Telegram user ID
-            list_type: Type of list
-            name: Optional list name
+            name: List name
+            category: Category ('inventory', 'shopping', 'packing')
 
         Returns:
-            The created list ID
+            Dict with status and message
         """
         cursor = db.cursor()
+
+        # Check if list already exists
         cursor.execute(
-            """
-            INSERT INTO lists (user_id, list_type, name)
-            VALUES (%s, %s, %s)
-            """,
-            (user_id, list_type, name)
+            "SELECT id FROM lists WHERE user_id = %s AND name = %s",
+            (user_id, name)
+        )
+        if cursor.fetchone():
+            return {
+                'status': 'exists',
+                'message': f"La lista '{name}' ya existe"
+            }
+
+        # Create list
+        cursor.execute(
+            "INSERT INTO lists (user_id, name, list_category) VALUES (%s, %s, %s)",
+            (user_id, name, category)
         )
         db.commit()
-        return cursor.lastrowid
+        return {
+            'status': 'created',
+            'message': f"Lista '{name}' creada",
+            'list_id': cursor.lastrowid
+        }
+
+    @staticmethod
+    def list_items(db: Any, user_id: int, list_name: str) -> List[Dict[str, Any]]:
+        """
+        List all items in a specific list by name.
+
+        Args:
+            db: Database connection (MySQL/MariaDB)
+            user_id: Telegram user ID
+            list_name: Name of the list
+
+        Returns:
+            List of dictionaries with item data
+        """
+        cursor = db.cursor()
+
+        # Get list ID
+        cursor.execute(
+            "SELECT id FROM lists WHERE user_id = %s AND name = %s",
+            (user_id, list_name)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            return []
+
+        list_id = row['id']
+
+        # Get all items in list
+        cursor.execute(
+            """
+            SELECT id, name, quantity, unit, notes, checked, recurring, created_at, updated_at
+            FROM list_items
+            WHERE list_id = %s
+            ORDER BY created_at DESC
+            """,
+            (list_id,)
+        )
+
+        items = []
+        for row in cursor.fetchall():
+            items.append({
+                'id': row['id'],
+                'name': row['name'],
+                'quantity': row['quantity'],
+                'unit': row['unit'],
+                'notes': row['notes'],
+                'checked': row['checked'],
+                'recurring': row['recurring'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at']
+            })
+
+        return items
