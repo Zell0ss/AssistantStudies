@@ -9,6 +9,7 @@ import telebot
 from utils.config import get_config
 from utils.logging_config import setup_logging
 from bot.handlers import setup_handlers
+from bot.scheduler import start_daily_reminder
 from loguru import logger
 
 
@@ -45,6 +46,10 @@ def main():
         setup_handlers(bot, config)
         logger.info("Message handlers configured")
 
+        # Start daily calendar reminder
+        scheduler = start_daily_reminder(bot, config)
+        logger.info("Daily calendar reminder scheduler started")
+
         # Start polling
         logger.info("Starting bot polling...")
         logger.info(
@@ -59,6 +64,8 @@ def main():
 
     except KeyboardInterrupt:
         logger.info("Bot stopped by user (Ctrl+C)")
+        if 'scheduler' in locals():
+            scheduler.shutdown()
     except Exception as e:
         logger.error(f"Fatal error starting bot: {e}", exc_info=True)
         raise
