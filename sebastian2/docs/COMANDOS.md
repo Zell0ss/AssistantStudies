@@ -8,8 +8,8 @@ Referencia rápida de todos los comandos disponibles por tipo de lista.
 
 Sebastian 2.0 gestiona 4 tipos de listas diferentes:
 
-1. **Inventory** - Inventario único de items en casa (con cantidades)
-2. **Shopping** - Listas de compra múltiples (items simples)
+1. **Inventory** - Múltiples inventarios nombrados (con cantidades y alertas de stock bajo)
+2. **Shopping** - Listas de compra múltiples (con cantidades)
 3. **Packing** - Listas de equipaje para viajes (con items recurrentes)
 4. **Notes** - Notas de texto libre con tags
 
@@ -19,51 +19,69 @@ Sebastian 2.0 gestiona 4 tipos de listas diferentes:
 
 | Tipo | Base de datos | Comandos disponibles | Características especiales |
 |------|--------------|---------------------|---------------------------|
-| **inventory** | `inventory` | • `add` - "compré 6 aguacates"<br>• `set` - "me quedan 2 aguacates"<br>• `get` - "cuántos aguacates tengo"<br>• `remove` - "elimina aguacates"<br>• `list` - "qué tengo en inventario" | • Cantidad + unidad + threshold<br>• Auto-añade a shopping cuando bajo<br>• **1 lista única por usuario** |
-| **shopping** | `lists`<br>(type='shopping') | • `create` - "crea lista bugs"<br>• `add` - "añade pan a mercadona"<br>• `remove` - "elimina pan de bugs"<br>• `bought` - "compré pan" (elimina)<br>• `list` - "lista de mercadona"<br>• `list_all_lists` - "qué listas tengo" | • Items simples (solo nombre)<br>• Se eliminan al marcar comprados<br>• **Múltiples listas** (mercadona, carrefour, etc.) |
-| **packing** | `lists`<br>(type='packing') | • `add` - "añade toalla a gijón"<br>• `add` (recurring) - "añade cepillo a gijón, siempre"<br>• `check` - "marca toalla en gijón"<br>• `list` - "lista equipaje gijón"<br>• `reset` - reinicia items no-recurrentes | • Items + flag recurring<br>• Items recurrentes permanecen<br>• **Múltiples listas** (gijón, madrid, playa, etc.) |
+| **inventory** | `lists` + `list_items`<br>(category='inventory') | • `add` - "compré 6 aguacates"<br>• `set` - "me quedan 2 aguacates"<br>• `get` - "cuántos aguacates tengo"<br>• `remove` - "elimina aguacates"<br>• `list` - "qué tengo en despensa madrid"<br>• `check_low_stock` - "items con stock bajo" | • Cantidad + unidad + threshold<br>• Avisos ⚠️ cuando stock bajo<br>• **Múltiples inventarios nombrados**<br>• Smart defaults (auto-selección) |
+| **shopping** | `lists`<br>(category='shopping') | • `create` - "crea lista mercadona"<br>• `add` - "añade 2 kg de pan a mercadona"<br>• `remove` - "elimina pan de mercadona"<br>• `list` - "lista de mercadona"<br>• `list_all_lists` - "qué listas tengo" | • Items con cantidad y unidad<br>• Se eliminan manualmente<br>• **Múltiples listas** (mercadona, carrefour, etc.)<br>• Smart defaults |
+| **packing** | `lists`<br>(category='packing') | • `add` - "añade toalla a gijón"<br>• `add` (recurring) - "añade cepillo a gijón, siempre"<br>• `check` - "marca toalla en gijón"<br>• `list` - "lista equipaje gijón" | • Items + flag recurring 🔄<br>• Items recurrentes permanecen<br>• **Múltiples listas** (gijón, madrid, playa, etc.)<br>• Smart defaults |
 | **notes** | `notes` | • `add` - "apunta que rebe prefiere X"<br>• `search` - "busca notas sobre rebe"<br>• `list` - "mis notas" | • Texto libre + tags<br>• Búsqueda por contenido y tags<br>• **Múltiples notas** |
 
 ---
 
 ## 🎯 Ejemplos de Uso
 
-### 1. Inventory (Inventario Único)
+### 1. Inventory (Múltiples Inventarios Nombrados)
 
-**Añadir items:**
+**Crear/usar inventarios nombrados:**
 ```
-✅ "compré 6 aguacates"
-✅ "añadí 2 kilos de arroz"
-✅ "me llegaron 12 huevos"
+✅ "añade aguacates a despensa de madrid"
+✅ "cuánto me queda en nevera de gijón"
+✅ "lista de despensa magán"
+✅ "qué tengo en mi inventario"  (smart default: auto-selecciona si tienes 1 solo)
+```
+
+**Añadir items con threshold:**
+```
+✅ "compré 6 aguacates"  (threshold por defecto: 2)
+✅ "añadí 2 kilos de arroz a despensa madrid"
+✅ "me llegaron 12 huevos en nevera gijón"
 ```
 
 **Establecer cantidad exacta:**
 ```
 ✅ "me quedan 2 limones"
-✅ "tengo 1 litro de leche"
-✅ "actualiza aguacates a 3"
+✅ "tengo 1 litro de leche en nevera gijón"
+✅ "actualiza aguacates a 3 en despensa madrid"
 ```
 
 **Consultar:**
 ```
-✅ "cuántos aguacates tengo?"
+✅ "cuántos aguacates tengo en despensa madrid?"
 ✅ "cuánta leche me queda?"
-✅ "qué tengo en mi inventario?"
+✅ "qué tengo en nevera de gijón?"
+✅ "dime que cosas me queda poco"  (check low stock)
 ```
 
 **Eliminar:**
 ```
-✅ "elimina linterna del inventario"
+✅ "elimina linterna de despensa madrid"
 ✅ "quita aguacates"
 ```
 
+**Avisos de stock bajo:**
+Cuando actualizas un item y cae por debajo del threshold, recibes un aviso:
+```
+"quita 5 aguacates" → "✅ Actualizado. ⚠️ Te queda poco aguacates (1 unidades). Piensa en comprar."
+```
+
 **Comportamiento especial:**
-- Cuando un item cae por debajo del `threshold` → se añade automáticamente a la lista "compra"
+- Puedes tener múltiples inventarios: "despensa madrid", "nevera gijón", "despensa magán", etc.
+- Threshold warnings automáticos (⚠️) cuando stock bajo - **ya no auto-añade a compra**
+- Smart defaults: si solo tienes 1 inventario, no necesitas especificar el nombre
+- Si tienes múltiples inventarios → debes especificar cuál: "despensa madrid", "nevera gijón", etc.
 - Threshold por defecto: 2 unidades
 
 ---
 
-### 2. Shopping (Listas de Compra)
+### 2. Shopping (Listas de Compra con Cantidades)
 
 **Crear listas:**
 ```
@@ -72,11 +90,12 @@ Sebastian 2.0 gestiona 4 tipos de listas diferentes:
 ✅ "nueva lista lidl"
 ```
 
-**Añadir items:**
+**Añadir items CON cantidades:**
 ```
-✅ "añade pan a mercadona"
-✅ "añade leche a carrefour"
-✅ "añade tomates a la compra"
+✅ "añade 5 aguacates a mercadona"
+✅ "añade 2 kg de pan a la compra"
+✅ "añade 3 litros de leche a carrefour"
+✅ "añade tomates a mercadona"  (cantidad por defecto: 1)
 ```
 
 **Ver listas:**
@@ -91,17 +110,14 @@ Sebastian 2.0 gestiona 4 tipos de listas diferentes:
 ```
 ✅ "elimina pan de mercadona"
 ✅ "quita leche de carrefour"
-✅ "elimina bugs de la lista bugs"
 ```
 
-**Marcar como comprado:**
-```
-✅ "compré pan"
-✅ "ya compré leche"
-```
+**Smart defaults:**
+- Si solo tienes 1 lista de compra → auto-selecciona (no necesitas especificar nombre)
+- Si tienes múltiples → debes especificar: "mercadona", "carrefour", etc.
 
 **Listas comunes:**
-- `compra` - Lista por defecto (cuando no especificas)
+- `compra` - Lista por defecto (cuando dices "la compra")
 - `mercadona`
 - `carrefour`
 - `lidl`
