@@ -4,6 +4,8 @@ Telegram bot handlers for Sebastian 2.0.
 
 Integrates parser, router, formatter, and sprite system.
 """
+import telebot
+from telegram_markdown import parse_markdown_to_entities
 from core.haiku_parser import HaikuParser
 from core.router import ModuleRouter
 from bot.formatter import ResponseFormatter
@@ -11,6 +13,13 @@ from modules.user_settings import UserSettingsModule
 from sprites.sprite_system import SpriteSystem
 from db.connection import get_connection
 from loguru import logger
+
+
+def _send_markdown(bot, chat_id, text):
+    """Send a message with **bold** markdown using Telegram entities (no parse_mode needed)."""
+    plain_text, entity_dicts = parse_markdown_to_entities(text)
+    entities = [telebot.types.MessageEntity(**e) for e in entity_dicts]
+    bot.send_message(chat_id, plain_text, entities=entities or None)
 
 
 def setup_handlers(bot, config):
@@ -230,10 +239,7 @@ def setup_handlers(bot, config):
             logger.debug(f"Formatted response with skin '{user_skin}': {response}")
 
             # Send text message first
-            bot.send_message(
-                chat_id=message.chat.id,
-                text=response["caption"]
-            )
+            _send_markdown(bot, message.chat.id, response["caption"])
 
             # Then send sprite as document to preserve transparency
             try:

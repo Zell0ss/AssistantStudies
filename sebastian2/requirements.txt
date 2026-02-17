@@ -1,5 +1,6 @@
 # Telegram
 pyTelegramBotAPI==4.14.0
+telegram-markdown-entities==0.1.1
 
 # Database
 PyMySQL==1.1.0
