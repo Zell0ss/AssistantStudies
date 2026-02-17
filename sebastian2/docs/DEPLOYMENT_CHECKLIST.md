@@ -69,7 +69,7 @@ git log -1 --oneline
 mysql -u root -p sebastian_db
 
 # Run migration 003
-SOURCE db/migrations/migration_003_unified_lists.sql;
+SOURCE db/migrations/003_unify_lists.sql;
 
 # Verify migration
 SHOW TABLES;

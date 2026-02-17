@@ -162,7 +162,7 @@ Usuario con 2+ inventarios:
 - [core/haiku_parser.py](core/haiku_parser.py) - List name extraction (UPDATED)
 
 ### Database
-- [db/migrations/migration_003_unified_lists.sql](db/migrations/migration_003_unified_lists.sql) (NEW)
+- [db/migrations/003_unify_lists.sql](db/migrations/003_unify_lists.sql) (NEW)
 
 ### Tests
 - [tests/test_list_system_integration.py](tests/test_list_system_integration.py) (NEW - 7 E2E tests)
@@ -204,7 +204,7 @@ cd /path/to/sebastian2
 git pull origin main
 
 # 3. Run migration 003
-mysql -u root -p sebastian_db < db/migrations/migration_003_unified_lists.sql
+mysql -u root -p sebastian_db < db/migrations/003_unify_lists.sql
 
 # 4. Verificar migración
 mysql -u root -p sebastian_db
