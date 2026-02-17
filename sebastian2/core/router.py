@@ -10,6 +10,7 @@ from modules.shopping import ShoppingModule
 from modules.packing import PackingModule
 from modules.notes import NotesModule
 from modules.item_list import ItemListModule
+from modules.calendar import CalendarModule
 
 class ModuleRouter:
     """
@@ -176,6 +177,8 @@ class ModuleRouter:
                 return self._route_packing(action, parsed_intent)
             elif module == 'notes':
                 return self._route_notes(action, parsed_intent)
+            elif module == 'calendar':
+                return self._route_calendar(action, parsed_intent)
             elif module == 'unknown':
                 return {
                     'success': False,
@@ -626,7 +629,129 @@ Para mover una lista mal clasificada: dímelo y lo arreglo."""
                 'error': f"unknown_action_{action}"
             }
 
+    def _route_calendar(self, action: str, intent: dict) -> dict:
+        """Route calendar actions to CalendarModule."""
+        cal = CalendarModule(self.conn, self.user_id)
+
+        if action == 'add':
+            title = intent.get('title', '').strip()
+            if not title:
+                return {'success': False, 'result': "¿Cuál es el nombre del evento?"}
+
+            event_date = _parse_date_optional(intent.get('date'))
+            recurrence_end = _parse_date_optional(intent.get('recurrence_end'))
+
+            result = cal.add_event(
+                title=title,
+                event_date=event_date,
+                event_time=intent.get('time'),
+                all_day=bool(intent.get('all_day', False)),
+                recurrence_rule=intent.get('recurrence_rule'),
+                recurrence_end=recurrence_end,
+            )
+            return {'success': True, 'result': result['message'], 'data': result}
+
+        if action == 'list':
+            time_window = intent.get('time_window', 'today')
+            events = cal.list_events(time_window)
+            return {
+                'success': True,
+                'result': _format_events_list(events, time_window=time_window),
+                'data': events
+            }
+
+        if action == 'search':
+            query = intent.get('query', '').strip()
+            if not query:
+                return {'success': False, 'result': "¿Qué evento quieres buscar?"}
+            events = cal.search_events(query)
+            if not events:
+                return {'success': True, 'result': f"No encontré ningún evento sobre '{query}'."}
+            return {
+                'success': True,
+                'result': _format_events_list(events, label=f"Eventos sobre '{query}'"),
+                'data': events
+            }
+
+        if action == 'remove':
+            title = intent.get('title', '').strip()
+            if not title:
+                return {'success': False, 'result': "¿Qué evento quieres borrar?"}
+            event_date = _parse_date_optional(intent.get('date'))
+            result = cal.remove_event(title=title, event_date=event_date)
+            success = result['status'] in ('removed', 'needs_clarification')
+            return {
+                'success': success,
+                'result': result['message'],
+                'data': result
+            }
+
+        return {'success': False, 'result': f"Acción de calendario desconocida: {action}"}
+
     def cleanup(self):
         """Clean up database connection"""
         close_connection()
         logger.debug("ModuleRouter cleanup complete")
+
+
+def _parse_date_optional(date_str):
+    """Parse an optional date string to a date object. Returns None on failure."""
+    if not date_str:
+        return None
+    try:
+        from dateutil.parser import parse as parse_dt
+        return parse_dt(str(date_str)).date()
+    except Exception:
+        return None
+
+
+def _format_events_list(events: list, time_window: str = '', label: str = '') -> str:
+    """Format a list of events into a readable markdown string."""
+    if not events:
+        header = label or _time_window_label(time_window)
+        return f"📅 {header}\n\nNo tienes eventos."
+
+    header = label or _time_window_label(time_window)
+    lines = [f"📅 **{header}**\n"]
+
+    current_date = None
+    for e in events:
+        if e['date'] != current_date:
+            current_date = e['date']
+            try:
+                day_str = current_date.strftime('%-d de %B').capitalize()
+                # Get weekday name in Spanish
+                weekdays_es = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+                weekday_es = weekdays_es[current_date.weekday()]
+                lines.append(f"\n**{weekday_es} {day_str}**")
+            except Exception:
+                lines.append(f"\n**{current_date}**")
+
+        recurring_icon = " 🔄" if e.get('recurring') else ""
+        if e.get('all_day'):
+            lines.append(f"• (todo el día) — {e['title']}{recurring_icon}")
+        else:
+            lines.append(f"• {e['time']} — {e['title']}{recurring_icon}")
+
+    return '\n'.join(lines)
+
+
+def _time_window_label(time_window: str) -> str:
+    """Human-readable label for time window."""
+    labels = {
+        'today': 'Agenda de hoy',
+        'tomorrow': 'Agenda de mañana',
+        'week': 'Agenda de esta semana',
+        'month': 'Agenda de este mes',
+    }
+    if time_window in labels:
+        return labels[time_window]
+    if len(time_window) == 7 and '-' in time_window:
+        try:
+            year, month = map(int, time_window.split('-'))
+            months_es = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                         'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+            return f"Agenda de {months_es[month-1]} {year}"
+        except Exception:
+            pass
+    return 'Agenda'

@@ -200,3 +200,49 @@ def test_router_unknown_module(router):
     }
     result = router.route(intent)
     assert result['success'] is False
+
+
+class TestCalendarRouting:
+    def test_route_calendar_add(self, router):
+        intent = {
+            'module': 'calendar',
+            'action': 'add',
+            'title': 'Dentista',
+            'date': '2026-03-10',
+            'time': '17:00',
+            'all_day': False,
+            'recurrence_rule': None,
+        }
+        result = router.route(intent)
+        assert result['success'] is True
+        assert 'Dentista' in result['result']
+
+    def test_route_calendar_list_today(self, router):
+        intent = {
+            'module': 'calendar',
+            'action': 'list',
+            'time_window': 'today',
+        }
+        result = router.route(intent)
+        assert result['success'] is True
+        assert '📅' in result['result']
+
+    def test_route_calendar_search(self, router):
+        intent = {
+            'module': 'calendar',
+            'action': 'search',
+            'query': 'dentista_xyz_test',
+        }
+        result = router.route(intent)
+        assert result['success'] is True
+        assert 'No encontré' in result['result']
+
+    def test_route_calendar_remove_not_found(self, router):
+        intent = {
+            'module': 'calendar',
+            'action': 'remove',
+            'title': 'EventoInexistente',
+            'date': '2026-03-10',
+        }
+        result = router.route(intent)
+        assert 'No encontré' in result['result']
