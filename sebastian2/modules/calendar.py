@@ -6,6 +6,8 @@ from datetime import date, datetime, time
 from typing import Optional, List, Dict, Any
 from modules.base import BaseModule
 from loguru import logger
+from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY, MO, TU, WE, TH, FR, SA, SU
+import calendar as cal_lib
 
 
 class CalendarModule(BaseModule):
@@ -142,3 +144,133 @@ class CalendarModule(BaseModule):
         )
         self.commit()
         return cursor.rowcount > 0
+
+    _WEEKDAY_MAP = {
+        'MON': MO, 'TUE': TU, 'WED': WE, 'THU': TH,
+        'FRI': FR, 'SAT': SA, 'SUN': SU
+    }
+
+    def _rule_to_rrule(self, rule_str: str, start_dt: datetime, until_date: Optional[date]):
+        """Convert recurrence_rule string to dateutil rrule object."""
+        until = datetime.combine(until_date, time(23, 59)) if until_date else None
+
+        if rule_str == 'daily':
+            return rrule(DAILY, dtstart=start_dt, until=until)
+
+        if rule_str.startswith('weekly:'):
+            days_str = rule_str[7:]
+            days = [self._WEEKDAY_MAP[d.strip()] for d in days_str.split(',')]
+            return rrule(WEEKLY, byweekday=days, dtstart=start_dt, until=until)
+
+        if rule_str.startswith('monthly:'):
+            spec = rule_str[8:]
+            if spec.isdigit():
+                return rrule(MONTHLY, bymonthday=int(spec), dtstart=start_dt, until=until)
+            ordinal_map = {'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'last': -1}
+            parts = spec.split('-')
+            ordinal = ordinal_map[parts[0]]
+            weekday = self._WEEKDAY_MAP[parts[1]](ordinal)
+            return rrule(MONTHLY, byweekday=weekday, dtstart=start_dt, until=until)
+
+        return None
+
+    def _time_window_to_range(self, time_window: str):
+        """Convert time_window string to (start_date, end_date) tuple."""
+        from datetime import timedelta
+        today = date.today()
+
+        if time_window == 'today':
+            return today, today
+        if time_window == 'tomorrow':
+            return today + timedelta(days=1), today + timedelta(days=1)
+        if time_window == 'week':
+            return today, today + timedelta(days=6)
+        if time_window == 'month':
+            last_day = cal_lib.monthrange(today.year, today.month)[1]
+            return today, date(today.year, today.month, last_day)
+        # YYYY-MM format
+        if len(time_window) == 7 and '-' in time_window:
+            year, month = map(int, time_window.split('-'))
+            last_day = cal_lib.monthrange(year, month)[1]
+            return date(year, month, 1), date(year, month, last_day)
+
+        return today, today
+
+    def _row_to_event_dict(self, row: dict, recurring: bool) -> Dict[str, Any]:
+        """Convert a DB row to a clean event dict."""
+        if row['start_datetime']:
+            event_date = row['start_datetime'].date()
+            event_time = row['start_datetime'].strftime('%H:%M')
+        else:
+            event_date = row['event_date']
+            event_time = None
+
+        return {
+            'event_id': row['id'],
+            'title': row['title'],
+            'date': event_date,
+            'time': event_time,
+            'all_day': bool(row['all_day']),
+            'recurring': recurring,
+        }
+
+    def list_events(self, time_window: str) -> List[Dict[str, Any]]:
+        """
+        List events in the given time window, expanding recurring events.
+
+        Args:
+            time_window: 'today' | 'tomorrow' | 'week' | 'month' | 'YYYY-MM'
+
+        Returns:
+            List of event dicts sorted by date and time, each with:
+            {event_id, title, date, time, all_day, recurring}
+        """
+        start_date, end_date = self._time_window_to_range(time_window)
+        start_dt = datetime.combine(start_date, time(0, 0))
+        end_dt = datetime.combine(end_date, time(23, 59, 59))
+
+        query = """
+            SELECT id, title, event_date, start_datetime, end_datetime,
+                   all_day, recurrence_rule, recurrence_end
+            FROM events
+            WHERE user_id = %s
+            AND (
+                recurrence_rule IS NOT NULL
+                OR (all_day = TRUE AND event_date BETWEEN %s AND %s)
+                OR (all_day = FALSE AND start_datetime BETWEEN %s AND %s)
+            )
+            ORDER BY start_datetime, event_date
+        """
+        cursor = self.execute_query(query, (
+            self.user_id,
+            start_date, end_date,
+            start_dt, end_dt
+        ))
+        rows = cursor.fetchall()
+
+        results = []
+
+        for row in rows:
+            rule_str = row['recurrence_rule']
+
+            if not rule_str:
+                results.append(self._row_to_event_dict(row, recurring=False))
+                continue
+
+            # Recurring: expand within range
+            base_dt = row['start_datetime'] or datetime.combine(
+                row['event_date'] or date.today(), time(0, 0)
+            )
+            rule = self._rule_to_rrule(rule_str, base_dt, row['recurrence_end'])
+            if not rule:
+                continue
+
+            occurrences = rule.between(start_dt, end_dt, inc=True)
+            for occ in occurrences:
+                event = self._row_to_event_dict(row, recurring=True)
+                event['date'] = occ.date()
+                event['time'] = occ.strftime('%H:%M') if not row['all_day'] else None
+                results.append(event)
+
+        results.sort(key=lambda e: (e['date'], e['time'] or '00:00'))
+        return results

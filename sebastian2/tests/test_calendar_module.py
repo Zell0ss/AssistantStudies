@@ -88,3 +88,92 @@ class TestRemoveEvent:
         result = cal.remove_event(title="Inglés")
         assert result['status'] == 'needs_clarification'
         assert result.get('type') == 'recurring'
+
+
+class TestListEvents:
+    def test_list_today(self, cal):
+        today = date.today()
+        cal.add_event(title="Reunión", event_date=today, event_time="10:00")
+        events = cal.list_events('today')
+        assert any(e['title'] == 'Reunión' for e in events)
+
+    def test_list_today_excludes_other_days(self, cal):
+        from datetime import timedelta
+        tomorrow = date.today() + timedelta(days=1)
+        cal.add_event(title="EventoMañana", event_date=tomorrow, event_time="10:00")
+        events = cal.list_events('today')
+        assert not any(e['title'] == 'EventoMañana' for e in events)
+
+    def test_list_week_includes_7_days(self, cal):
+        from datetime import timedelta
+        today = date.today()
+        cal.add_event(title="FinDeSemana", event_date=today + timedelta(days=6), event_time="12:00")
+        events = cal.list_events('week')
+        assert any(e['title'] == 'FinDeSemana' for e in events)
+
+    def test_recurring_weekly_appears_in_range(self, cal):
+        from datetime import timedelta
+        today = date.today()
+        # Find next Monday from today (or today if it's Monday)
+        days_until_monday = (7 - today.weekday()) % 7 or 7
+        next_monday = today + timedelta(days=days_until_monday)
+        cal.add_event(
+            title="InglésRecurrente",
+            event_date=next_monday,
+            event_time="19:00",
+            recurrence_rule="weekly:MON"
+        )
+        # Query the week that contains next_monday
+        # Use 'week' if next_monday is within 6 days, otherwise use YYYY-MM format
+        if days_until_monday <= 6:
+            events = cal.list_events('week')
+        else:
+            events = cal.list_events(next_monday.strftime('%Y-%m'))
+        titles = [e['title'] for e in events]
+        assert 'InglésRecurrente' in titles
+
+    def test_recurring_marks_recurrent_flag(self, cal):
+        from datetime import timedelta
+        today = date.today()
+        days_until_monday = (7 - today.weekday()) % 7 or 7
+        next_monday = today + timedelta(days=days_until_monday)
+        cal.add_event(
+            title="YogaRecurrente",
+            event_date=next_monday,
+            event_time="08:00",
+            recurrence_rule="weekly:MON"
+        )
+        if days_until_monday <= 6:
+            events = cal.list_events('week')
+        else:
+            events = cal.list_events(next_monday.strftime('%Y-%m'))
+        yoga_events = [e for e in events if e['title'] == 'YogaRecurrente']
+        assert len(yoga_events) >= 1
+        assert yoga_events[0]['recurring'] is True
+
+    def test_recurring_with_end_date_excludes_after_end(self, cal):
+        from datetime import timedelta
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        cal.add_event(
+            title="EventoExpirado",
+            event_date=today - timedelta(days=30),
+            event_time="10:00",
+            recurrence_rule="daily",
+            recurrence_end=yesterday
+        )
+        events = cal.list_events('today')
+        assert not any(e['title'] == 'EventoExpirado' for e in events)
+
+    def test_list_month_format(self, cal):
+        cal.add_event(title="EventoMarzo", event_date=date(2027, 3, 15), event_time="10:00")
+        events = cal.list_events('2027-03')
+        assert any(e['title'] == 'EventoMarzo' for e in events)
+
+    def test_events_sorted_by_time(self, cal):
+        today = date.today()
+        cal.add_event(title="Tarde", event_date=today, event_time="18:00")
+        cal.add_event(title="Mañana", event_date=today, event_time="09:00")
+        events = cal.list_events('today')
+        titles = [e['title'] for e in events]
+        assert titles.index('Mañana') < titles.index('Tarde')
