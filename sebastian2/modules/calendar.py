@@ -274,3 +274,57 @@ class CalendarModule(BaseModule):
 
         results.sort(key=lambda e: (e['date'], e['time'] or '00:00'))
         return results
+
+    def search_events(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Search events by title (case-insensitive, partial match).
+
+        For recurring events, returns the next upcoming occurrence.
+        Results sorted soonest first.
+
+        Args:
+            query: Search string
+
+        Returns:
+            List of event dicts
+        """
+        cursor = self.execute_query(
+            """
+            SELECT id, title, event_date, start_datetime, end_datetime,
+                   all_day, recurrence_rule, recurrence_end
+            FROM events
+            WHERE user_id = %s AND LOWER(title) LIKE LOWER(%s)
+            ORDER BY start_datetime, event_date
+            """,
+            (self.user_id, f'%{query}%')
+        )
+        rows = cursor.fetchall()
+
+        today = date.today()
+        results = []
+
+        for row in rows:
+            rule_str = row['recurrence_rule']
+
+            if not rule_str:
+                results.append(self._row_to_event_dict(row, recurring=False))
+                continue
+
+            # For recurring: find next occurrence from today
+            base_dt = row['start_datetime'] or datetime.combine(
+                row['event_date'] or today, time(0, 0)
+            )
+            rule = self._rule_to_rrule(rule_str, base_dt, row['recurrence_end'])
+            if not rule:
+                continue
+
+            now = datetime.combine(today, time(0, 0))
+            next_occ = rule.after(now, inc=True)
+            if next_occ:
+                event = self._row_to_event_dict(row, recurring=True)
+                event['date'] = next_occ.date()
+                event['time'] = next_occ.strftime('%H:%M') if not row['all_day'] else None
+                results.append(event)
+
+        results.sort(key=lambda e: (e['date'], e['time'] or '00:00'))
+        return results

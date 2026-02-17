@@ -177,3 +177,50 @@ class TestListEvents:
         events = cal.list_events('today')
         titles = [e['title'] for e in events]
         assert titles.index('Mañana') < titles.index('Tarde')
+
+
+class TestSearchEvents:
+    def test_search_finds_by_title(self, cal):
+        cal.add_event(title="Dentista", event_date=date(2026, 5, 10), event_time="17:00")
+        cal.add_event(title="Reunión Pedro", event_date=date(2026, 5, 11), event_time="10:00")
+        results = cal.search_events("dentista")
+        assert len(results) == 1
+        assert results[0]['title'] == 'Dentista'
+
+    def test_search_case_insensitive(self, cal):
+        cal.add_event(title="Dentista", event_date=date(2026, 5, 10), event_time="17:00")
+        results = cal.search_events("DENTISTA")
+        assert len(results) == 1
+
+    def test_search_partial_match(self, cal):
+        cal.add_event(title="Reunión de equipo", event_date=date(2026, 5, 10), event_time="10:00")
+        results = cal.search_events("equipo")
+        assert len(results) == 1
+
+    def test_search_no_results(self, cal):
+        results = cal.search_events("cita_inexistente_xyz")
+        assert results == []
+
+    def test_search_returns_soonest_first(self, cal):
+        from datetime import timedelta
+        today = date.today()
+        cal.add_event(title="Revisión", event_date=today + timedelta(days=30), event_time="09:00")
+        cal.add_event(title="Revisión", event_date=today + timedelta(days=10), event_time="09:00")
+        results = cal.search_events("Revisión")
+        assert results[0]['date'] == today + timedelta(days=10)
+
+    def test_search_recurring_shows_next_occurrence(self, cal):
+        from datetime import timedelta
+        today = date.today()
+        days_until_monday = (7 - today.weekday()) % 7 or 7
+        next_monday = today + timedelta(days=days_until_monday)
+        cal.add_event(
+            title="InglésSearch",
+            event_date=next_monday,
+            event_time="19:00",
+            recurrence_rule="weekly:MON"
+        )
+        results = cal.search_events("InglésSearch")
+        assert len(results) == 1
+        assert results[0]['recurring'] is True
+        assert results[0]['date'] >= today
