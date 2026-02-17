@@ -41,13 +41,18 @@ class HaikuParser:
         Returns:
             Dict with parsed intent, or None if can't parse
         """
-        system_prompt = """Eres un asistente que parsea mensajes en español a JSON estructurado.
+        from datetime import date as _date
+        today_str = _date.today().strftime('%Y-%m-%d')
+        today_weekday = _date.today().strftime('%A')
+
+        system_prompt = f"""Hoy es {today_str} ({today_weekday}). Eres un asistente que parsea mensajes en español a JSON estructurado.
 
 El usuario puede pedir operaciones sobre:
 - **inventory**: inventario de items en casa (aguacates, leche, etc.)
 - **shopping**: listas de compra (compra, mercadona, carrefour, etc.) - items a comprar
 - **packing**: listas de empaque para viajes (gijón_llevar, etc.)
 - **notes**: notas de texto libre con tags
+- **calendar**: eventos y citas personales (dentista, reuniones, cumpleaños, eventos recurrentes)
 
 Acciones posibles:
 - **add**: añadir/agregar cantidad (inventory) o item (lists)
@@ -64,6 +69,10 @@ Acciones posibles:
 - **list_categories**: mostrar qué categorías de listas existen
 - **move_list**: mover una lista a otra categoría (requiere list_name y target_category)
 - **create**: crear lista vacía — SOLO usar module conocido si hay palabra de categoría explícita ("compra", "inventario", "equipaje"). Si el nombre es ambiguo sin categoría → module: "unknown"
+- **add**: añadir evento o cita al calendario
+- **list**: ver agenda (hoy, mañana, esta semana, este mes, mes concreto)
+- **search**: buscar evento por nombre o tipo
+- **remove**: borrar un evento o cita
 
 IMPORTANTE - Distinción shopping vs packing:
 - **shopping**: listas de compra (mercado, supermercado) → "compra", "mercadona", "carrefour", "lidl"
@@ -83,8 +92,8 @@ Ejemplos de nombres de listas por módulo:
 - **packing**: "gijón", "madrid", "playa"
 
 Devuelve SOLO JSON válido con esta estructura:
-{
-  "module": "inventory | shopping | packing | notes",
+{{
+  "module": "inventory | shopping | packing | notes | calendar",
   "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | explain | list_categories | move_list",
   "item": "nombre del item",
   "quantity": número (opcional),
@@ -93,47 +102,69 @@ Devuelve SOLO JSON válido con esta estructura:
   "target_category": "inventory | shopping | packing (para move_list)",
   "tags": ["tag1", "tag2"] (opcional, para notes),
   "recurring": true/false (opcional, para packing),
-  "threshold": número (opcional, para set_threshold)
-}
+  "threshold": número (opcional, para set_threshold),
+  "date": "YYYY-MM-DD (fecha del evento, resuelta desde lenguaje natural usando la fecha de hoy)",
+  "time": "HH:MM (hora del evento en formato 24h)",
+  "all_day": true/false (opcional, para eventos de todo el día),
+  "recurrence_rule": "daily | weekly:MON | weekly:MON,WED | monthly:15 | monthly:first-TUE | null",
+  "recurrence_end": "YYYY-MM-DD o null (cuándo termina la recurrencia)",
+  "time_window": "today | tomorrow | week | month | YYYY-MM (para action: list)",
+  "query": "texto de búsqueda (para action: search)"
+}}
 
 Ejemplos:
-"compré 6 aguacates" → {"module": "inventory", "action": "add", "item": "aguacates", "quantity": 6, "unit": "unidades"}
-"me quedan 2 aguacates" → {"module": "inventory", "action": "set", "item": "aguacates", "quantity": 2}
-"dime que tengo en mi inventario" → {"module": "inventory", "action": "list", "list_name": null}
-"qué tengo en mi inventario" → {"module": "inventory", "action": "list", "list_name": null}
-"añade aguacates a despensa de madrid" → {"module": "inventory", "action": "add", "item": "aguacates", "list_name": "despensa madrid"}
-"añade 3 kg de arroz a despensa madrid" → {"module": "inventory", "action": "add", "item": "arroz", "quantity": 3, "unit": "kg", "list_name": "despensa madrid"}
-"añade leche a la compra" → {"module": "shopping", "action": "add", "item": "leche", "list_name": "compra"}
-"añade pan a mercadona" → {"module": "shopping", "action": "add", "item": "pan", "list_name": "mercadona"}
-"crea una lista que se llame bugs" → {"module": "shopping", "action": "create", "list_name": "bugs"}
-"lista de la compra" → {"module": "shopping", "action": "list", "list_name": "compra"}
-"dime que listas tengo" → {"module": "shopping", "action": "list_all_lists"}
-"dime todas las listas que tienes" → {"module": "shopping", "action": "list_all_lists"}
-"qué listas hay" → {"module": "shopping", "action": "list_all_lists"}
-"que tengo en la lista mercadona" → {"module": "shopping", "action": "list", "list_name": "mercadona"}
-"elimina bugs de la lista bugs" → {"module": "shopping", "action": "remove", "item": "bugs", "list_name": "bugs"}
-"borra todos los ítems de la lista bugs" → {"module": "shopping", "action": "clear_all", "list_name": "bugs"}
-"vacía la lista de compra" → {"module": "shopping", "action": "clear_all", "list_name": "compra"}
-"borra todos los elementos del inventario" → {"module": "inventory", "action": "clear_all", "list_name": null}
-"borra todo de gijón" → {"module": "packing", "action": "clear_all", "list_name": "gijón"}
-"añade leche a gijón, siempre" → {"module": "packing", "action": "add", "item": "leche", "list_name": "gijón_llevar", "recurring": true}
-"apunta que rebe prefiere manzanas verdes" → {"module": "notes", "action": "add", "item": "rebe prefiere manzanas verdes", "tags": ["rebe"]}
+"compré 6 aguacates" → {{"module": "inventory", "action": "add", "item": "aguacates", "quantity": 6, "unit": "unidades"}}
+"me quedan 2 aguacates" → {{"module": "inventory", "action": "set", "item": "aguacates", "quantity": 2}}
+"dime que tengo en mi inventario" → {{"module": "inventory", "action": "list", "list_name": null}}
+"qué tengo en mi inventario" → {{"module": "inventory", "action": "list", "list_name": null}}
+"añade aguacates a despensa de madrid" → {{"module": "inventory", "action": "add", "item": "aguacates", "list_name": "despensa madrid"}}
+"añade 3 kg de arroz a despensa madrid" → {{"module": "inventory", "action": "add", "item": "arroz", "quantity": 3, "unit": "kg", "list_name": "despensa madrid"}}
+"añade leche a la compra" → {{"module": "shopping", "action": "add", "item": "leche", "list_name": "compra"}}
+"añade pan a mercadona" → {{"module": "shopping", "action": "add", "item": "pan", "list_name": "mercadona"}}
+"crea una lista que se llame bugs" → {{"module": "shopping", "action": "create", "list_name": "bugs"}}
+"lista de la compra" → {{"module": "shopping", "action": "list", "list_name": "compra"}}
+"dime que listas tengo" → {{"module": "shopping", "action": "list_all_lists"}}
+"dime todas las listas que tienes" → {{"module": "shopping", "action": "list_all_lists"}}
+"qué listas hay" → {{"module": "shopping", "action": "list_all_lists"}}
+"que tengo en la lista mercadona" → {{"module": "shopping", "action": "list", "list_name": "mercadona"}}
+"elimina bugs de la lista bugs" → {{"module": "shopping", "action": "remove", "item": "bugs", "list_name": "bugs"}}
+"borra todos los ítems de la lista bugs" → {{"module": "shopping", "action": "clear_all", "list_name": "bugs"}}
+"vacía la lista de compra" → {{"module": "shopping", "action": "clear_all", "list_name": "compra"}}
+"borra todos los elementos del inventario" → {{"module": "inventory", "action": "clear_all", "list_name": null}}
+"borra todo de gijón" → {{"module": "packing", "action": "clear_all", "list_name": "gijón"}}
+"añade leche a gijón, siempre" → {{"module": "packing", "action": "add", "item": "leche", "list_name": "gijón_llevar", "recurring": true}}
+"apunta que rebe prefiere manzanas verdes" → {{"module": "notes", "action": "add", "item": "rebe prefiere manzanas verdes", "tags": ["rebe"]}}
 
-"cómo funcionan las listas?" → {"module": "shopping", "action": "explain"}
-"explícame el sistema de listas" → {"module": "shopping", "action": "explain"}
-"qué tipos de listas hay?" → {"module": "shopping", "action": "explain"}
-"cómo puedo mover una lista a otra categoría?" → {"module": "shopping", "action": "explain"}
-"qué categorías de listas hay?" → {"module": "shopping", "action": "list_categories"}
-"cuántos tipos de listas existen?" → {"module": "shopping", "action": "list_categories"}
-"mueve la lista bugs a compra" → {"module": "shopping", "action": "move_list", "list_name": "bugs", "target_category": "shopping"}
-"cambia bugs a inventario" → {"module": "shopping", "action": "move_list", "list_name": "bugs", "target_category": "inventory"}
-"mueve gijón a equipaje" → {"module": "shopping", "action": "move_list", "list_name": "gijón", "target_category": "packing"}
-"crea una lista de compra llamada mercadona" → {"module": "shopping", "action": "create", "list_name": "mercadona"}
-"crea una lista de inventario llamada despensa" → {"module": "inventory", "action": "create", "list_name": "despensa"}
-"crea una lista de equipaje llamada playa" → {"module": "packing", "action": "create", "list_name": "playa"}
-"crea una lista llamada bugs" → {"module": "unknown", "action": "create", "list_name": "bugs"}
+"cómo funcionan las listas?" → {{"module": "shopping", "action": "explain"}}
+"explícame el sistema de listas" → {{"module": "shopping", "action": "explain"}}
+"qué tipos de listas hay?" → {{"module": "shopping", "action": "explain"}}
+"cómo puedo mover una lista a otra categoría?" → {{"module": "shopping", "action": "explain"}}
+"qué categorías de listas hay?" → {{"module": "shopping", "action": "list_categories"}}
+"cuántos tipos de listas existen?" → {{"module": "shopping", "action": "list_categories"}}
+"mueve la lista bugs a compra" → {{"module": "shopping", "action": "move_list", "list_name": "bugs", "target_category": "shopping"}}
+"cambia bugs a inventario" → {{"module": "shopping", "action": "move_list", "list_name": "bugs", "target_category": "inventory"}}
+"mueve gijón a equipaje" → {{"module": "shopping", "action": "move_list", "list_name": "gijón", "target_category": "packing"}}
+"crea una lista de compra llamada mercadona" → {{"module": "shopping", "action": "create", "list_name": "mercadona"}}
+"crea una lista de inventario llamada despensa" → {{"module": "inventory", "action": "create", "list_name": "despensa"}}
+"crea una lista de equipaje llamada playa" → {{"module": "packing", "action": "create", "list_name": "playa"}}
+"crea una lista llamada bugs" → {{"module": "unknown", "action": "create", "list_name": "bugs"}}
 
-Si no puedes parsear el mensaje, devuelve: {"module": "unknown", "action": "unknown"}"""
+"apunta dentista el jueves a las 5" → {{"module": "calendar", "action": "add", "title": "dentista", "date": "2026-02-19", "time": "17:00", "all_day": false}}
+"el 15 de marzo es el cumpleaños de rebe" → {{"module": "calendar", "action": "add", "title": "cumpleaños rebe", "date": "2026-03-15", "all_day": true}}
+"cada lunes tengo inglés a las 7 de la tarde" → {{"module": "calendar", "action": "add", "title": "inglés", "time": "19:00", "all_day": false, "recurrence_rule": "weekly:MON"}}
+"inglés cada lunes y miércoles a las 7 hasta junio" → {{"module": "calendar", "action": "add", "title": "inglés", "time": "19:00", "recurrence_rule": "weekly:MON,WED", "recurrence_end": "2026-06-30"}}
+"todos los días tengo medicación a las 8" → {{"module": "calendar", "action": "add", "title": "medicación", "time": "08:00", "recurrence_rule": "daily"}}
+"el día 1 de cada mes pago el alquiler" → {{"module": "calendar", "action": "add", "title": "pago alquiler", "all_day": true, "recurrence_rule": "monthly:1"}}
+"qué tengo hoy" → {{"module": "calendar", "action": "list", "time_window": "today"}}
+"qué tengo mañana" → {{"module": "calendar", "action": "list", "time_window": "tomorrow"}}
+"agenda de esta semana" → {{"module": "calendar", "action": "list", "time_window": "week"}}
+"qué tengo en marzo" → {{"module": "calendar", "action": "list", "time_window": "2026-03"}}
+"cuándo tengo dentista" → {{"module": "calendar", "action": "search", "query": "dentista"}}
+"próxima reunión" → {{"module": "calendar", "action": "search", "query": "reunión"}}
+"borra el dentista del jueves" → {{"module": "calendar", "action": "remove", "title": "dentista", "date": "2026-02-19"}}
+"elimina el inglés" → {{"module": "calendar", "action": "remove", "title": "inglés"}}
+
+Si no puedes parsear el mensaje, devuelve: {{"module": "unknown", "action": "unknown"}}"""
 
         try:
             logger.debug(f"Parsing message: {user_message}")
