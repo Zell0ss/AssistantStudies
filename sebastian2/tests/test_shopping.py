@@ -1,7 +1,7 @@
 """Tests for ShoppingModule - simple pass-through from ItemListModule."""
 import pytest
 import sqlite3
-from modules.shopping_new import ShoppingModule
+from modules.shopping import ShoppingModule
 
 
 class MySQLCompatibleCursor:

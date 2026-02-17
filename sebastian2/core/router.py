@@ -10,9 +10,9 @@ from modules.shopping import ShoppingListModule
 from modules.packing import PackingListModule
 from modules.notes import NotesModule
 from modules.item_list import ItemListModule
-from modules.inventory_new import InventoryModule as InventoryModuleNew
-from modules.shopping_new import ShoppingModule
-from modules.packing_new import PackingModule
+from modules.inventory import InventoryModule as InventoryModuleNew
+from modules.shopping import ShoppingModule
+from modules.packing import PackingModule
 
 class ModuleRouter:
     """

@@ -4,8 +4,8 @@ from db.connection import get_connection
 from core.haiku_parser import HaikuParser
 from core.router import ModuleRouter
 from modules.item_list import ItemListModule
-from modules.inventory_new import InventoryModule
-from modules.packing_new import PackingModule
+from modules.inventory import InventoryModule
+from modules.packing import PackingModule
 
 
 @pytest.fixture

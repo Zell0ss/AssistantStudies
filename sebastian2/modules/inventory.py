@@ -1,230 +1,265 @@
-"""
-InventoryModule: Manages items the user has at home (pantry/fridge)
-
-Features:
-- Add items (increment quantity)
-- Set items (absolute quantity)
-- Check stock levels
-- Threshold warnings for low stock
-"""
-
-from typing import Optional, List, Dict, Any
-from datetime import datetime
+"""Inventory module with threshold warning support."""
+from typing import Dict, Any, List, Optional
+from modules.item_list import ItemListModule
+from loguru import logger
 
 
-class InventoryModule:
-    """Manages user's inventory (items at home)"""
-
-    def __init__(self, connection, user_id: str):
-        """
-        Initialize InventoryModule
-
-        Args:
-            connection: Database connection
-            user_id: User identifier
-        """
-        self.conn = connection
-        self.user_id = user_id
-
-    def add(self, item_name: str, quantity: float, unit: str) -> None:
-        """
-        Add to inventory (increments if exists, creates if new)
-
-        Args:
-            item_name: Name of the item
-            quantity: Quantity to add
-            unit: Unit of measurement (e.g., "unidades", "litros", "kg")
-        """
-        cursor = self.conn.cursor()
-
-        # Check if item exists
-        cursor.execute(
-            """
-            SELECT quantity FROM inventory
-            WHERE user_id = %s AND item_name = %s
-            """,
-            (self.user_id, item_name)
-        )
-        result = cursor.fetchone()
-
-        if result:
-            # Item exists, increment quantity
-            new_quantity = result['quantity'] + quantity
-            cursor.execute(
-                """
-                UPDATE inventory
-                SET quantity = %s, unit = %s, updated_at = %s
-                WHERE user_id = %s AND item_name = %s
-                """,
-                (new_quantity, unit, datetime.now(), self.user_id, item_name)
-            )
-        else:
-            # Item doesn't exist, create new entry with default threshold
-            cursor.execute(
-                """
-                INSERT INTO inventory (user_id, item_name, quantity, unit, low_threshold, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """,
-                (self.user_id, item_name, quantity, unit, 2, datetime.now(), datetime.now())
-            )
-
-        self.conn.commit()
-
-    def set(self, item_name: str, quantity: float, unit: str) -> None:
-        """
-        Set absolute quantity for an item
-
-        Args:
-            item_name: Name of the item
-            quantity: New absolute quantity
-            unit: Unit of measurement
-        """
-        cursor = self.conn.cursor()
-
-        # Check if item exists
-        cursor.execute(
-            """
-            SELECT id FROM inventory
-            WHERE user_id = %s AND item_name = %s
-            """,
-            (self.user_id, item_name)
-        )
-        result = cursor.fetchone()
-
-        if result:
-            # Update existing item
-            cursor.execute(
-                """
-                UPDATE inventory
-                SET quantity = %s, unit = %s, updated_at = %s
-                WHERE user_id = %s AND item_name = %s
-                """,
-                (quantity, unit, datetime.now(), self.user_id, item_name)
-            )
-        else:
-            # Create new item with default threshold
-            cursor.execute(
-                """
-                INSERT INTO inventory (user_id, item_name, quantity, unit, low_threshold, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """,
-                (self.user_id, item_name, quantity, unit, 2, datetime.now(), datetime.now())
-            )
-
-        self.conn.commit()
-
-    def remove(self, item_name: str) -> bool:
-        """
-        Remove an item from inventory
-
-        Args:
-            item_name: Name of item to remove
-
-        Returns:
-            True if item was removed, False if not found
-        """
-        cursor = self.conn.cursor()
-        cursor.execute(
-            "DELETE FROM inventory WHERE user_id = %s AND item_name = %s",
-            (self.user_id, item_name)
-        )
-        self.conn.commit()
-        return cursor.rowcount > 0
+class InventoryModule(ItemListModule):
+    """Extends ItemListModule with threshold warnings for low stock."""
 
     def get(self, item_name: str) -> Optional[Dict[str, Any]]:
-        """
-        Get inventory item details
+        """Get item details including low_threshold.
 
         Args:
             item_name: Name of the item
 
         Returns:
-            Dictionary with item details or None if not found
+            Dict with item details including low_threshold, or None if not found
         """
-        cursor = self.conn.cursor()
+        list_id = self._get_list_id()
+        if not list_id:
+            return None
+
+        cursor = self.db.cursor()
         cursor.execute(
             """
-            SELECT item_name, quantity, unit, low_threshold, created_at, updated_at
-            FROM inventory
-            WHERE user_id = %s AND item_name = %s
+            SELECT id, name, quantity, unit, notes, checked, low_threshold, created_at, updated_at
+            FROM list_items
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
             """,
-            (self.user_id, item_name)
+            (list_id, item_name)
         )
-        result = cursor.fetchone()
+        row = cursor.fetchone()
+        cursor.close()
 
-        if result:
-            return {
-                'item_name': result['item_name'],
-                'quantity': result['quantity'],
-                'unit': result['unit'],
-                'threshold': result['low_threshold'],
-                'created_at': result['created_at'],
-                'updated_at': result['updated_at']
-            }
-        return None
+        if not row:
+            return None
 
-    def list_all(self) -> List[Dict[str, Any]]:
-        """
-        List all inventory items for the user
+        return {
+            'id': row['id'],
+            'name': row['name'],
+            'quantity': row['quantity'],
+            'unit': row['unit'],
+            'notes': row['notes'],
+            'checked': row['checked'],
+            'low_threshold': row['low_threshold'],
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at']
+        }
 
-        Returns:
-            List of dictionaries containing item details
-        """
-        cursor = self.conn.cursor()
-        cursor.execute(
-            """
-            SELECT item_name, quantity, unit, low_threshold, created_at, updated_at
-            FROM inventory
-            WHERE user_id = %s
-            ORDER BY item_name
-            """,
-            (self.user_id,)
-        )
-        results = cursor.fetchall()
-
-        return [
-            {
-                'item_name': row['item_name'],
-                'quantity': row['quantity'],
-                'unit': row['unit'],
-                'threshold': row['low_threshold'],
-                'created_at': row['created_at'],
-                'updated_at': row['updated_at']
-            }
-            for row in results
-        ]
-
-    def check_threshold(self, item_name: str) -> bool:
-        """
-        Check if item quantity is at or below threshold
+    def add(self, item_name: str, quantity: float = 1, unit: str = 'unidades',
+            threshold: float = 2, notes: Optional[str] = None) -> Dict[str, Any]:
+        """Add item to inventory with threshold.
 
         Args:
-            item_name: Name of the item
+            item_name: Name of the item to add
+            quantity: Initial quantity (default: 1)
+            unit: Unit of measurement (default: 'unidades')
+            threshold: Low stock threshold (default: 2)
+            notes: Optional notes about the item
 
         Returns:
-            True if quantity <= threshold, False otherwise
+            Dict with status, message, and warning fields
+        """
+        list_id = self._ensure_list_exists()
+        cursor = self.db.cursor()
+
+        # Check if item already exists (case-insensitive)
+        cursor.execute(
+            """
+            SELECT id, quantity FROM list_items
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
+            """,
+            (list_id, item_name)
+        )
+        row = cursor.fetchone()
+
+        if row:
+            # Update existing item - add to quantity and update threshold
+            item_id = row['id']
+            current_quantity = row['quantity']
+            new_quantity = current_quantity + quantity
+            cursor.execute(
+                """
+                UPDATE list_items
+                SET quantity = %s, low_threshold = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+                """,
+                (new_quantity, threshold, item_id)
+            )
+            status = 'updated'
+            message = f'Actualizado {item_name}: {new_quantity} {unit}'
+        else:
+            # Insert new item with threshold
+            cursor.execute(
+                """
+                INSERT INTO list_items (list_id, name, quantity, unit, notes, low_threshold)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (list_id, item_name, quantity, unit, notes, threshold)
+            )
+            status = 'added'
+            message = f'Añadido {item_name}: {quantity} {unit}'
+
+        self.db.commit()
+        cursor.close()
+
+        result = {'status': status, 'message': message}
+
+        # Check if we should warn
+        warning = self._check_and_warn(item_name)
+        result.update(warning)
+
+        return result
+
+    def update_quantity(self, item_name: str, delta: float) -> Dict[str, Any]:
+        """Update item quantity by delta and check threshold.
+
+        Args:
+            item_name: Name of the item to update
+            delta: Amount to add (positive) or remove (negative)
+
+        Returns:
+            Dict with status, message, and warning fields
         """
         item = self.get(item_name)
-        if item is None:
-            return False
+        if not item:
+            return {
+                'status': 'error',
+                'message': f'Item {item_name} no existe',
+                'warning': False
+            }
 
-        return item['quantity'] <= item['threshold']
+        new_quantity = float(item['quantity']) + delta
 
-    def set_threshold(self, item_name: str, threshold: float) -> None:
-        """
-        Set threshold for an item
+        if new_quantity <= 0:
+            # Remove item if quantity drops to zero or below
+            self.remove(item_name)
+            return {
+                'status': 'removed',
+                'message': f'Eliminado {item_name} (cantidad llegó a {new_quantity})',
+                'warning': False
+            }
+
+        list_id = self._get_list_id()
+        cursor = self.db.cursor()
+        cursor.execute(
+            "UPDATE list_items SET quantity = %s, updated_at = CURRENT_TIMESTAMP WHERE list_id = %s AND LOWER(name) = LOWER(%s)",
+            (new_quantity, list_id, item_name)
+        )
+        self.db.commit()
+        cursor.close()
+
+        result = {
+            'status': 'updated',
+            'message': f'Actualizado {item_name}: {new_quantity} {item.get("unit", "unidades")}'
+        }
+
+        # Check threshold warning
+        warning = self._check_and_warn(item_name)
+        result.update(warning)
+
+        return result
+
+    def set_quantity(self, item_name: str, quantity: float) -> Dict[str, Any]:
+        """Set item quantity to specific value and check threshold.
 
         Args:
-            item_name: Name of the item
-            threshold: New threshold value
+            item_name: Name of the item to update
+            quantity: New quantity value
+
+        Returns:
+            Dict with status, message, and warning fields
         """
-        cursor = self.conn.cursor()
+        item = self.get(item_name)
+        if not item:
+            return {
+                'status': 'error',
+                'message': f'Item {item_name} no existe',
+                'warning': False
+            }
+
+        if quantity <= 0:
+            # Remove item if quantity set to zero or below
+            self.remove(item_name)
+            return {
+                'status': 'removed',
+                'message': f'Eliminado {item_name} (cantidad: {quantity})',
+                'warning': False
+            }
+
+        list_id = self._get_list_id()
+        cursor = self.db.cursor()
         cursor.execute(
-            """
-            UPDATE inventory
-            SET low_threshold = %s, updated_at = %s
-            WHERE user_id = %s AND item_name = %s
-            """,
-            (threshold, datetime.now(), self.user_id, item_name)
+            "UPDATE list_items SET quantity = %s, updated_at = CURRENT_TIMESTAMP WHERE list_id = %s AND LOWER(name) = LOWER(%s)",
+            (quantity, list_id, item_name)
         )
-        self.conn.commit()
+        self.db.commit()
+        cursor.close()
+
+        result = {
+            'status': 'updated',
+            'message': f'Actualizado {item_name}: {quantity} {item.get("unit", "unidades")}'
+        }
+
+        # Check threshold warning
+        warning = self._check_and_warn(item_name)
+        result.update(warning)
+
+        return result
+
+    def _check_and_warn(self, item_name: str) -> Dict[str, Any]:
+        """Check if item is below threshold and return warning.
+
+        Args:
+            item_name: Name of the item to check
+
+        Returns:
+            Dict with 'warning' (bool) and optional 'message' (str) fields
+        """
+        item = self.get(item_name)
+        if not item:
+            return {'warning': False}
+
+        quantity = float(item['quantity'])
+        threshold = item.get('low_threshold')
+
+        if threshold is not None and quantity < threshold:
+            unit = item.get('unit', 'unidades')
+            warning_msg = f"⚠️ Te queda poco {item_name} ({quantity} {unit}). Piensa en comprar."
+            logger.warning(f"Low stock: {item_name} = {quantity} (threshold: {threshold})")
+            return {'warning': True, 'message': warning_msg}
+
+        return {'warning': False}
+
+    def check_low_stock(self) -> List[Dict[str, Any]]:
+        """Get all items with quantity below threshold.
+
+        Returns:
+            List of items (as dicts) where quantity < low_threshold
+        """
+        list_id = self._get_list_id()
+        if not list_id:
+            return []
+
+        cursor = self.db.cursor()
+        cursor.execute("""
+            SELECT id, name, quantity, unit, low_threshold
+            FROM list_items
+            WHERE list_id = %s
+            AND low_threshold IS NOT NULL
+            AND quantity < low_threshold
+            ORDER BY name
+        """, (list_id,))
+
+        items = []
+        for row in cursor.fetchall():
+            items.append({
+                'id': row['id'],
+                'name': row['name'],
+                'quantity': row['quantity'],
+                'unit': row['unit'],
+                'low_threshold': row['low_threshold']
+            })
+        cursor.close()
+        return items

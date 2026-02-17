@@ -1,7 +1,7 @@
 """Tests for PackingModule with recurring items support."""
 import pytest
 import sqlite3
-from modules.packing_new import PackingModule
+from modules.packing import PackingModule
 
 
 class MySQLCompatibleCursor:

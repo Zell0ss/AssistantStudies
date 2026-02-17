@@ -1,171 +1,129 @@
-# modules/packing.py
-"""
-Packing list module - items to bring (recurring or one-time).
-"""
-from modules.base import BaseModule
+"""Packing module with recurring items support."""
+from typing import Dict, Any, Optional
+from modules.item_list import ItemListModule
 from loguru import logger
 
-class PackingListModule(BaseModule):
-    """
-    Manage packing lists (e.g., items to bring to Gijón).
 
-    Operations:
-    - add(list_name, item, recurring) - Add item to packing list
-    - check(list_name, item) - Check off item (stays if recurring, disappears if not)
-    - uncheck_recurring(list_name) - Reset recurring items for next trip
-    - list_items(list_name, include_checked) - Get items in packing list
-    """
+class PackingModule(ItemListModule):
+    """Packing lists module with recurring items support."""
 
-    def _ensure_list(self, list_name):
-        """Ensure packing list exists for this user"""
-        query = """
-            SELECT id FROM lists
-            WHERE user_id = %s AND name = %s
+    def add(self, item_name: str, quantity: float = 1, unit: str = 'unidades',
+            recurring: bool = False, **kwargs) -> Dict[str, Any]:
+        """Add item to packing list with optional recurring flag."""
+        return super().add(item_name, quantity, unit, recurring=recurring, **kwargs)
+
+    def get(self, item_name: str) -> Optional[Dict[str, Any]]:
         """
-        cursor = self.execute_query(query, (self.user_id, list_name))
-        existing = cursor.fetchone()
-
-        if not existing:
-            query = """
-                INSERT INTO lists (user_id, name, list_type)
-                VALUES (%s, %s, 'packing')
-            """
-            self.execute_query(query, (self.user_id, list_name))
-            self.commit()
-            logger.info(f"Created packing list '{list_name}' for user {self.user_id}")
-
-    def _get_list_id(self, list_name):
-        """Get the packing list ID"""
-        query = """
-            SELECT id FROM lists
-            WHERE user_id = %s AND name = %s
-        """
-        cursor = self.execute_query(query, (self.user_id, list_name))
-        result = cursor.fetchone()
-        return result['id'] if result else None
-
-    def add(self, list_name, item_name, recurring=False):
-        """
-        Add item to packing list.
+        Get item from list (override to include recurring field).
 
         Args:
-            list_name: Name of the packing list (e.g., "gijón_llevar")
-            item_name: Name of the item
-            recurring: If True, item stays when checked; if False, disappears
-        """
-        self._ensure_list(list_name)
-        list_id = self._get_list_id(list_name)
-
-        # Check if item already in list
-        query = """
-            SELECT id FROM list_items
-            WHERE list_id = %s AND name = %s
-        """
-        cursor = self.execute_query(query, (list_id, item_name))
-        existing = cursor.fetchone()
-
-        if not existing:
-            query = """
-                INSERT INTO list_items (list_id, name, recurring, checked)
-                VALUES (%s, %s, %s, FALSE)
-            """
-            self.execute_query(query, (list_id, item_name, recurring))
-            self.commit()
-            logger.info(f"Added to packing list '{list_name}': {item_name} (recurring={recurring})")
-
-    def check(self, list_name, item_name):
-        """
-        Check off item in packing list.
-        - If recurring: mark as checked (stays in list)
-        - If not recurring: delete item (disappears)
-
-        Args:
-            list_name: Name of the packing list
-            item_name: Name of the item to check off
-        """
-        list_id = self._get_list_id(list_name)
-        if not list_id:
-            return
-
-        # Get item to check if recurring
-        query = """
-            SELECT recurring FROM list_items
-            WHERE list_id = %s AND name = %s
-        """
-        cursor = self.execute_query(query, (list_id, item_name))
-        item = cursor.fetchone()
-
-        if not item:
-            return
-
-        if item['recurring']:
-            # Mark as checked (stays in list)
-            query = """
-                UPDATE list_items
-                SET checked = TRUE
-                WHERE list_id = %s AND name = %s
-            """
-            self.execute_query(query, (list_id, item_name))
-            self.commit()
-            logger.info(f"Checked recurring item in '{list_name}': {item_name}")
-        else:
-            # Delete item (disappears)
-            query = """
-                DELETE FROM list_items
-                WHERE list_id = %s AND name = %s
-            """
-            self.execute_query(query, (list_id, item_name))
-            self.commit()
-            logger.info(f"Checked and removed one-time item from '{list_name}': {item_name}")
-
-    def uncheck_recurring(self, list_name):
-        """
-        Uncheck all recurring items in packing list (for next trip).
-
-        Args:
-            list_name: Name of the packing list
-        """
-        list_id = self._get_list_id(list_name)
-        if not list_id:
-            return
-
-        query = """
-            UPDATE list_items
-            SET checked = FALSE
-            WHERE list_id = %s AND recurring = TRUE
-        """
-        self.execute_query(query, (list_id,))
-        self.commit()
-        logger.info(f"Unchecked recurring items in '{list_name}'")
-
-    def list_items(self, list_name, include_checked=False):
-        """
-        Get items in packing list.
-
-        Args:
-            list_name: Name of the packing list
-            include_checked: If True, include checked items; if False, only unchecked
+            item_name: Name of item to retrieve
 
         Returns:
-            List of dicts with item data
+            Item dict with recurring field, or None if not found
         """
-        list_id = self._get_list_id(list_name)
+        list_id = self._get_list_id()
+        if not list_id:
+            return None
+
+        cursor = self.db.cursor()
+        cursor.execute(
+            """
+            SELECT id, name, quantity, unit, notes, checked, recurring, created_at, updated_at
+            FROM list_items
+            WHERE list_id = %s AND LOWER(name) = LOWER(%s)
+            """,
+            (list_id, item_name)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+
+        if not row:
+            return None
+
+        return {
+            'id': row['id'],
+            'item_name': row['name'],
+            'quantity': row['quantity'],
+            'unit': row['unit'],
+            'notes': row['notes'],
+            'checked': row['checked'],
+            'recurring': bool(row['recurring']),
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at']
+        }
+
+    def list_all(self) -> list:
+        """
+        List all items in packing list (override to include recurring field).
+
+        Returns:
+            List of item dicts with recurring field included
+        """
+        list_id = self._get_list_id()
         if not list_id:
             return []
 
-        if include_checked:
-            query = """
-                SELECT * FROM list_items
-                WHERE list_id = %s
-                ORDER BY created_at
+        cursor = self.db.cursor()
+        cursor.execute(
             """
-            cursor = self.execute_query(query, (list_id,))
-        else:
-            query = """
-                SELECT * FROM list_items
-                WHERE list_id = %s AND checked = FALSE
-                ORDER BY created_at
-            """
-            cursor = self.execute_query(query, (list_id,))
+            SELECT id, name, quantity, unit, notes, checked, recurring, created_at, updated_at
+            FROM list_items
+            WHERE list_id = %s
+            ORDER BY name
+            """,
+            (list_id,)
+        )
 
-        return cursor.fetchall()
+        items = []
+        for row in cursor.fetchall():
+            items.append({
+                'id': row['id'],
+                'item_name': row['name'],
+                'quantity': row['quantity'],
+                'unit': row['unit'],
+                'notes': row['notes'],
+                'checked': row['checked'],
+                'recurring': bool(row['recurring']),
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at']
+            })
+
+        return items
+
+    def check_item(self, item_name: str) -> Dict[str, Any]:
+        """
+        Mark item as checked (packed).
+
+        - Non-recurring items: removed from list
+        - Recurring items: kept in list for next trip
+
+        Args:
+            item_name: Name of item to check
+
+        Returns:
+            Dict with status and message
+        """
+        item = self.get(item_name)
+
+        if not item:
+            return {
+                'status': 'error',
+                'message': f'{item_name} no está en {self.list_name}'
+            }
+
+        if item['recurring']:
+            # Keep recurring items
+            logger.info(f"Checked recurring item {item_name} in packing list")
+            return {
+                'status': 'checked',
+                'message': f'✅ {item_name} marcado (se mantiene en lista)'
+            }
+        else:
+            # Remove non-recurring items
+            self.remove(item_name)
+            logger.info(f"Checked and removed {item_name} from packing list")
+            return {
+                'status': 'checked',
+                'message': f'✅ {item_name} empacado y eliminado de lista'
+            }
