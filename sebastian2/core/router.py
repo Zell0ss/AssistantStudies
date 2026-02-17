@@ -21,6 +21,9 @@ class ModuleRouter:
     Takes JSON from HaikuParser and executes the corresponding module action.
     """
 
+    # Supported list categories
+    _SUPPORTED_CATEGORIES = {'inventory', 'shopping', 'packing'}
+
     def __init__(self, user_id):
         """
         Initialize router for a specific user.
@@ -58,13 +61,8 @@ class ModuleRouter:
         if list_name:
             return list_name  # Explicit name provided
 
-        # Map module to category
-        category_map = {
-            'inventory': 'inventory',
-            'shopping': 'shopping',
-            'packing': 'packing'
-        }
-        category = category_map.get(module)
+        # Direct assignment since module name == category name
+        category = module if module in self._SUPPORTED_CATEGORIES else None
 
         if not category:
             return None
@@ -97,12 +95,8 @@ class ModuleRouter:
         Returns:
             Error dict with list options
         """
-        category_map = {
-            'inventory': 'inventory',
-            'shopping': 'shopping',
-            'packing': 'packing'
-        }
-        category = category_map.get(module)
+        # Direct assignment since module name == category name
+        category = module if module in self._SUPPORTED_CATEGORIES else None
 
         lists = ItemListModule.list_all_lists(self.conn, self.user_id, category=category)
         list_names = [lst['name'] for lst in lists]
