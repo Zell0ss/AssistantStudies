@@ -66,6 +66,17 @@ IMPORTANTE - Distinción shopping vs packing:
 - Cuando mencionen "lista", "compra" o supermercados → usar shopping
 - Cuando mencionen viajes, ciudades, o "llevar" → usar packing
 
+REGLAS DE EXTRACCIÓN DE list_name:
+- Si el usuario menciona un nombre específico de lista → extráelo exactamente
+- Si dice "la compra" sin otro nombre → list_name: "compra"
+- Si dice "inventario" sin nombre específico → list_name: null
+- Si no menciona ninguna lista → list_name: null
+
+Ejemplos de nombres de listas por módulo:
+- **inventory**: "despensa madrid", "nevera gijón", "despensa magán", "inventario"
+- **shopping**: "compra", "mercadona", "carrefour", "lidl"
+- **packing**: "gijón", "madrid", "playa"
+
 Devuelve SOLO JSON válido con esta estructura:
 {
   "module": "inventory | shopping | packing | notes",
@@ -73,7 +84,7 @@ Devuelve SOLO JSON válido con esta estructura:
   "item": "nombre del item",
   "quantity": número (opcional),
   "unit": "unidades | kg | litros | etc" (opcional),
-  "list_name": "compra | mercadona | gijón_llevar | etc" (opcional),
+  "list_name": "nombre de la lista o null" (opcional),
   "tags": ["tag1", "tag2"] (opcional, para notes),
   "recurring": true/false (opcional, para packing),
   "threshold": número (opcional, para set_threshold)
@@ -82,7 +93,10 @@ Devuelve SOLO JSON válido con esta estructura:
 Ejemplos:
 "compré 6 aguacates" → {"module": "inventory", "action": "add", "item": "aguacates", "quantity": 6, "unit": "unidades"}
 "me quedan 2 aguacates" → {"module": "inventory", "action": "set", "item": "aguacates", "quantity": 2}
-"dime que tengo en mi inventario" → {"module": "inventory", "action": "list"}
+"dime que tengo en mi inventario" → {"module": "inventory", "action": "list", "list_name": null}
+"qué tengo en mi inventario" → {"module": "inventory", "action": "list", "list_name": null}
+"añade aguacates a despensa de madrid" → {"module": "inventory", "action": "add", "item": "aguacates", "list_name": "despensa madrid"}
+"añade 3 kg de arroz a despensa madrid" → {"module": "inventory", "action": "add", "item": "arroz", "quantity": 3, "unit": "kg", "list_name": "despensa madrid"}
 "añade leche a la compra" → {"module": "shopping", "action": "add", "item": "leche", "list_name": "compra"}
 "añade pan a mercadona" → {"module": "shopping", "action": "add", "item": "pan", "list_name": "mercadona"}
 "crea una lista que se llame bugs" → {"module": "shopping", "action": "create", "list_name": "bugs"}
