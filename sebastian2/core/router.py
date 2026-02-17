@@ -120,9 +120,12 @@ class ModuleRouter:
 
             logger.info(f"Routing: module={module}, action={action}")
 
-            # Cross-category action: handle before module routing
+            # Cross-category actions: handle before module routing
             if action == 'list_all_lists':
                 return self._route_list_all_lists()
+
+            if action == 'explain':
+                return self._route_explain_lists()
 
             # Destructive action: require explicit list name, no smart defaults
             if action == 'clear_all' and module in ['inventory', 'shopping', 'packing']:
@@ -460,6 +463,38 @@ class ModuleRouter:
             'success': True,
             'result': f"Tienes {total} listas:\n\n" + '\n\n'.join(sections),
             'data': lists
+        }
+
+    def _route_explain_lists(self) -> Dict[str, Any]:
+        """Explain how the list system works."""
+        explanation = """Manejo 3 tipos de listas:
+
+**Inventarios** — lo que tienes en casa
+  • "compré 6 aguacates"
+  • "me quedan 2 limones en nevera gijón"
+  • "qué tengo en despensa madrid?"
+  Puedes tener varios: despensa madrid, nevera gijón, etc.
+
+**Compra** — lo que necesitas comprar
+  • "añade leche a la compra"
+  • "añade pan a mercadona"
+  • "lista de mercadona"
+
+**Equipaje** — lo que llevas en viajes
+  • "añade toalla a gijón"
+  • "añade cepillo a gijón, siempre" (item recurrente 🔄)
+  • "marca cargador en gijón"
+
+Cada tipo puede tener varias listas con nombres distintos.
+Si solo tienes una, la selecciono automáticamente.
+Si tienes varias, dime cuál: "añade X a despensa madrid".
+
+Para ver todas tus listas: "dime qué listas tengo"
+Para mover una lista mal clasificada: dímelo y lo arreglo."""
+
+        return {
+            'success': True,
+            'result': explanation
         }
 
     def _route_notes(self, action, intent):

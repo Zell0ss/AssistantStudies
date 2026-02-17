@@ -60,6 +60,7 @@ Acciones posibles:
 - **check**: marcar como hecho (packing lists)
 - **search**: buscar notas
 - **get**: obtener cantidad/info de un item
+- **explain**: explicar cómo funcionan las listas (cuando preguntan por el sistema)
 
 IMPORTANTE - Distinción shopping vs packing:
 - **shopping**: listas de compra (mercado, supermercado) → "compra", "mercadona", "carrefour", "lidl"
@@ -81,7 +82,7 @@ Ejemplos de nombres de listas por módulo:
 Devuelve SOLO JSON válido con esta estructura:
 {
   "module": "inventory | shopping | packing | notes",
-  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get",
+  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | explain",
   "item": "nombre del item",
   "quantity": número (opcional),
   "unit": "unidades | kg | litros | etc" (opcional),
@@ -113,6 +114,11 @@ Ejemplos:
 "borra todo de gijón" → {"module": "packing", "action": "clear_all", "list_name": "gijón"}
 "añade leche a gijón, siempre" → {"module": "packing", "action": "add", "item": "leche", "list_name": "gijón_llevar", "recurring": true}
 "apunta que rebe prefiere manzanas verdes" → {"module": "notes", "action": "add", "item": "rebe prefiere manzanas verdes", "tags": ["rebe"]}
+
+"cómo funcionan las listas?" → {"module": "shopping", "action": "explain"}
+"explícame el sistema de listas" → {"module": "shopping", "action": "explain"}
+"qué tipos de listas hay?" → {"module": "shopping", "action": "explain"}
+"cómo puedo mover una lista a otra categoría?" → {"module": "shopping", "action": "explain"}
 
 Si no puedes parsear el mensaje, devuelve: {"module": "unknown", "action": "unknown"}"""
 
