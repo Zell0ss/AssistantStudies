@@ -211,6 +211,13 @@ class ModuleRouter:
                 'result': f"{item} no está en {list_name}."
             }
 
+        elif action == 'clear_all':
+            count = inv.clear_all()
+            return {
+                'success': True,
+                'result': f"Lista **{list_name}** vaciada ({count} items eliminados)."
+            }
+
         elif action == 'get':
             item_data = inv.get(item)
             if item_data:
@@ -308,6 +315,13 @@ class ModuleRouter:
                 'result': f"{item} no está en {list_name}."
             }
 
+        elif action == 'clear_all':
+            count = shop.clear_all()
+            return {
+                'success': True,
+                'result': f"Lista **{list_name}** vaciada ({count} items eliminados)."
+            }
+
         elif action == 'list':
             items = shop.list_all()
             if items:
@@ -377,6 +391,13 @@ class ModuleRouter:
             return {
                 'success': True,
                 'result': result.get('message', f"Marcado {item}.")
+            }
+
+        elif action == 'clear_all':
+            count = pack.clear_all()
+            return {
+                'success': True,
+                'result': f"Lista **{list_name}** vaciada ({count} items eliminados)."
             }
 
         elif action == 'list':

@@ -211,6 +211,25 @@ class ItemListModule:
 
         return cursor.rowcount > 0
 
+    def clear_all(self) -> int:
+        """
+        Remove all items from the list.
+
+        Returns:
+            Number of items removed
+        """
+        list_id = self._get_list_id()
+        if not list_id:
+            return 0
+
+        cursor = self.db.cursor()
+        cursor.execute(
+            "DELETE FROM list_items WHERE list_id = %s",
+            (list_id,)
+        )
+        self.db.commit()
+        return cursor.rowcount
+
     def get(self, item_name: str) -> Optional[Dict]:
         """
         Get a specific item from the list.

@@ -52,7 +52,8 @@ El usuario puede pedir operaciones sobre:
 Acciones posibles:
 - **add**: añadir/agregar cantidad (inventory) o item (lists)
 - **set**: establecer cantidad absoluta (inventory)
-- **remove**: quitar/eliminar item
+- **remove**: quitar/eliminar un item específico
+- **clear_all**: vaciar/borrar TODOS los items de una lista
 - **create**: crear una lista vacía (solo shopping)
 - **list**: listar/mostrar items de UNA lista
 - **list_all_lists**: listar TODAS las listas de compra disponibles
@@ -80,7 +81,7 @@ Ejemplos de nombres de listas por módulo:
 Devuelve SOLO JSON válido con esta estructura:
 {
   "module": "inventory | shopping | packing | notes",
-  "action": "add | set | remove | create | list | list_all_lists | check | search | get",
+  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get",
   "item": "nombre del item",
   "quantity": número (opcional),
   "unit": "unidades | kg | litros | etc" (opcional),
@@ -104,6 +105,10 @@ Ejemplos:
 "dime que listas tengo" → {"module": "shopping", "action": "list_all_lists"}
 "que tengo en la lista mercadona" → {"module": "shopping", "action": "list", "list_name": "mercadona"}
 "elimina bugs de la lista bugs" → {"module": "shopping", "action": "remove", "item": "bugs", "list_name": "bugs"}
+"borra todos los ítems de la lista bugs" → {"module": "shopping", "action": "clear_all", "list_name": "bugs"}
+"vacía la lista de compra" → {"module": "shopping", "action": "clear_all", "list_name": "compra"}
+"borra todos los elementos del inventario" → {"module": "inventory", "action": "clear_all", "list_name": null}
+"borra todo de gijón" → {"module": "packing", "action": "clear_all", "list_name": "gijón"}
 "añade leche a gijón, siempre" → {"module": "packing", "action": "add", "item": "leche", "list_name": "gijón_llevar", "recurring": true}
 "apunta que rebe prefiere manzanas verdes" → {"module": "notes", "action": "add", "item": "rebe prefiere manzanas verdes", "tags": ["rebe"]}
 
