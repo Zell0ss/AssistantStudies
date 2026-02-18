@@ -11,6 +11,7 @@ from modules.packing import PackingModule
 from modules.notes import NotesModule
 from modules.item_list import ItemListModule
 from modules.calendar import CalendarModule
+from modules.weather import WeatherModule
 
 class ModuleRouter:
     """
@@ -181,6 +182,8 @@ class ModuleRouter:
                 return self._route_notes(action, parsed_intent)
             elif module == 'calendar':
                 return self._route_calendar(action, parsed_intent)
+            elif module == 'weather':
+                return self._route_weather(parsed_intent)
             elif module == 'unknown':
                 return {
                     'success': False,
@@ -798,6 +801,12 @@ Para ver tus listas: "qué listas tengo\""""
             }
 
         return {'success': False, 'result': f"Acción de calendario desconocida: {action}"}
+
+    def _route_weather(self, parsed: dict) -> dict:
+        """Route weather actions to WeatherModule."""
+        city = parsed.get('city')
+        weather = WeatherModule(self.conn, self.user_id)
+        return weather.get_weather(city)
 
     def cleanup(self):
         """Clean up database connection"""

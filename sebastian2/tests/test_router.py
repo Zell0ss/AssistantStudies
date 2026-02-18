@@ -260,3 +260,26 @@ class TestCalendarRouting:
         assert result['success'] is True
         result_lower = result['result'].lower()
         assert 'no tiene tickets' in result_lower or 'no encontré' in result_lower
+
+
+class TestWeatherRouting:
+    def test_route_weather_get_no_city(self, router):
+        from unittest.mock import patch
+        mock_result = {
+            'success': True,
+            'result': '📍 Madrid, ES\n🌡️ Ahora: 10°C  |  Hoy: 5° – 15°C\n🌧️ Lluvia: 10%  |  🌅 07:45 – 🌇 18:30\n🍷 "refrán"',
+            'data': {}
+        }
+        with patch('core.router.WeatherModule') as MockWeather:
+            MockWeather.return_value.get_weather.return_value = mock_result
+            result = router.route({'module': 'weather', 'action': 'get', 'city': None})
+        assert result['success'] is True
+        assert '📍' in result['result']
+
+    def test_route_weather_get_with_city(self, router):
+        from unittest.mock import patch
+        mock_result = {'success': True, 'result': '📍 Gijón, ES\n🌡️ ...', 'data': {}}
+        with patch('core.router.WeatherModule') as MockWeather:
+            MockWeather.return_value.get_weather.return_value = mock_result
+            result = router.route({'module': 'weather', 'action': 'get', 'city': 'Gijón'})
+        assert result['success'] is True
