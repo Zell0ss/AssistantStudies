@@ -73,6 +73,7 @@ Acciones posibles:
 - **list**: ver agenda (hoy, mañana, esta semana, este mes, mes concreto)
 - **search**: buscar evento por nombre o tipo
 - **remove**: borrar un evento o cita
+- **show_tickets**: ver los tickets/entradas guardados de una cita
 
 IMPORTANTE - Distinción shopping vs packing:
 - **shopping**: listas de compra (mercado, supermercado) → "compra", "mercadona", "carrefour", "lidl"
@@ -163,6 +164,10 @@ Ejemplos:
 "próxima reunión" → {{"module": "calendar", "action": "search", "query": "reunión"}}
 "borra el dentista del jueves" → {{"module": "calendar", "action": "remove", "title": "dentista", "date": "2026-02-19"}}
 "elimina el inglés" → {{"module": "calendar", "action": "remove", "title": "inglés"}}
+"qué tickets tengo para el teatro" → {{"module": "calendar", "action": "show_tickets", "query": "teatro"}}
+"muéstrame las entradas del concierto del viernes" → {{"module": "calendar", "action": "show_tickets", "query": "concierto"}}
+"los tickets del dentista" → {{"module": "calendar", "action": "show_tickets", "query": "dentista"}}
+"dame el código del tren" → {{"module": "calendar", "action": "show_tickets", "query": "tren"}}
 
 Si no puedes parsear el mensaje, devuelve: {{"module": "unknown", "action": "unknown"}}"""
 
