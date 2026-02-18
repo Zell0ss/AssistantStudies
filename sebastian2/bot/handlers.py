@@ -4,6 +4,7 @@ Telegram bot handlers for Sebastian 2.0.
 
 Integrates parser, router, formatter, and sprite system.
 """
+import io
 import telebot
 from telegram_markdown import parse_markdown_to_entities
 from core.haiku_parser import HaikuParser
@@ -12,6 +13,8 @@ from bot.formatter import ResponseFormatter
 from modules.user_settings import UserSettingsModule
 from sprites.sprite_system import SpriteSystem
 from db.connection import get_connection
+from bot.ticket_handler import handle_media, try_resolve_pending
+from modules.ticket_generator import generate_image
 from loguru import logger
 
 
@@ -202,6 +205,10 @@ def setup_handlers(bot, config):
             bot.reply_to(message, "No estás autorizado para usar este bot.")
             return
 
+        # Check if user is responding to a pending ticket association
+        if try_resolve_pending(message, bot):
+            return
+
         try:
             logger.info(
                 f"Processing text from {message.chat.username}: {message.text[:50]}..."
@@ -240,6 +247,28 @@ def setup_handlers(bot, config):
 
             # Send text message first
             _send_markdown(bot, message.chat.id, response["caption"])
+
+            # If show_tickets returned ticket data, send images
+            if (parsed.get("module") == "calendar" and
+                    parsed.get("action") == "show_tickets" and
+                    isinstance(result.get("data"), dict) and
+                    result["data"].get("tickets")):
+                for ticket in result["data"]["tickets"]:
+                    try:
+                        img_bytes = generate_image(ticket)
+                        if img_bytes:
+                            bot.send_photo(
+                                message.chat.id,
+                                io.BytesIO(img_bytes),
+                                caption=ticket['type']
+                            )
+                        else:
+                            bot.send_message(
+                                message.chat.id,
+                                f"📋 {ticket['type']}: {ticket['value']}"
+                            )
+                    except Exception as e:
+                        logger.error(f"Failed to send ticket image: {e}")
 
             # Then send sprite as document to preserve transparency
             try:
@@ -294,6 +323,22 @@ def setup_handlers(bot, config):
             except FileNotFoundError:
                 # Text already sent, just log the error
                 logger.error(f"Error sprite not found: {error_response['sprite_path']}")
+
+    @bot.message_handler(content_types=['photo'])
+    def handle_photo(message):
+        """Handle photo messages — try to decode QR/barcode."""
+        if not authorized(message.chat.username, message.chat.id):
+            return
+        handle_media(message, bot)
+
+    @bot.message_handler(content_types=['document'])
+    def handle_document(message):
+        """Handle document messages — try to decode QR/barcode from image files."""
+        if not authorized(message.chat.username, message.chat.id):
+            return
+        mime = getattr(message.document, 'mime_type', '') or ''
+        if mime.startswith('image/'):
+            handle_media(message, bot)
 
     @bot.message_handler(content_types=['voice'])
     def handle_voice(message):
