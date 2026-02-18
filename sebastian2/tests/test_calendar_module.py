@@ -224,3 +224,45 @@ class TestSearchEvents:
         assert len(results) == 1
         assert results[0]['recurring'] is True
         assert results[0]['date'] >= today
+
+
+class TestTickets:
+    def test_add_ticket_to_event(self, cal):
+        result = cal.add_event(title="Teatro", event_date=date(2026, 3, 20), event_time="20:00")
+        event_id = result['event_id']
+        ticket = {'type': 'QR_CODE', 'value': 'https://entradas.com/ABC123'}
+        add_result = cal.add_ticket(event_id, ticket)
+        assert add_result['status'] == 'added'
+
+    def test_get_event_notes_returns_tickets(self, cal):
+        result = cal.add_event(title="Concierto", event_date=date(2026, 4, 10), event_time="21:00")
+        event_id = result['event_id']
+        cal.add_ticket(event_id, {'type': 'QR_CODE', 'value': 'QR_VALUE_1'})
+        cal.add_ticket(event_id, {'type': 'PDF417', 'value': 'PDF_VALUE_1'})
+        notes = cal.get_event_notes(event_id)
+        assert notes is not None
+        assert 'tickets' in notes
+        assert len(notes['tickets']) == 2
+        assert notes['tickets'][0]['value'] == 'QR_VALUE_1'
+
+    def test_get_event_notes_no_notes_returns_none(self, cal):
+        result = cal.add_event(title="VacíoNotas", event_date=date(2026, 5, 1), event_time="10:00")
+        notes = cal.get_event_notes(result['event_id'])
+        assert notes is None
+
+    def test_add_ticket_unknown_event_returns_not_found(self, cal):
+        result = cal.add_ticket(99999999, {'type': 'QR_CODE', 'value': 'X'})
+        assert result['status'] == 'not_found'
+
+    def test_find_upcoming_events_returns_list(self, cal):
+        from datetime import timedelta
+        today = date.today()
+        cal.add_event(title="Próximo1", event_date=today + timedelta(days=1), event_time="10:00")
+        upcoming = cal.find_upcoming_events(limit=5)
+        assert isinstance(upcoming, list)
+
+    def test_ticket_added_at_is_set(self, cal):
+        result = cal.add_event(title="FechaTest", event_date=date(2026, 6, 1), event_time="19:00")
+        cal.add_ticket(result['event_id'], {'type': 'QR_CODE', 'value': 'test'})
+        notes = cal.get_event_notes(result['event_id'])
+        assert 'added_at' in notes['tickets'][0]

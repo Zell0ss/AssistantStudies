@@ -2,6 +2,7 @@
 """
 Calendar module - personal event management with recurrence support.
 """
+import json
 from datetime import date, datetime, time
 from typing import Optional, List, Dict, Any
 from modules.base import BaseModule
@@ -274,6 +275,60 @@ class CalendarModule(BaseModule):
 
         results.sort(key=lambda e: (e['date'], e['time'] or '00:00'))
         return results
+
+    def add_ticket(self, event_id: int, ticket: dict) -> dict:
+        """Append a decoded ticket to an event's notes.tickets JSON array."""
+        cursor = self.execute_query(
+            "SELECT id, notes FROM events WHERE id = %s AND user_id = %s",
+            (event_id, self.user_id)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return {'status': 'not_found', 'message': f"Evento {event_id} no encontrado"}
+
+        notes = row['notes'] or {}
+        if isinstance(notes, str):
+            notes = json.loads(notes)
+
+        if 'tickets' not in notes:
+            notes['tickets'] = []
+
+        ticket_entry = {
+            'type': ticket['type'],
+            'value': ticket['value'],
+            'added_at': datetime.now().isoformat(),
+        }
+        if 'image_b64' in ticket:
+            ticket_entry['image_b64'] = ticket['image_b64']
+
+        notes['tickets'].append(ticket_entry)
+
+        self.execute_query(
+            "UPDATE events SET notes = %s WHERE id = %s AND user_id = %s",
+            (json.dumps(notes, ensure_ascii=False), event_id, self.user_id)
+        )
+        self.commit()
+        logger.info(f"Added ticket type={ticket['type']} to event {event_id}")
+        return {'status': 'added'}
+
+    def get_event_notes(self, event_id: int) -> Optional[dict]:
+        """Retrieve the notes JSON for an event. Returns None if no notes."""
+        cursor = self.execute_query(
+            "SELECT notes FROM events WHERE id = %s AND user_id = %s",
+            (event_id, self.user_id)
+        )
+        row = cursor.fetchone()
+        if not row or not row['notes']:
+            return None
+        notes = row['notes']
+        if isinstance(notes, str):
+            return json.loads(notes)
+        return notes
+
+    def find_upcoming_events(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Return next N upcoming events (next 30 days). Used for ticket association UI."""
+        events = self.list_events('month')
+        return events[:limit]
 
     def search_events(self, query: str) -> List[Dict[str, Any]]:
         """
