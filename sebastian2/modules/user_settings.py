@@ -88,6 +88,56 @@ class UserSettingsModule:
             'message': f'Sprite skin cambiado a: {skin}'
         }
 
+    def get_weather_location(self) -> dict:
+        """
+        Get user's saved weather location.
+
+        Returns:
+            Dict with location, lat, lon, country
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "SELECT weather_location, weather_lat, weather_lon, weather_country "
+            "FROM user_settings WHERE user_id = %s",
+            (self.user_id,)
+        )
+        result = cursor.fetchone()
+        if result:
+            return {
+                'location': result['weather_location'] or 'Madrid',
+                'lat': result['weather_lat'] or 40.4168,
+                'lon': result['weather_lon'] or -3.7038,
+                'country': result['weather_country'] or 'ES',
+            }
+        return {'location': 'Madrid', 'lat': 40.4168, 'lon': -3.7038, 'country': 'ES'}
+
+    def set_weather_location(self, location: str, lat: float, lon: float, country: str) -> dict:
+        """
+        Save user's weather location.
+
+        Args:
+            location: City name
+            lat: Latitude
+            lon: Longitude
+            country: Country code (e.g. 'ES')
+
+        Returns:
+            Result dict with success and message
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            UPDATE user_settings
+            SET weather_location = %s, weather_lat = %s, weather_lon = %s,
+                weather_country = %s, updated_at = NOW()
+            WHERE user_id = %s
+            """,
+            (location, lat, lon, country, self.user_id)
+        )
+        self.conn.commit()
+        logger.info(f"User {self.user_id} weather location set to: {location}")
+        return {'success': True, 'message': f'Ubicación del tiempo actualizada a: {location}'}
+
     def get_all_settings(self) -> Dict[str, Any]:
         """
         Get all user settings.
