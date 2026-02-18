@@ -20,6 +20,7 @@ python-dateutil==2.9.0
 
 # Tickets
 zxing-cpp==3.0.0
+numpy==2.4.2
 pyzbar==0.1.9
 qrcode==8.0
 python-barcode==0.15.1
