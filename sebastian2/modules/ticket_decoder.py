@@ -98,9 +98,10 @@ def decode_image(image_bytes: bytes) -> list:
             seen.add(r['value'])
             deduped.append(r)
 
-    # Attach image_b64 for AZTEC (no generation library)
+    # Attach image_b64 for types with no generation library (AZTEC, DATA_MATRIX)
+    NO_GEN_TYPES = {'AZTEC', 'DATA_MATRIX'}
     for r in deduped:
-        if r['type'] == 'AZTEC':
+        if r['type'] in NO_GEN_TYPES:
             r['image_b64'] = base64.b64encode(original_bytes).decode('utf-8')
 
     logger.info(f"decode_image: {len(deduped)} code(s) found: {[r['type'] for r in deduped]}")

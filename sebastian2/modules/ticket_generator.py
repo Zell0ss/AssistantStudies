@@ -19,13 +19,13 @@ def generate_image(ticket: dict) -> Optional[bytes]:
         return _gen_barcode(type_, value)
     if type_ == 'PDF417':
         return _gen_pdf417(value)
-    if type_ == 'AZTEC':
+    if type_ in ('AZTEC', 'DATA_MATRIX'):
         b64 = ticket.get('image_b64')
         if b64:
             try:
                 return base64.b64decode(b64)
             except Exception as e:
-                logger.error(f"Failed to decode AZTEC image_b64: {e}")
+                logger.error(f"Failed to decode {type_} image_b64: {e}")
         return None
 
     logger.debug(f"No generator for ticket type: {type_}")
