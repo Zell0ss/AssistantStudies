@@ -719,10 +719,12 @@ def _format_events_list(events: list, time_window: str = '', label: str = '') ->
         if e['date'] != current_date:
             current_date = e['date']
             try:
-                day_str = current_date.strftime('%-d de %B').capitalize()
-                # Get weekday name in Spanish
                 weekdays_es = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+                months_es = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                             'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
                 weekday_es = weekdays_es[current_date.weekday()]
+                month_es = months_es[current_date.month - 1]
+                day_str = f"{current_date.day} de {month_es}"
                 lines.append(f"\n**{weekday_es} {day_str}**")
             except Exception:
                 lines.append(f"\n**{current_date}**")
