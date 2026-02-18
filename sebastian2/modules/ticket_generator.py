@@ -64,14 +64,17 @@ def _gen_zxing(type_: str, ticket: dict) -> Optional[bytes]:
             bc = zxingcpp.create_barcode(ticket.get('value', ''), fmt)
 
         pil_img = Image.fromarray(np.asarray(zxingcpp.write_barcode_to_image(bc)))
-        # Scale up for readability (zxingcpp produces minimal pixel images)
+        # Scale up: each module should be at least 10px, target ~500px output
         w, h = pil_img.size
-        scale = max(1, 300 // max(w, h))
-        if scale > 1:
-            pil_img = pil_img.resize((w * scale, h * scale), Image.NEAREST)
+        scale = max(10, 500 // max(w, h))
+        pil_img = pil_img.resize((w * scale, h * scale), Image.NEAREST)
+        # Add white quiet zone (4 modules = 4*scale px border)
+        margin = 4 * scale
+        bordered = Image.new('L', (pil_img.width + 2 * margin, pil_img.height + 2 * margin), 255)
+        bordered.paste(pil_img, (margin, margin))
 
         buf = io.BytesIO()
-        pil_img.save(buf, format='PNG')
+        bordered.save(buf, format='PNG')
         return buf.getvalue()
 
     except Exception as e:
