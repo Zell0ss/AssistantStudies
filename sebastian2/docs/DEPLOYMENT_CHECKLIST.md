@@ -1,4 +1,83 @@
-# Deployment Checklist - Sebastian 2.0 List System Redesign
+# Deployment Checklist - Sebastian 2.0
+
+---
+
+# ✅ Deployment 3: Calendar + Tickets (2026-02-18)
+
+**Version**: Sebastian 2.0 — Calendar, Ticket Scanning & Regeneration
+**Status**: Implemented, ready to deploy
+
+## System Dependencies (NEW — must install before starting bot)
+
+```bash
+# Required for pyzbar barcode decoding
+sudo apt-get install libzbar0
+```
+
+> **Note:** This is NOT in requirements.txt. Without it, `pyzbar` will fail to import and the fallback barcode decoder won't work. zxingcpp works fine without it (pure Python wheels).
+
+## Pre-Deployment Steps
+
+### 1. Backup Production Database
+```bash
+mysqldump -u root -p sebastian_db > sebastian_db_backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### 2. Install system dependency
+```bash
+sudo apt-get install libzbar0
+```
+
+### 3. Install Python dependencies
+```bash
+cd /path/to/sebastian2
+source .venv/bin/activate
+pip install -r requirements.txt
+# New packages: zxing-cpp, numpy, pyzbar, qrcode, python-barcode
+```
+
+### 4. Stop bot
+```bash
+sudo systemctl stop sebastian.service
+```
+
+### 5. Pull latest code
+```bash
+git pull origin main
+```
+
+### 6. Run migration 004 (calendar) if not already done
+```bash
+mysql -u root -p sebastian_db < db/migrations/004_calendar.sql
+```
+
+### 7. Run migration 005 (event notes/tickets)
+```bash
+mysql -u root -p sebastian_db < db/migrations/005_event_notes.sql
+# Verify:
+mysql -u root -p sebastian_db -e "DESCRIBE events" | grep notes
+```
+
+### 8. Start bot
+```bash
+sudo systemctl start sebastian.service
+sudo journalctl -u sebastian.service -f
+```
+
+## Smoke Tests
+
+```
+✅ "qué tengo hoy"               → agenda del día
+✅ "apunta dentista mañana a las 5" → confirmación con fecha
+✅ Enviar foto con QR             → "¿A qué evento asocio este ticket?"
+✅ Responder "1"                  → "Ticket guardado en [evento]"
+✅ "qué tickets tengo para [evento]" → imagen PNG del código
+✅ "borra los tickets de [evento]"  → confirmación de borrado
+```
+
+---
+
+# ✅ Deployment 2: List System Redesign (2026-02-17)
 
 **Date**: 2026-02-17
 **Version**: Sebastian 2.0 Unified List Architecture

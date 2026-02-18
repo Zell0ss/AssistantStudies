@@ -6,12 +6,14 @@ Referencia rápida de todos los comandos disponibles por tipo de lista.
 
 ## 📊 Resumen del Sistema
 
-Sebastian 2.0 gestiona 4 tipos de listas diferentes:
+Sebastian 2.0 gestiona 6 módulos:
 
 1. **Inventory** - Múltiples inventarios nombrados (con cantidades y alertas de stock bajo)
 2. **Shopping** - Listas de compra múltiples (con cantidades)
 3. **Packing** - Listas de equipaje para viajes (con items recurrentes)
 4. **Notes** - Notas de texto libre con tags
+5. **Calendar** - Agenda personal con eventos recurrentes
+6. **Tickets** - Entradas y códigos QR/barcode asociados a eventos
 
 ---
 
@@ -344,5 +346,155 @@ O pregúntale a Sebastian:
 
 ---
 
-**Última actualización:** 2026-02-16
-**Versión Sebastian:** 2.0
+### 5. Calendar (Agenda Personal)
+
+**Añadir eventos:**
+```
+✅ "apunta dentista el jueves a las 5"
+✅ "el 15 de marzo es el cumpleaños de rebe"
+✅ "cada lunes inglés a las 7 de la tarde"
+✅ "inglés cada lunes y miércoles a las 7 hasta junio"
+✅ "todos los días tengo medicación a las 8"
+✅ "el día 1 de cada mes pago el alquiler"
+```
+
+**Ver agenda:**
+```
+✅ "qué tengo hoy"
+✅ "qué tengo mañana"
+✅ "agenda de esta semana"
+✅ "qué tengo en marzo"
+```
+
+**Buscar y borrar:**
+```
+✅ "cuándo tengo dentista"
+✅ "próxima reunión"
+✅ "borra el dentista del jueves"
+✅ "elimina el inglés"
+```
+
+**Reglas de recurrencia (`recurrence_rule`):**
+| Sintaxis | Significado |
+|----------|-------------|
+| `daily` | Todos los días |
+| `weekly:MON` | Cada lunes |
+| `weekly:MON,WED` | Lunes y miércoles |
+| `monthly:15` | Día 15 de cada mes |
+| `monthly:first-TUE` | Primer martes del mes |
+
+---
+
+### 6. Tickets y Entradas
+
+Los tickets (QR, códigos de barras, DataMatrix, Aztec, PDF417) se asocian a eventos del calendario.
+
+**Guardar un ticket:**
+```
+1. Envía una foto con el código QR o barcode
+2a. Si el mensaje tiene caption → lo busca como evento automáticamente
+2b. Si no → te pregunta a qué evento asociarlo (lista numerada)
+3. Responde con el número o el nombre del evento
+```
+
+**Ver tickets guardados:**
+```
+✅ "qué tickets tengo para el teatro"
+✅ "las entradas del concierto del viernes"
+✅ "los tickets del dentista"
+✅ "dame el código del tren"
+```
+
+**Borrar tickets:**
+```
+✅ "borra los tickets del teatro"
+✅ "elimina las entradas del concierto"
+```
+
+**Formatos soportados:**
+| Tipo | Generación | Notas |
+|------|-----------|-------|
+| QR_CODE | qrcode | Alta calidad |
+| CODE_128, CODE_39 | python-barcode | Lineal estándar |
+| EAN_13, EAN_8, UPC_A, UPC_E | python-barcode | Con check digit |
+| AZTEC | zxingcpp | Pixel-art 2D |
+| DATA_MATRIX | zxingcpp | Cuadrícula 2D |
+| PDF417 | zxingcpp | Barcode apilado |
+
+**Notas:**
+- Si una imagen tiene múltiples códigos (p.ej. DataMatrix + barcode), se detectan todos
+- Para guardar solo un formato, recorta la imagen antes de enviarla
+- Los tickets se almacenan en `events.notes` (JSON) en la BD
+- Backward compat: tickets antiguos con `image_b64` siguen funcionando
+
+---
+
+## 🖥️ Dependencias del Sistema
+
+### Python (`requirements.txt`)
+Ver archivo `requirements.txt`. Las más importantes:
+- `pyTelegramBotAPI` — bot framework
+- `anthropic` — Claude Haiku parser
+- `zxing-cpp` — decode/encode barcodes (primary)
+- `pyzbar` — decode barcodes (fallback)
+- `qrcode`, `python-barcode` — generación QR y barcodes lineales
+- `numpy` — conversión zxingcpp.Image → PIL.Image
+- `APScheduler` — recordatorio diario
+
+### Sistema Unix (`apt`) — NO están en requirements.txt
+Deben instalarse en el servidor:
+```bash
+sudo apt-get install libzbar0
+```
+- **`libzbar0`** — biblioteca nativa requerida por `pyzbar` para decodificar barcodes
+  - Sin esto, `pyzbar` falla silenciosamente y solo funciona el fallback de texto
+  - Verificar: `python -c "from pyzbar.pyzbar import decode; print('ok')"`
+
+---
+
+## 📁 Estructura de Base de Datos (completa)
+
+### Tabla: `events`
+```sql
+id, user_id, title, event_date (DATE), start_datetime (DATETIME),
+end_datetime (DATETIME), all_day (BOOL), recurrence_rule (VARCHAR),
+recurrence_end (DATE), notes (JSON), created_at, updated_at
+```
+- `notes` JSON: `{"tickets": [{"type": "CODE_128", "value": "...", "value_b64": "..."}]}`
+
+### Tabla: `lists`
+```sql
+id, user_id, name, list_category ('inventory'|'shopping'|'packing'), created_at
+```
+
+### Tabla: `list_items`
+```sql
+id, list_id, name, quantity, unit, low_threshold, checked, recurring, created_at
+```
+
+### Tabla: `notes`
+```sql
+id, user_id, content, tags (JSON), created_at, updated_at
+```
+
+### Tabla: `user_settings`
+```sql
+user_id, sprite_skin, created_at, updated_at
+```
+
+---
+
+## 🚀 Migraciones
+
+| Nº | Archivo | Qué hace |
+|----|---------|----------|
+| 001 | `001_initial.sql` | Tablas base (inventory, lists, list_items, notes) |
+| 002 | `002_user_settings.sql` | Tabla user_settings (sprite skins) |
+| 003 | `003_unify_lists.sql` | Unifica inventory en lists con list_category |
+| 004 | `004_calendar.sql` | Tabla events para el calendario |
+| 005 | `005_event_notes.sql` | Columna notes JSON en events (tickets) |
+
+---
+
+**Última actualización:** 2026-02-18
+**Versión Sebastian:** 2.0 (Calendar + Tickets)
