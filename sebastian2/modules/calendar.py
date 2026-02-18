@@ -325,6 +325,29 @@ class CalendarModule(BaseModule):
             return json.loads(notes)
         return notes
 
+    def clear_tickets(self, event_id: int) -> Dict[str, Any]:
+        """Remove all tickets from an event's notes."""
+        cursor = self.execute_query(
+            "SELECT id, notes FROM events WHERE id = %s AND user_id = %s",
+            (event_id, self.user_id)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return {'status': 'not_found', 'message': f"Evento {event_id} no encontrado"}
+
+        notes = row['notes'] or {}
+        if isinstance(notes, str):
+            notes = json.loads(notes)
+
+        count = len(notes.pop('tickets', []))
+        self.execute_query(
+            "UPDATE events SET notes = %s WHERE id = %s AND user_id = %s",
+            (json.dumps(notes, ensure_ascii=False), event_id, self.user_id)
+        )
+        self.commit()
+        logger.info(f"Cleared {count} ticket(s) from event {event_id}")
+        return {'status': 'cleared', 'count': count}
+
     def find_upcoming_events(self, limit: int = 5) -> List[Dict[str, Any]]:
         """Return next N upcoming events (next 30 days). Used for ticket association UI."""
         events = self.list_events('month')

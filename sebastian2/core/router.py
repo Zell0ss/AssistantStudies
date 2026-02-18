@@ -775,6 +775,28 @@ Para ver tus listas: "qué listas tengo\""""
                 'data': {'event': event, 'tickets': tickets}
             }
 
+        if action == 'clear_tickets':
+            query = intent.get('query', '').strip()
+            if not query:
+                return {'success': False, 'result': "¿De qué cita quieres borrar los tickets?"}
+
+            events = cal.search_events(query)
+            if not events:
+                return {'success': True, 'result': f"No encontré ningún evento sobre '{query}'."}
+
+            event = events[0]
+            result = cal.clear_tickets(event['event_id'])
+            if result['status'] == 'not_found':
+                return {'success': False, 'result': result['message']}
+
+            count = result['count']
+            if count == 0:
+                return {'success': True, 'result': f"'{event['title']}' no tenía tickets guardados."}
+            return {
+                'success': True,
+                'result': f"🗑️ {count} ticket(s) eliminado(s) de '{event['title']}'."
+            }
+
         return {'success': False, 'result': f"Acción de calendario desconocida: {action}"}
 
     def cleanup(self):

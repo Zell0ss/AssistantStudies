@@ -172,6 +172,9 @@ Ejemplos:
 "próxima reunión" → {{"module": "calendar", "action": "search", "query": "reunión"}}
 "borra el dentista del jueves" → {{"module": "calendar", "action": "remove", "title": "dentista", "date": "2026-02-19"}}
 "elimina el inglés" → {{"module": "calendar", "action": "remove", "title": "inglés"}}
+"borra los tickets del teatro" → {{"module": "calendar", "action": "clear_tickets", "query": "teatro"}}
+"elimina las entradas del concierto" → {{"module": "calendar", "action": "clear_tickets", "query": "concierto"}}
+"borra todos los tickets del dentista" → {{"module": "calendar", "action": "clear_tickets", "query": "dentista"}}
 "qué tickets tengo para el teatro" → {{"module": "calendar", "action": "show_tickets", "query": "teatro"}}
 "muéstrame las entradas del concierto del viernes" → {{"module": "calendar", "action": "show_tickets", "query": "concierto"}}
 "los tickets del dentista" → {{"module": "calendar", "action": "show_tickets", "query": "dentista"}}
