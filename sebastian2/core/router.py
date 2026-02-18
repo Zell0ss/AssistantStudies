@@ -126,6 +126,8 @@ class ModuleRouter:
                 return self._route_list_all_lists()
 
             if action == 'explain':
+                if module == 'calendar':
+                    return self._route_explain_calendar()
                 return self._route_explain_lists()
 
             if action == 'list_categories':
@@ -533,18 +535,16 @@ class ModuleRouter:
         return {'success': False, 'result': f"No encontré ninguna lista llamada '{list_name}'."}
 
     def _route_explain_lists(self) -> Dict[str, Any]:
-        """Explain how the list system works."""
-        explanation = """Manejo 3 tipos de listas:
+        """Explain the full capabilities of the bot."""
+        explanation = """Esto es lo que puedo hacer:
 
 **Inventarios** — lo que tienes en casa
   • "compré 6 aguacates"
   • "me quedan 2 limones en nevera gijón"
   • "qué tengo en despensa madrid?"
-  Puedes tener varios: despensa madrid, nevera gijón, etc.
 
 **Compra** — lo que necesitas comprar
   • "añade leche a la compra"
-  • "añade pan a mercadona"
   • "lista de mercadona"
 
 **Equipaje** — lo que llevas en viajes
@@ -552,12 +552,60 @@ class ModuleRouter:
   • "añade cepillo a gijón, siempre" (item recurrente 🔄)
   • "marca cargador en gijón"
 
-Cada tipo puede tener varias listas con nombres distintos.
-Si solo tienes una, la selecciono automáticamente.
-Si tienes varias, dime cuál: "añade X a despensa madrid".
+**Calendario** — citas y eventos personales
+  • "apunta dentista el jueves a las 5"
+  • "cada lunes tengo inglés a las 7"
+  • "qué tengo esta semana?"
+  • "cuándo es el próximo dentista?"
 
-Para ver todas tus listas: "dime qué listas tengo"
-Para mover una lista mal clasificada: dímelo y lo arreglo."""
+**Tickets y entradas** — códigos QR y códigos de barras
+  • Manda una foto con un QR o código de barras
+  • Lo asocio a una cita y te lo regenero cuando lo necesites
+  • "qué tickets tengo para el concierto?"
+
+**Notas** — texto libre con etiquetas
+  • "apunta que Rebe prefiere manzanas verdes"
+  • "busca notas sobre Rebe"
+
+Para saber más sobre el calendario: "cómo funciona el calendario?"
+Para ver tus listas: "qué listas tengo\""""
+
+        return {
+            'success': True,
+            'result': explanation
+        }
+
+    def _route_explain_calendar(self) -> Dict[str, Any]:
+        """Explain calendar and ticket features."""
+        explanation = """**Calendario** — citas y eventos personales
+
+**Añadir eventos:**
+  • "apunta dentista el jueves a las 5"
+  • "el 15 de marzo es el cumpleaños de Rebe" (todo el día)
+  • "cada lunes tengo inglés a las 7 de la tarde" (recurrente)
+  • "inglés cada lunes y miércoles hasta junio"
+  • "todos los días medicación a las 8"
+  • "el día 1 de cada mes pago el alquiler"
+
+**Ver agenda:**
+  • "qué tengo hoy / mañana"
+  • "agenda de esta semana"
+  • "qué tengo en marzo"
+
+**Buscar:**
+  • "cuándo tengo dentista?"
+  • "próxima reunión"
+
+**Borrar:**
+  • "borra el dentista del jueves" (una vez)
+  • "elimina el inglés" (pregunto si todas o solo una)
+
+**Tickets y entradas:**
+  • Manda una foto con el QR o código de barras
+  • Si el pie de foto coincide con una cita, lo asocio automáticamente
+  • Si no, te muestro tus próximos eventos y eliges
+  • Puedes guardar varios tickets por evento (billete ida + vuelta, etc.)
+  • "qué tickets tengo para el teatro?" → te mando la imagen del código"""
 
         return {
             'success': True,

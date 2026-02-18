@@ -140,6 +140,14 @@ Ejemplos:
 "explícame el sistema de listas" → {{"module": "shopping", "action": "explain"}}
 "qué tipos de listas hay?" → {{"module": "shopping", "action": "explain"}}
 "cómo puedo mover una lista a otra categoría?" → {{"module": "shopping", "action": "explain"}}
+"qué puedes hacer?" → {{"module": "shopping", "action": "explain"}}
+"qué sabes hacer?" → {{"module": "shopping", "action": "explain"}}
+"cuáles son tus funciones?" → {{"module": "shopping", "action": "explain"}}
+"cómo funciona el calendario?" → {{"module": "calendar", "action": "explain"}}
+"explícame el calendario" → {{"module": "calendar", "action": "explain"}}
+"qué puedo hacer con el calendario?" → {{"module": "calendar", "action": "explain"}}
+"cómo se usan los tickets?" → {{"module": "calendar", "action": "explain"}}
+"cómo funciona lo de los tickets?" → {{"module": "calendar", "action": "explain"}}
 "qué categorías de listas hay?" → {{"module": "shopping", "action": "list_categories"}}
 "cuántos tipos de listas existen?" → {{"module": "shopping", "action": "list_categories"}}
 "mueve la lista bugs a compra" → {{"module": "shopping", "action": "move_list", "list_name": "bugs", "target_category": "shopping"}}

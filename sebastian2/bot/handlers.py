@@ -95,24 +95,31 @@ def setup_handlers(bot, config):
 • "compré 6 aguacates"
 • "me quedan 2 limones"
 • "cuántos huevos tengo?"
-• "lista el inventario"
 
 🛒 **Lista de Compra:**
 • "añade leche a la compra"
-• "quita pan de la compra"
-• "lista de la compra"
+• "lista de mercadona"
 
 🎒 **Listas de Equipaje:**
 • "añade toalla a Gijón"
-• "añade cepillo dental a Gijón, siempre" (item recurrente)
-• "marca cargador en lista Gijón"
-• "lista equipaje Gijón"
+• "añade cepillo a Gijón, siempre" (recurrente)
+• "marca cargador en Gijón"
+
+📅 **Calendario:**
+• "apunta dentista el jueves a las 5"
+• "cada lunes inglés a las 7"
+• "qué tengo esta semana?"
+
+🎟️ **Tickets y entradas:**
+• Manda una foto con el QR o código de barras
+• "qué tickets tengo para el concierto?"
 
 📝 **Notas:**
 • "apunta que Rebe prefiere manzanas verdes"
 • "busca notas sobre Rebe"
 
-💬 Simplemente escribe o envía un mensaje de voz describiendo lo que necesitas.
+💬 Escribe lo que necesitas en lenguaje natural.
+Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
 """
         bot.reply_to(message, help_text, parse_mode='Markdown')
         logger.info(f"Help message sent to {message.chat.username}")
