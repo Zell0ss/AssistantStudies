@@ -1,6 +1,9 @@
 # modules/ticket_decoder.py
 """
 QR code and barcode decoder using zxing-cpp (primary) and pyzbar (fallback).
+
+For tickets with binary payloads (Aztec, DataMatrix, PDF417) the raw bytes
+are stored as value_b64 to enable lossless regeneration via zxingcpp.
 """
 import io
 import base64
@@ -49,10 +52,13 @@ def _decode_zxing(img: Image.Image) -> list:
         for r in results:
             if not r.valid:
                 continue
-            # Use format.name — verified working in zxingcpp 3.x (returns e.g. 'QRCode')
             fmt_name = r.format.name if hasattr(r.format, 'name') else str(r.format)
             type_name = _ZXING_TYPE_MAP.get(fmt_name, fmt_name.upper())
-            decoded.append({'type': type_name, 'value': r.text})
+            entry = {'type': type_name, 'value': r.text}
+            # Store raw bytes as value_b64 when content is not plain text
+            if r.content_type != zxingcpp.ContentType.Text:
+                entry['value_b64'] = base64.b64encode(r.bytes).decode('utf-8')
+            decoded.append(entry)
         return decoded
     except Exception as e:
         logger.debug(f"zxing-cpp decode failed: {e}")
@@ -68,9 +74,15 @@ def _decode_pyzbar(img: Image.Image) -> list:
             type_name = _PYZBAR_TYPE_MAP.get(r.type, r.type)
             try:
                 value = r.data.decode('utf-8')
+                entry = {'type': type_name, 'value': value}
             except UnicodeDecodeError:
                 value = r.data.decode('latin-1')
-            decoded.append({'type': type_name, 'value': value})
+                entry = {
+                    'type': type_name,
+                    'value': value,
+                    'value_b64': base64.b64encode(r.data).decode('utf-8'),
+                }
+            decoded.append(entry)
         return decoded
     except Exception as e:
         logger.debug(f"pyzbar decode failed: {e}")
@@ -80,10 +92,11 @@ def _decode_pyzbar(img: Image.Image) -> list:
 def decode_image(image_bytes: bytes) -> list:
     """
     Decode QR codes and barcodes from image bytes.
-    Returns list of {type, value} dicts. Empty list if nothing found.
-    AZTEC results include image_b64 for later display.
+
+    Returns list of dicts with {type, value} and optionally {value_b64}
+    for tickets with binary payloads. Empty list if nothing found.
     """
-    processed_img, original_bytes = _preprocess(image_bytes)
+    processed_img, _ = _preprocess(image_bytes)
 
     results = _decode_zxing(processed_img)
     if not results:
@@ -97,12 +110,6 @@ def decode_image(image_bytes: bytes) -> list:
         if r['value'] not in seen:
             seen.add(r['value'])
             deduped.append(r)
-
-    # Attach image_b64 for types with no generation library (AZTEC, DATA_MATRIX)
-    NO_GEN_TYPES = {'AZTEC', 'DATA_MATRIX'}
-    for r in deduped:
-        if r['type'] in NO_GEN_TYPES:
-            r['image_b64'] = base64.b64encode(original_bytes).decode('utf-8')
 
     logger.info(f"decode_image: {len(deduped)} code(s) found: {[r['type'] for r in deduped]}")
     return deduped

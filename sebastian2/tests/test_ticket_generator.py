@@ -29,22 +29,18 @@ class TestGenerateImage:
         assert result is not None
         assert isinstance(result, bytes)
 
-    def test_generate_aztec_from_image_b64(self):
-        import base64
-        from PIL import Image
-        img = Image.new('RGB', (10, 10), color='white')
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        fake_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-        ticket = {'type': 'AZTEC', 'value': 'aztec_data', 'image_b64': fake_b64}
+    def test_generate_aztec_returns_png(self):
+        # zxingcpp can now generate Aztec from text value directly
+        ticket = {'type': 'AZTEC', 'value': 'aztec_data_test'}
         result = generate_image(ticket)
         assert result is not None
-        assert result == buf.getvalue()
+        assert result[:4] == b'\x89PNG'
 
-    def test_generate_aztec_without_b64_returns_none(self):
-        ticket = {'type': 'AZTEC', 'value': 'aztec_data'}
+    def test_generate_data_matrix_returns_png(self):
+        ticket = {'type': 'DATA_MATRIX', 'value': '728515O57X69UG'}
         result = generate_image(ticket)
-        assert result is None
+        assert result is not None
+        assert result[:4] == b'\x89PNG'
 
     def test_generate_unknown_type_returns_none(self):
         ticket = {'type': 'UNKNOWN_FORMAT', 'value': 'data'}
