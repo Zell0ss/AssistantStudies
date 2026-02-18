@@ -686,6 +686,47 @@ Para mover una lista mal clasificada: dímelo y lo arreglo."""
                 'data': result
             }
 
+        if action == 'show_tickets':
+            query = intent.get('query', '').strip()
+            if not query:
+                return {'success': False, 'result': "¿De qué cita quieres ver los tickets?"}
+
+            events = cal.search_events(query)
+            if not events:
+                return {'success': True, 'result': f"No encontré ningún evento sobre '{query}'."}
+
+            event = events[0]
+            notes = cal.get_event_notes(event['event_id'])
+
+            if not notes or not notes.get('tickets'):
+                return {
+                    'success': True,
+                    'result': f"El evento '{event['title']}' no tiene tickets guardados todavía.",
+                    'data': {'event': event, 'tickets': []}
+                }
+
+            tickets = notes['tickets']
+            months_es = ['enero','febrero','marzo','abril','mayo','junio',
+                         'julio','agosto','septiembre','octubre','noviembre','diciembre']
+            date_str = ''
+            if event.get('date'):
+                d = event['date']
+                date_str = f"{d.day} de {months_es[d.month-1]}"
+
+            return {
+                'success': True,
+                'result': (
+                    f"🎟️ Tickets — {event['title']}" +
+                    (f" ({date_str})" if date_str else "") +
+                    "\n\n" +
+                    '\n'.join(
+                        f"• {t['type']}: {t['value'][:60]}{'...' if len(t['value']) > 60 else ''}"
+                        for t in tickets
+                    )
+                ),
+                'data': {'event': event, 'tickets': tickets}
+            }
+
         return {'success': False, 'result': f"Acción de calendario desconocida: {action}"}
 
     def cleanup(self):

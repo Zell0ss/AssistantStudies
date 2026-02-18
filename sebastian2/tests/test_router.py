@@ -246,3 +246,17 @@ class TestCalendarRouting:
         }
         result = router.route(intent)
         assert 'No encontré' in result['result']
+
+    def test_route_calendar_show_tickets_no_tickets(self, router):
+        router.route({
+            'module': 'calendar', 'action': 'add',
+            'title': 'EventoSinTickets', 'date': '2026-06-01',
+            'time': '20:00', 'all_day': False,
+        })
+        result = router.route({
+            'module': 'calendar', 'action': 'show_tickets',
+            'query': 'EventoSinTickets',
+        })
+        assert result['success'] is True
+        result_lower = result['result'].lower()
+        assert 'no tiene tickets' in result_lower or 'no encontré' in result_lower
