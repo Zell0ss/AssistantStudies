@@ -6,7 +6,7 @@ Referencia rápida de todos los comandos disponibles por tipo de lista.
 
 ## 📊 Resumen del Sistema
 
-Sebastian 2.0 gestiona 6 módulos:
+Sebastian 2.0 gestiona 7 módulos:
 
 1. **Inventory** - Múltiples inventarios nombrados (con cantidades y alertas de stock bajo)
 2. **Shopping** - Listas de compra múltiples (con cantidades)
@@ -14,6 +14,7 @@ Sebastian 2.0 gestiona 6 módulos:
 4. **Notes** - Notas de texto libre con tags
 5. **Calendar** - Agenda personal con eventos recurrentes
 6. **Tickets** - Entradas y códigos QR/barcode asociados a eventos
+7. **Tiempo** - Consulta del tiempo actual con ubicación persistente por usuario
 
 ---
 
@@ -427,6 +428,39 @@ Los tickets (QR, códigos de barras, DataMatrix, Aztec, PDF417) se asocian a eve
 - Los tickets se almacenan en `events.notes` (JSON) en la BD
 - Backward compat: tickets antiguos con `image_b64` siguen funcionando
 
+### 7. Tiempo (Weather)
+
+**Consultar el tiempo:**
+```
+✅ "qué tiempo hace"
+✅ "va a llover hoy"
+✅ "cómo está el tiempo"
+✅ "qué temperatura hace"
+✅ "necesito paraguas hoy"
+```
+
+**Consultar con ciudad (actualiza tu ubicación por defecto):**
+```
+✅ "el tiempo en Gijón"         → usa Gijón y la guarda como tu ciudad
+✅ "tiempo en Magán, Toledo"    → usa Magán y la guarda como tu ciudad
+✅ "hace frío en Madrid?"       → usa Madrid y la guarda como tu ciudad
+```
+
+**Comportamiento:**
+- La primera vez usa **Madrid** como ubicación por defecto
+- Cada vez que preguntas por una ciudad concreta, la guarda como tu nueva ubicación
+- La próxima vez que preguntas sin ciudad → usa la que guardaste
+- Ciudades predefinidas (sin geocoding): Madrid, Gijón, Oviedo, Magán, Toledo, Sevilla, Barcelona, Valencia, Bilbao
+- Cualquier otra ciudad → geocoding automático via OpenMeteo (gratuito)
+
+**Formato de respuesta:**
+```
+📍 Madrid, ES
+🌡️ Ahora: 8°C  |  Hoy: 5° – 14°C
+🌧️ Lluvia: 20%  |  🌅 07:45 – 🌇 18:30
+🍷 "refrán meteorológico"
+```
+
 ---
 
 ## 🖥️ Dependencias del Sistema
@@ -493,6 +527,7 @@ user_id, sprite_skin, created_at, updated_at
 | 003 | `003_unify_lists.sql` | Unifica inventory en lists con list_category |
 | 004 | `004_calendar.sql` | Tabla events para el calendario |
 | 005 | `005_event_notes.sql` | Columna notes JSON en events (tickets) |
+| 006 | `006_weather_location.sql` | Columnas weather_location/lat/lon/country en user_settings |
 
 ---
 
