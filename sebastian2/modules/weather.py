@@ -72,7 +72,7 @@ class WeatherModule:
             key = city.lower().strip()
             if key in _FALLBACK_CITIES:
                 lat, lon, country = _FALLBACK_CITIES[key]
-                display_name = city.capitalize()
+                display_name = city.title()
                 current = self._settings.get_weather_location()
                 if current['location'].lower() != key:
                     self._settings.set_weather_location(display_name, lat, lon, country)

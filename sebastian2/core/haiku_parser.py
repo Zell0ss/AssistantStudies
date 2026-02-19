@@ -13,15 +13,25 @@ class HaikuParser:
 
     Output schema:
     {
-        "module": "inventory | shopping | packing | notes | query",
-        "action": "add | set | remove | list | check | search | get",
+        "module": "inventory | shopping | packing | notes | calendar | weather",
+        "action": "add | set | remove | clear_all | create | list | list_all_lists |
+                   check | search | get | explain | list_categories | move_list |
+                   show_tickets | clear_tickets",
         "item": "string (item name)",
         "quantity": "number (optional)",
         "unit": "string (optional)",
         "list_name": "string (for lists/packing)",
         "tags": "array of strings (for notes)",
         "recurring": "boolean (for packing lists)",
-        "threshold": "number (for setting low stock alert)"
+        "threshold": "number (for set_threshold)",
+        "date": "YYYY-MM-DD (calendar events)",
+        "time": "HH:MM (calendar events)",
+        "all_day": "boolean (calendar events)",
+        "recurrence_rule": "daily | weekly:MON | monthly:15 | ... (calendar)",
+        "recurrence_end": "YYYY-MM-DD or null (calendar)",
+        "time_window": "today | tomorrow | week | month | YYYY-MM (calendar list)",
+        "query": "search term (calendar search / ticket actions)",
+        "city": "city name for weather, or null to use saved location"
     }
     """
 

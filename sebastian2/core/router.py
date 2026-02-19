@@ -804,9 +804,12 @@ Para ver tus listas: "qué listas tengo\""""
 
     def _route_weather(self, parsed: dict) -> dict:
         """Route weather actions to WeatherModule."""
+        action = parsed.get('action')
         city = parsed.get('city')
         weather = WeatherModule(self.conn, self.user_id)
-        return weather.get_weather(city)
+        if action == 'get':
+            return weather.get_weather(city)
+        return {'success': False, 'result': f"Acción de tiempo desconocida: {action}"}
 
     def cleanup(self):
         """Clean up database connection"""
