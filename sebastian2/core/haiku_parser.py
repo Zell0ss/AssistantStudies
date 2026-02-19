@@ -53,6 +53,7 @@ El usuario puede pedir operaciones sobre:
 - **packing**: listas de empaque para viajes (gijón_llevar, etc.)
 - **notes**: notas de texto libre con tags
 - **calendar**: eventos y citas personales (dentista, reuniones, cumpleaños, eventos recurrentes)
+- **weather**: consultas del tiempo actual (temperatura, lluvia, amanecer, anochecer)
 
 Acciones posibles:
 - **add**: añadir/agregar cantidad (inventory) o item (lists)
@@ -94,7 +95,7 @@ Ejemplos de nombres de listas por módulo:
 
 Devuelve SOLO JSON válido con esta estructura:
 {{
-  "module": "inventory | shopping | packing | notes | calendar",
+  "module": "inventory | shopping | packing | notes | calendar | weather",
   "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | explain | list_categories | move_list",
   "item": "nombre del item",
   "quantity": número (opcional),
@@ -110,7 +111,8 @@ Devuelve SOLO JSON válido con esta estructura:
   "recurrence_rule": "daily | weekly:MON | weekly:MON,WED | monthly:15 | monthly:first-TUE | null",
   "recurrence_end": "YYYY-MM-DD o null (cuándo termina la recurrencia)",
   "time_window": "today | tomorrow | week | month | YYYY-MM (para action: list)",
-  "query": "texto de búsqueda (para action: search)"
+  "query": "texto de búsqueda (para action: search)",
+  "city": "nombre de ciudad para weather, o null para usar ubicación guardada del usuario"
 }}
 
 Ejemplos:
@@ -179,6 +181,15 @@ Ejemplos:
 "muéstrame las entradas del concierto del viernes" → {{"module": "calendar", "action": "show_tickets", "query": "concierto"}}
 "los tickets del dentista" → {{"module": "calendar", "action": "show_tickets", "query": "dentista"}}
 "dame el código del tren" → {{"module": "calendar", "action": "show_tickets", "query": "tren"}}
+
+\"qué tiempo hace\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
+\"cómo está el tiempo\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
+\"va a llover hoy\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
+\"el tiempo en Gijón\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": \"Gijón\"}}
+\"tiempo en Magán, Toledo\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": \"Magán\"}}
+\"hace frío en Madrid?\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": \"Madrid\"}}
+\"qué temperatura hace\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
+\"necesito paraguas hoy\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
 
 Si no puedes parsear el mensaje, devuelve: {{"module": "unknown", "action": "unknown"}}"""
 
