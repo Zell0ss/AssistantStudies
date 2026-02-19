@@ -129,6 +129,8 @@ class ModuleRouter:
             if action == 'explain':
                 if module == 'calendar':
                     return self._route_explain_calendar()
+                if module == 'weather':
+                    return self._route_explain_weather()
                 return self._route_explain_lists()
 
             if action == 'list_categories':
@@ -566,12 +568,15 @@ class ModuleRouter:
   • Lo asocio a una cita y te lo regenero cuando lo necesites
   • "qué tickets tengo para el concierto?"
 
+**Tiempo** — temperatura y lluvia de tu ciudad
+  • "qué tiempo hace?"
+  • "el tiempo en Gijón" (cambia tu ciudad por defecto)
+
 **Notas** — texto libre con etiquetas
   • "apunta que Rebe prefiere manzanas verdes"
   • "busca notas sobre Rebe"
 
-Para saber más sobre el calendario: "cómo funciona el calendario?"
-Para ver tus listas: "qué listas tengo\""""
+Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
 
         return {
             'success': True,
@@ -609,6 +614,31 @@ Para ver tus listas: "qué listas tengo\""""
   • Si no, te muestro tus próximos eventos y eliges
   • Puedes guardar varios tickets por evento (billete ida + vuelta, etc.)
   • "qué tickets tengo para el teatro?" → te mando la imagen del código"""
+
+        return {
+            'success': True,
+            'result': explanation
+        }
+
+    def _route_explain_weather(self) -> Dict[str, Any]:
+        """Explain weather features and geocoding behavior."""
+        explanation = """**Tiempo** — temperatura y lluvia de tu ciudad
+
+**Consultar:**
+  • "qué tiempo hace?" → usa tu ciudad guardada (Madrid por defecto)
+  • "va a llover hoy?"
+  • "qué temperatura hace?"
+
+**Cambiar ciudad:**
+  • "el tiempo en Gijón" → te da el tiempo Y guarda Gijón como tu ciudad
+  • La próxima vez que preguntes sin ciudad → usará Gijón
+
+**Ciudades directas** (sin conexión extra):
+  Madrid, Gijón, Oviedo, Magán, Toledo, Sevilla, Barcelona, Valencia, Bilbao
+
+**Cualquier otra ciudad** → la busco automáticamente por nombre
+  ⚠️ Si hay dos ciudades con el mismo nombre en el mundo, puede aparecer la más grande
+  En ese caso, usa el nombre completo: "el tiempo en Salamanca, España\""""
 
         return {
             'success': True,

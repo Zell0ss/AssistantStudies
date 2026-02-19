@@ -192,6 +192,9 @@ Ejemplos:
 "los tickets del dentista" → {{"module": "calendar", "action": "show_tickets", "query": "dentista"}}
 "dame el código del tren" → {{"module": "calendar", "action": "show_tickets", "query": "tren"}}
 
+\"cómo funciona el tiempo?\" → {{\"module\": \"weather\", \"action\": \"explain\"}}
+\"explícame el tiempo\" → {{\"module\": \"weather\", \"action\": \"explain\"}}
+\"cómo cambio mi ciudad del tiempo?\" → {{\"module\": \"weather\", \"action\": \"explain\"}}
 \"qué tiempo hace\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
 \"cómo está el tiempo\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
 \"va a llover hoy\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
