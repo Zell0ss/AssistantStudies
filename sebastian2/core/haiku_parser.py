@@ -147,6 +147,12 @@ Ejemplos:
 "borra todo de gijón" → {{"module": "packing", "action": "clear_all", "list_name": "gijón"}}
 "añade leche a gijón, siempre" → {{"module": "packing", "action": "add", "item": "leche", "list_name": "gijón_llevar", "recurring": true}}
 "apunta que rebe prefiere manzanas verdes" → {{"module": "notes", "action": "add", "item": "rebe prefiere manzanas verdes", "tags": ["rebe"]}}
+"busca notas sobre rebe" → {{"module": "notes", "action": "search", "item": "rebe"}}
+"busca notas con tag bug" → {{"module": "notes", "action": "search", "tags": ["bug"]}}
+"notas de rebe" → {{"module": "notes", "action": "search", "tags": ["rebe"]}}
+"lista mis notas" → {{"module": "notes", "action": "list"}}
+"lee la nota 5" → {{"module": "notes", "action": "get", "note_id": 5}}
+"muéstrame la nota 3" → {{"module": "notes", "action": "read", "note_id": 3}}
 
 "cómo funcionan las listas?" → {{"module": "shopping", "action": "explain"}}
 "explícame el sistema de listas" → {{"module": "shopping", "action": "explain"}}

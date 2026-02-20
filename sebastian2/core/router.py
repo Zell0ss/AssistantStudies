@@ -658,12 +658,66 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
                 'data': {'note_id': note_id}
             }
 
-        elif action == 'search':
-            results = self.notes.search(item)
-            if results:
+        elif action == 'get' or action == 'read':
+            # Get specific note by ID
+            note_id = intent.get('note_id')
+            if not note_id:
+                # Try to parse from 'item' field (e.g., "nota 5" -> note_id = 5)
+                if item:
+                    import re
+                    match = re.search(r'\d+', str(item))
+                    if match:
+                        note_id = int(match.group())
+
+            if not note_id:
+                return {
+                    'success': False,
+                    'result': "¿Qué nota quieres leer? Dime el número."
+                }
+
+            note = self.notes.get(note_id)
+            if note:
+                tags_str = ""
+                if note.get('tags'):
+                    import json
+                    tags = json.loads(note['tags']) if isinstance(note['tags'], str) else note['tags']
+                    if tags:
+                        tags_str = f"\nTags: {', '.join(tags)}"
+
                 return {
                     'success': True,
-                    'result': f"Encontradas {len(results)} notas.",
+                    'result': f"Nota {note_id}:\n{note['content']}{tags_str}",
+                    'data': note
+                }
+            return {
+                'success': False,
+                'result': f"No encontré la nota {note_id}."
+            }
+
+        elif action == 'search':
+            # If no content query but tags present, do tag search instead
+            tag_from_intent = intent.get('tag') or (tags[0] if tags else None)
+            if not item and tag_from_intent:
+                results = self.notes.list_by_tag(tag_from_intent)
+                if results:
+                    note_list = '\n'.join([f"{i+1}) {n['content'][:50]}... (ID: {n['id']})" if len(n['content']) > 50 else f"{i+1}) {n['content']} (ID: {n['id']})" for i, n in enumerate(results[:10])])
+                    more = f"\n(y {len(results)-10} más)" if len(results) > 10 else ""
+                    return {
+                        'success': True,
+                        'result': f"Encontradas {len(results)} notas con tag '{tag_from_intent}':\n{note_list}{more}",
+                        'data': results
+                    }
+                return {
+                    'success': True,
+                    'result': f"No hay notas con tag '{tag_from_intent}'."
+                }
+            results = self.notes.search(item or '')
+            if results:
+                note_list = '\n'.join([f"{i+1}) {n['content'][:50]}... (ID: {n['id']})" if len(n['content']) > 50 else f"{i+1}) {n['content']} (ID: {n['id']})" for i, n in enumerate(results[:10])])
+                more = f"\n(y {len(results)-10} más)" if len(results) > 10 else ""
+                return {
+                    'success': True,
+                    'result': f"Encontradas {len(results)} notas:\n{note_list}{more}",
                     'data': results
                 }
             return {
@@ -673,13 +727,16 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
 
         elif action == 'list':
             # List all notes (or by tag if provided)
-            tag = intent.get('tag')
+            # Accept both 'tag' (singular) and 'tags' (plural list) from parser
+            tag = intent.get('tag') or (tags[0] if tags else None)
             if tag:
                 results = self.notes.list_by_tag(tag)
                 if results:
+                    note_list = '\n'.join([f"{i+1}) {n['content'][:50]}... (ID: {n['id']})" if len(n['content']) > 50 else f"{i+1}) {n['content']} (ID: {n['id']})" for i, n in enumerate(results[:10])])
+                    more = f"\n(y {len(results)-10} más)" if len(results) > 10 else ""
                     return {
                         'success': True,
-                        'result': f"Encontradas {len(results)} notas con tag '{tag}'.",
+                        'result': f"Encontradas {len(results)} notas con tag '{tag}':\n{note_list}{more}",
                         'data': results
                     }
                 return {
@@ -690,8 +747,8 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
                 # Search with empty query returns all notes
                 results = self.notes.search('')
                 if results:
-                    note_list = '\n'.join([f"• {n['content'][:50]}..." if len(n['content']) > 50 else f"• {n['content']}" for n in results[:5]])
-                    more = f"\n(y {len(results)-5} más)" if len(results) > 5 else ""
+                    note_list = '\n'.join([f"{i+1}) {n['content'][:50]}... (ID: {n['id']})" if len(n['content']) > 50 else f"{i+1}) {n['content']} (ID: {n['id']})" for i, n in enumerate(results[:10])])
+                    more = f"\n(y {len(results)-10} más)" if len(results) > 10 else ""
                     return {
                         'success': True,
                         'result': f"Tienes {len(results)} notas:\n{note_list}{more}",
