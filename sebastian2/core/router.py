@@ -760,6 +760,32 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
                     'data': {'empty': True}
                 }
 
+        elif action == 'delete' or action == 'remove':
+            note_id = intent.get('note_id')
+            if not note_id:
+                if item:
+                    import re
+                    match = re.search(r'\d+', str(item))
+                    if match:
+                        note_id = int(match.group())
+
+            if not note_id:
+                return {
+                    'success': False,
+                    'result': "¿Qué nota quieres borrar? Dime el número."
+                }
+
+            deleted = self.notes.delete(note_id)
+            if deleted:
+                return {
+                    'success': True,
+                    'result': f"Nota {note_id} borrada."
+                }
+            return {
+                'success': False,
+                'result': f"No encontré la nota {note_id}."
+            }
+
         else:
             return {
                 'success': False,

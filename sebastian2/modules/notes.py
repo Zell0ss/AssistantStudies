@@ -108,6 +108,26 @@ class NotesModule(BaseModule):
         cursor = self.execute_query(query, (self.user_id, tag_json))
         return cursor.fetchall()
 
+    def delete(self, note_id):
+        """
+        Delete a note by ID.
+
+        Args:
+            note_id: Note ID
+
+        Returns:
+            True if deleted, False if not found
+        """
+        note = self.get(note_id)
+        if not note:
+            return False
+
+        query = "DELETE FROM notes WHERE id = %s AND user_id = %s"
+        self.execute_query(query, (note_id, self.user_id))
+        self.commit()
+        logger.info(f"Deleted note {note_id}")
+        return True
+
     def add_tag(self, note_id, tag):
         """
         Add a tag to an existing note.

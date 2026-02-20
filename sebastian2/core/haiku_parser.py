@@ -153,6 +153,8 @@ Ejemplos:
 "lista mis notas" → {{"module": "notes", "action": "list"}}
 "lee la nota 5" → {{"module": "notes", "action": "get", "note_id": 5}}
 "muéstrame la nota 3" → {{"module": "notes", "action": "read", "note_id": 3}}
+"borra la nota 299" → {{"module": "notes", "action": "delete", "note_id": 299}}
+"elimina nota 12" → {{"module": "notes", "action": "delete", "note_id": 12}}
 
 "cómo funcionan las listas?" → {{"module": "shopping", "action": "explain"}}
 "explícame el sistema de listas" → {{"module": "shopping", "action": "explain"}}

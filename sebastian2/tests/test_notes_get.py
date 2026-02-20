@@ -181,3 +181,50 @@ def test_search_by_tag_via_tag_field(setup):
 
     assert result['success'] is True
     assert "rebe" in result['result'].lower()
+
+
+def test_delete_note_by_id(setup):
+    """Test deleting a note by ID"""
+    router, notes, user_id = setup
+
+    note_id = notes.create("Nota para borrar")
+
+    result = router.route({
+        'module': 'notes',
+        'action': 'delete',
+        'note_id': note_id
+    })
+
+    assert result['success'] is True
+    assert str(note_id) in result['result']
+    assert notes.get(note_id) is None
+
+
+def test_delete_note_parsed_from_item(setup):
+    """Test 'borra nota 299' — note_id parsed from item field"""
+    router, notes, user_id = setup
+
+    note_id = notes.create("Nota a eliminar via item")
+
+    result = router.route({
+        'module': 'notes',
+        'action': 'remove',
+        'item': f"nota {note_id}"
+    })
+
+    assert result['success'] is True
+    assert notes.get(note_id) is None
+
+
+def test_delete_nonexistent_note(setup):
+    """Test deleting a note that doesn't exist"""
+    router, notes, user_id = setup
+
+    result = router.route({
+        'module': 'notes',
+        'action': 'delete',
+        'note_id': 99999
+    })
+
+    assert result['success'] is False
+    assert "No encontré" in result['result']
