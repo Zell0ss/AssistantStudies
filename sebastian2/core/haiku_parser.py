@@ -13,10 +13,11 @@ class HaikuParser:
 
     Output schema:
     {
-        "module": "inventory | shopping | packing | notes | calendar | weather",
+        "module": "inventory | shopping | packing | notes | calendar | weather | unknown",
         "action": "add | set | remove | clear_all | create | list | list_all_lists |
                    check | search | get | explain | list_categories | move_list |
-                   show_tickets | clear_tickets",
+                   show_tickets | clear_tickets | unknown",
+        "intent_type": "command | conversation  (only present when module=unknown)",
         "item": "string (item name)",
         "quantity": "number (optional)",
         "unit": "string (optional)",
@@ -105,8 +106,9 @@ Ejemplos de nombres de listas por módulo:
 
 Devuelve SOLO JSON válido con esta estructura:
 {{
-  "module": "inventory | shopping | packing | notes | calendar | weather",
-  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | explain | list_categories | move_list",
+  "module": "inventory | shopping | packing | notes | calendar | weather | unknown",
+  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | explain | list_categories | move_list | unknown",
+  "intent_type": "command | conversation (SOLO cuando module es unknown)",
   "item": "nombre del item",
   "quantity": número (opcional),
   "unit": "unidades | kg | litros | etc" (opcional),
@@ -212,7 +214,20 @@ Ejemplos:
 \"qué temperatura hace\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
 \"necesito paraguas hoy\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
 
-Si no puedes parsear el mensaje, devuelve: {{"module": "unknown", "action": "unknown"}}"""
+REGLA CRÍTICA para module: "unknown" — añade siempre intent_type:
+- Si el mensaje intenta una ACCIÓN (verbo imperativo + objeto, intención de hacer algo) → intent_type: "command"
+- Si el mensaje es SOCIAL/EMOCIONAL (saludo, agradecimiento, valoración, pregunta casual sin acción) → intent_type: "conversation"
+
+"gracias"                    → {{"module": "unknown", "action": "unknown", "intent_type": "conversation"}}
+"perfecto!"                  → {{"module": "unknown", "action": "unknown", "intent_type": "conversation"}}
+"eres muy útil"              → {{"module": "unknown", "action": "unknown", "intent_type": "conversation"}}
+"qué tal?"                   → {{"module": "unknown", "action": "unknown", "intent_type": "conversation"}}
+"hola"                       → {{"module": "unknown", "action": "unknown", "intent_type": "conversation"}}
+"crea otro block de notas"   → {{"module": "unknown", "action": "unknown", "intent_type": "command"}}
+"exporta mis listas a pdf"   → {{"module": "unknown", "action": "unknown", "intent_type": "command"}}
+"sincroniza con google drive"→ {{"module": "unknown", "action": "unknown", "intent_type": "command"}}
+
+Si no puedes parsear el mensaje, devuelve: {{"module": "unknown", "action": "unknown", "intent_type": "conversation"}}"""
 
         try:
             logger.debug(f"Parsing message: {user_message}")

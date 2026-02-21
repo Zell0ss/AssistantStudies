@@ -335,7 +335,7 @@ def test_error_handling_unknown_module(router, formatter, cleanup_db):
     # Verify error response
     assert result["success"] is False
     assert "error" in result
-    assert "no_comprendo" in result["error"]
+    assert "capability_not_found" in result["error"]
 
     # Format error response
     context = {"module": "unknown", "action": "do_something"}

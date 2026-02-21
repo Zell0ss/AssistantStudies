@@ -6,6 +6,7 @@ Fires every morning and sends today's agenda to authorized users.
 from apscheduler.schedulers.background import BackgroundScheduler
 from db.connection import get_connection, close_connection
 from modules.calendar import CalendarModule
+from modules.chat import ChatModule
 from loguru import logger
 
 
@@ -46,6 +47,17 @@ def _send_daily_reminder(bot, user_ids: list):
         close_connection()
 
 
+def _cleanup_conversations():
+    """Delete chat history from previous days."""
+    conn = get_connection()
+    try:
+        ChatModule.cleanup_old_conversations(conn)
+    except Exception as e:
+        logger.error(f"Error cleaning up conversations: {e}")
+    finally:
+        close_connection()
+
+
 def start_daily_reminder(bot, config: dict) -> BackgroundScheduler:
     """
     Start the APScheduler background scheduler for daily calendar reminders.
@@ -77,6 +89,15 @@ def start_daily_reminder(bot, config: dict) -> BackgroundScheduler:
         id='daily_calendar_reminder',
         replace_existing=True
     )
+    scheduler.add_job(
+        _cleanup_conversations,
+        trigger='cron',
+        hour=0,
+        minute=5,
+        id='cleanup_conversations',
+        replace_existing=True
+    )
+
     scheduler.start()
     logger.info(f"Daily calendar reminder scheduled at {reminder_time} for {len(user_ids)} user(s)")
     return scheduler

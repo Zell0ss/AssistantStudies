@@ -12,6 +12,7 @@ from modules.notes import NotesModule
 from modules.item_list import ItemListModule
 from modules.calendar import CalendarModule
 from modules.weather import WeatherModule
+from modules.chat import ChatModule
 
 class ModuleRouter:
     """
@@ -187,11 +188,7 @@ class ModuleRouter:
             elif module == 'weather':
                 return self._route_weather(parsed_intent)
             elif module == 'unknown':
-                return {
-                    'success': False,
-                    'result': "No entendí tu mensaje. ¿Podrías reformularlo?",
-                    'error': 'no_comprendo'
-                }
+                return self._route_unknown(parsed_intent)
             else:
                 return {
                     'success': False,
@@ -219,7 +216,7 @@ class ModuleRouter:
         inv = InventoryModule(self.conn, self.user_id, list_name, 'inventory')
 
         if action == 'add':
-            result = inv.add(item, quantity=quantity, unit=unit, threshold=threshold)
+            result = inv.add(item, quantity=quantity or 1, unit=unit or 'unidades', threshold=threshold)
             # Build response with warning if present
             response = {
                 'success': True,
@@ -914,6 +911,35 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
             }
 
         return {'success': False, 'result': f"Acción de calendario desconocida: {action}"}
+
+    def _route_unknown(self, parsed: dict) -> dict:
+        """
+        Handle module=unknown intents.
+
+        - intent_type=conversation → Alfred-style chat response via ChatModule
+        - intent_type=command (or missing) → polite 'no puedo' message
+        """
+        intent_type = parsed.get('intent_type', 'command')
+
+        if intent_type == 'conversation':
+            user_msg = parsed.get('message') or parsed.get('item') or ''
+            chat = ChatModule(self.conn, self.user_id)
+            reply = chat.respond(user_msg) if user_msg else chat.respond("...")
+            return {
+                'success': True,
+                'result': reply,
+                'data': {'type': 'conversation'}
+            }
+
+        # intent_type == 'command' — attempted action we don't support
+        return {
+            'success': False,
+            'result': (
+                "Me temo que esa función no está disponible, señor. "
+                "Para ver qué puedo hacer por usted: «qué sabes hacer?»"
+            ),
+            'error': 'capability_not_found'
+        }
 
     def _route_weather(self, parsed: dict) -> dict:
         """Route weather actions to WeatherModule."""
