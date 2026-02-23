@@ -55,7 +55,6 @@ MOCK_FORECAST = {
         "windspeed_10m_max": [20.0],
         "windgusts_10m_max": [30.0],
         "weathercode": [1],
-        "precipitation_sum": [0.0],
     }
 }
 
@@ -335,7 +334,6 @@ class TestForecastWindData:
                 'windspeed_10m_max': [25.0],
                 'windgusts_10m_max': [45.0],
                 'weathercode': [2],
-                'precipitation_sum': [0.0],
             }
         }
         with patch('modules.weather.UserSettingsModule'):
@@ -440,6 +438,23 @@ class TestMultiDayForecast:
         mock_forecast.return_value = data
         result = self.module.get_forecast(city=None, time_window='week', days=3)
         assert '🌬️' in result['result']
+
+    @patch('modules.weather.WeatherModule._fetch_forecast')
+    def test_forecast_saves_fallback_city_as_default(self, mock_forecast):
+        """get_forecast with a fallback city updates saved location like get_weather does."""
+        self.module._settings.get_weather_location.return_value = {
+            'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
+        }
+        self.module._settings.set_weather_location = MagicMock()
+        mock_forecast.return_value = {
+            'dates': ['2026-02-23', '2026-02-24'],
+            'temp_max': [15.0, 16.0], 'temp_min': [8.0, 9.0],
+            'precip_prob': [30, 20], 'windspeed': [20.0, 18.0],
+            'windgusts': [35.0, 30.0], 'weathercode': [1, 2],
+        }
+        result = self.module.get_forecast(city='Salamanca', time_window='week', days=2)
+        assert result['success'] is True
+        self.module._settings.set_weather_location.assert_called_once()
 
     def test_wmo_icon_sunny(self):
         assert self.module._wmo_icon(0) == '☀️'

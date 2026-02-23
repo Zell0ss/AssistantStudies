@@ -458,7 +458,7 @@ Los tickets (QR, códigos de barras, DataMatrix, Aztec, PDF417) se asocian a eve
 **Consultar pronósticos (múltiples días):**
 ```
 ✅ "el tiempo esta semana"          → Pronóstico de 7 días
-✅ "el tiempo el fin de semana"     → Viernes - domingo
+✅ "el tiempo el fin de semana"     → Sábado y domingo
 ✅ "previsión 5 días"               → Próximos 5 días
 ```
 
@@ -472,8 +472,8 @@ Los tickets (QR, códigos de barras, DataMatrix, Aztec, PDF417) se asocian a eve
 **Avisos automáticos:**
 - **Lluvia:** Si preguntas "necesito paraguas" y hay precipitación > 0.1mm o prob. > 50% → aviso 🌧️
 - **Viento:** Si preguntas "hace viento hoy" se disparan avisos:
-  - 60-74 km/h → ⚠️ Viento moderado
-  - ≥75 km/h → 🌬️ Viento fuerte
+  - 60-74 km/h → 🌬️ Ráfagas moderadas
+  - ≥75 km/h → 🌪️ Viento severo
 
 **Comportamiento:**
 - La primera vez usa **Madrid** como ubicación por defecto

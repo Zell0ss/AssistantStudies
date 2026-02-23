@@ -176,7 +176,7 @@ class WeatherModule:
                 'current': 'temperature_2m,precipitation',
                 'daily': (
                     'temperature_2m_max,temperature_2m_min,sunrise,sunset,'
-                    'precipitation_probability_max,precipitation_sum,'
+                    'precipitation_probability_max,'
                     'windspeed_10m_max,windgusts_10m_max,weathercode'
                 ),
                 'forecast_days': days,
@@ -288,6 +288,9 @@ class WeatherModule:
             if key in _FALLBACK_CITIES:
                 lat, lon, country = _FALLBACK_CITIES[key]
                 display_name = city.title()
+                current = self._settings.get_weather_location()
+                if current['location'].lower() != key:
+                    self._settings.set_weather_location(display_name, lat, lon, country)
             else:
                 geo = self._geocode(city)
                 if not geo:
