@@ -162,16 +162,20 @@ class WeatherModule:
             logger.warning(f"Geocoding failed for '{city}': {e}")
             return None
 
-    def _fetch_forecast(self, lat: float, lon: float) -> dict:
-        """Fetch today's forecast from OpenMeteo. Cached 1h."""
+    def _fetch_forecast(self, lat: float, lon: float, days: int = 1) -> dict:
+        """Fetch forecast from OpenMeteo. days=1 for today only. Cached 1h."""
         resp = _forecast_cache.get(
             'https://api.open-meteo.com/v1/forecast',
             params={
                 'latitude': lat,
                 'longitude': lon,
                 'current': 'temperature_2m,precipitation',
-                'daily': 'temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max',
-                'forecast_days': 1,
+                'daily': (
+                    'temperature_2m_max,temperature_2m_min,sunrise,sunset,'
+                    'precipitation_probability_max,precipitation_sum,'
+                    'windspeed_10m_max,windgusts_10m_max,weathercode'
+                ),
+                'forecast_days': days,
                 'timezone': 'auto',
             }
         )
@@ -179,14 +183,29 @@ class WeatherModule:
         data = resp.json()
         current = data['current']
         daily = data['daily']
+
+        if days == 1:
+            return {
+                'temp': current['temperature_2m'],
+                'precip': current['precipitation'],
+                'temp_max': daily['temperature_2m_max'][0],
+                'temp_min': daily['temperature_2m_min'][0],
+                'sunrise': daily['sunrise'][0][-5:],
+                'sunset': daily['sunset'][0][-5:],
+                'precip_prob': daily['precipitation_probability_max'][0],
+                'windspeed': daily['windspeed_10m_max'][0],
+                'windgusts': daily['windgusts_10m_max'][0],
+                'weathercode': daily['weathercode'][0],
+            }
+        # Multi-day: return full daily arrays
         return {
-            'temp': current['temperature_2m'],
-            'precip': current['precipitation'],
-            'temp_max': daily['temperature_2m_max'][0],
-            'temp_min': daily['temperature_2m_min'][0],
-            'sunrise': daily['sunrise'][0][-5:],
-            'sunset': daily['sunset'][0][-5:],
-            'precip_prob': daily['precipitation_probability_max'][0],
+            'dates': [s[:10] for s in daily['sunrise']],
+            'temp_max': daily['temperature_2m_max'],
+            'temp_min': daily['temperature_2m_min'],
+            'precip_prob': daily['precipitation_probability_max'],
+            'windspeed': daily['windspeed_10m_max'],
+            'windgusts': daily['windgusts_10m_max'],
+            'weathercode': daily['weathercode'],
         }
 
     def _format_response(

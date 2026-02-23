@@ -52,6 +52,10 @@ MOCK_FORECAST = {
         "sunrise": ["2026-02-18T07:45"],
         "sunset":  ["2026-02-18T18:32"],
         "precipitation_probability_max": [20],
+        "windspeed_10m_max": [20.0],
+        "windgusts_10m_max": [30.0],
+        "weathercode": [1],
+        "precipitation_sum": [0.0],
     }
 }
 
@@ -269,3 +273,32 @@ class TestGeocoding:
         self.module._geocode('Test')
         call_kwargs = mock_get.call_args[1]['params']
         assert call_kwargs['count'] == 5
+
+
+class TestForecastWindData:
+    """Forecast dict includes wind data."""
+
+    @patch('modules.weather._forecast_cache')
+    def test_forecast_includes_wind(self, mock_cache):
+        mock_cache.get.return_value.raise_for_status = MagicMock()
+        mock_cache.get.return_value.json.return_value = {
+            'current': {'temperature_2m': 12, 'precipitation': 0},
+            'daily': {
+                'temperature_2m_max': [15], 'temperature_2m_min': [8],
+                'sunrise': ['2026-02-23T07:30'], 'sunset': ['2026-02-23T18:00'],
+                'precipitation_probability_max': [30],
+                'windspeed_10m_max': [25.0],
+                'windgusts_10m_max': [45.0],
+                'weathercode': [2],
+                'precipitation_sum': [0.0],
+            }
+        }
+        with patch('modules.weather.UserSettingsModule'):
+            module = WeatherModule(None, "test_user_wind")
+        result = module._fetch_forecast(40.4, -3.7)
+        assert 'windgusts' in result
+        assert result['windgusts'] == 45.0
+        assert 'windspeed' in result
+        assert result['windspeed'] == 25.0
+        assert 'weathercode' in result
+        assert result['weathercode'] == 2
