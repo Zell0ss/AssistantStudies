@@ -16,7 +16,7 @@ class HaikuParser:
         "module": "inventory | shopping | packing | notes | calendar | weather | unknown",
         "action": "add | set | remove | clear_all | create | list | list_all_lists |
                    check | search | get | forecast | explain | list_categories | move_list |
-                   show_tickets | clear_tickets | unknown",
+                   show_tickets | clear_tickets | update | unknown",
         "intent_type": "command | conversation  (only present when module=unknown)",
         "item": "string (item name)",
         "quantity": "number (optional)",
@@ -33,7 +33,11 @@ class HaikuParser:
         "time_window": "today | tomorrow | week | month | YYYY-MM (calendar list)",
         "query": "search term (calendar search / ticket actions)",
         "days": "number of forecast days (optional, for forecast action)",
-        "city": "city name for weather/forecast, or null to use saved location"
+        "city": "city name for weather/forecast, or null to use saved location",
+        "new_title": "string (for update action: new event name)",
+        "new_date": "YYYY-MM-DD (for update action: new event date)",
+        "new_time": "HH:MM (for update action: new event time)",
+        "new_all_day": "boolean (for update action: new all_day flag)"
     }
     """
 
@@ -87,6 +91,7 @@ Acciones posibles:
 - **search**: buscar evento por nombre o tipo
 - **remove**: borrar un evento o cita
 - **show_tickets**: ver los tickets/entradas guardados de una cita
+- **update**: modificar/cambiar/mover un evento existente del calendario (hora, fecha, nombre)
 
 IMPORTANTE - Distinción shopping vs packing:
 - **shopping**: listas de compra (mercado, supermercado) → "compra", "mercadona", "carrefour", "lidl"
@@ -108,7 +113,7 @@ Ejemplos de nombres de listas por módulo:
 Devuelve SOLO JSON válido con esta estructura:
 {{
   "module": "inventory | shopping | packing | notes | calendar | weather | unknown",
-  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | forecast | explain | list_categories | move_list | unknown",
+  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | forecast | explain | list_categories | move_list | update | unknown",
   "intent_type": "command | conversation (SOLO cuando module es unknown)",
   "item": "nombre del item",
   "quantity": número (opcional),
@@ -126,7 +131,11 @@ Devuelve SOLO JSON válido con esta estructura:
   "time_window": "today | tomorrow | week | month | YYYY-MM (para action: list)",
   "query": "texto de búsqueda (para action: search)",
   "days": número (opcional, número de días de previsión para action: forecast),
-  "city": "nombre de ciudad para weather/forecast, o null para usar ubicación guardada del usuario"
+  "city": "nombre de ciudad para weather/forecast, o null para usar ubicación guardada del usuario",
+  "new_title": "nuevo nombre del evento (para action: update)",
+  "new_date": "YYYY-MM-DD nueva fecha del evento (para action: update)",
+  "new_time": "HH:MM nueva hora del evento en formato 24h (para action: update)",
+  "new_all_day": true/false nuevo valor de todo_el_día (para action: update)
 }}
 
 Ejemplos:
@@ -203,6 +212,11 @@ Ejemplos:
 "muéstrame las entradas del concierto del viernes" → {{"module": "calendar", "action": "show_tickets", "query": "concierto"}}
 "los tickets del dentista" → {{"module": "calendar", "action": "show_tickets", "query": "dentista"}}
 "dame el código del tren" → {{"module": "calendar", "action": "show_tickets", "query": "tren"}}
+"cambia la cita de pilates a las 19:00" → {{"module": "calendar", "action": "update", "title": "pilates", "new_time": "19:00"}}
+"mueve el dentista al viernes" → {{"module": "calendar", "action": "update", "title": "dentista", "new_date": "2026-02-27"}}
+"cambia la reunión de las 10 a las 11" → {{"module": "calendar", "action": "update", "title": "reunión", "new_time": "11:00"}}
+"renombra inglés como clase de inglés" → {{"module": "calendar", "action": "update", "title": "inglés", "new_title": "clase de inglés"}}
+"el dentista del jueves ahora es el viernes a las 9" → {{"module": "calendar", "action": "update", "title": "dentista", "date": "2026-02-26", "new_date": "2026-02-27", "new_time": "09:00"}}
 
 \"cómo funciona el tiempo?\" → {{\"module\": \"weather\", \"action\": \"explain\"}}
 \"explícame el tiempo\" → {{\"module\": \"weather\", \"action\": \"explain\"}}

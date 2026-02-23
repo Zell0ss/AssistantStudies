@@ -146,6 +146,120 @@ class CalendarModule(BaseModule):
         self.commit()
         return cursor.rowcount > 0
 
+    def update_event(
+        self,
+        title: str,
+        event_date: Optional[date] = None,
+        new_title: Optional[str] = None,
+        new_date: Optional[date] = None,
+        new_time: Optional[str] = None,
+        new_all_day: Optional[bool] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update fields of an existing event (or all occurrences of a recurring event).
+
+        Args:
+            title: Existing event title to find (case-insensitive)
+            event_date: Optional date to disambiguate which single event
+            new_title: Rename the event
+            new_date: Change the event date
+            new_time: Change the event time as "HH:MM"
+            new_all_day: Change the all-day flag
+
+        Returns:
+            Dict with status: 'updated' | 'not_found'
+        """
+        if event_date:
+            cursor = self.execute_query(
+                """SELECT id, title, event_date, start_datetime, all_day, recurrence_rule
+                   FROM events
+                   WHERE user_id = %s AND LOWER(title) = LOWER(%s)
+                   AND (DATE(start_datetime) = %s OR event_date = %s)""",
+                (self.user_id, title, event_date, event_date)
+            )
+        else:
+            cursor = self.execute_query(
+                """SELECT id, title, event_date, start_datetime, all_day, recurrence_rule
+                   FROM events WHERE user_id = %s AND LOWER(title) = LOWER(%s)""",
+                (self.user_id, title)
+            )
+
+        rows = cursor.fetchall()
+        if not rows:
+            return {'status': 'not_found', 'message': f"No encontré ningún evento llamado '{title}'"}
+
+        for row in rows:
+            set_parts = ['updated_at = CURRENT_TIMESTAMP']
+            params = []
+
+            if new_title:
+                set_parts.append('title = %s')
+                params.append(new_title)
+
+            is_all_day = new_all_day if new_all_day is not None else bool(row['all_day'])
+
+            if new_all_day is not None:
+                set_parts.append('all_day = %s')
+                params.append(new_all_day)
+
+            if new_date or new_time:
+                if is_all_day:
+                    # All-day: just update event_date, clear start_datetime
+                    target_date = new_date or (
+                        row['start_datetime'].date() if row['start_datetime'] else row['event_date']
+                    )
+                    set_parts.append('event_date = %s')
+                    params.append(target_date)
+                    set_parts.append('start_datetime = NULL')
+                else:
+                    # Timed event: rebuild start_datetime
+                    if new_date:
+                        base_date = new_date
+                    elif row['start_datetime']:
+                        base_date = row['start_datetime'].date()
+                    elif row['event_date']:
+                        base_date = row['event_date']
+                    else:
+                        base_date = date.today()
+
+                    if new_time:
+                        h, m = map(int, new_time.split(':'))
+                        new_event_time = time(h, m)
+                    elif row['start_datetime']:
+                        new_event_time = row['start_datetime'].time()
+                    else:
+                        new_event_time = time(0, 0)
+
+                    set_parts.append('start_datetime = %s')
+                    params.append(datetime.combine(base_date, new_event_time))
+                    set_parts.append('event_date = NULL')
+
+            params.append(row['id'])
+            self.execute_query(
+                f"UPDATE events SET {', '.join(set_parts)} WHERE id = %s",
+                tuple(params)
+            )
+
+        self.commit()
+
+        change_desc = []
+        if new_title:
+            change_desc.append(f"nombre → '{new_title}'")
+        if new_time:
+            change_desc.append(f"hora → {new_time}")
+        if new_date:
+            change_desc.append(f"fecha → {new_date}")
+        if new_all_day is not None:
+            change_desc.append("todo el día" if new_all_day else "con hora")
+
+        display_name = new_title or title
+        changes_str = ', '.join(change_desc) if change_desc else 'sin cambios'
+        logger.info(f"Updated event '{title}' ({changes_str}) for user {self.user_id}")
+        return {
+            'status': 'updated',
+            'message': f"✅ Actualizado '{display_name}': {changes_str}",
+        }
+
     _WEEKDAY_MAP = {
         'MON': MO, 'TUE': TU, 'WED': WE, 'THU': TH,
         'FRI': FR, 'SAT': SA, 'SUN': SU

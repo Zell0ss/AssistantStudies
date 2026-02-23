@@ -910,6 +910,27 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
                 'result': f"🗑️ {count} ticket(s) eliminado(s) de '{event['title']}'."
             }
 
+        if action == 'update':
+            title = intent.get('title', '').strip()
+            if not title:
+                return {'success': False, 'result': "¿Qué evento quieres modificar?"}
+
+            event_date = _parse_date_optional(intent.get('date'))
+            new_date = _parse_date_optional(intent.get('new_date'))
+
+            result = cal.update_event(
+                title=title,
+                event_date=event_date,
+                new_title=intent.get('new_title'),
+                new_date=new_date,
+                new_time=intent.get('new_time'),
+                new_all_day=intent.get('new_all_day'),
+            )
+
+            if result['status'] == 'not_found':
+                return {'success': False, 'result': result['message']}
+            return {'success': True, 'result': result['message'], 'data': result}
+
         return {'success': False, 'result': f"Acción de calendario desconocida: {action}"}
 
     def _route_unknown(self, parsed: dict) -> dict:

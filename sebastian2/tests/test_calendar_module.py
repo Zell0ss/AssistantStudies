@@ -266,3 +266,59 @@ class TestTickets:
         cal.add_ticket(result['event_id'], {'type': 'QR_CODE', 'value': 'test'})
         notes = cal.get_event_notes(result['event_id'])
         assert 'added_at' in notes['tickets'][0]
+
+
+class TestUpdateEvent:
+    def test_update_time_of_timed_event(self, cal):
+        """Change time of a single timed event."""
+        cal.add_event(title="Dentista", event_date=date(2026, 3, 10), event_time="17:00")
+        result = cal.update_event(title="Dentista", new_time="19:00")
+        assert result['status'] == 'updated'
+        # Verify time changed
+        events = cal.search_events("Dentista")
+        assert events[0]['time'] == '19:00'
+
+    def test_update_time_of_recurring_event(self, cal):
+        """Change time of a recurring event — changes all future occurrences."""
+        cal.add_event(
+            title="Pilates",
+            event_date=date(2026, 2, 17),
+            event_time="18:00",
+            recurrence_rule="weekly:TUE"
+        )
+        result = cal.update_event(title="Pilates", new_time="19:00")
+        assert result['status'] == 'updated'
+        events = cal.search_events("Pilates")
+        assert events[0]['time'] == '19:00'
+
+    def test_update_title(self, cal):
+        """Rename an event."""
+        cal.add_event(title="Dentista", event_date=date(2026, 3, 10), event_time="17:00")
+        result = cal.update_event(title="Dentista", new_title="Revisión dental")
+        assert result['status'] == 'updated'
+        events = cal.search_events("Revisión dental")
+        assert len(events) > 0
+        # Old title should be gone
+        old_events = cal.search_events("Dentista")
+        assert len(old_events) == 0
+
+    def test_update_date_of_single_event(self, cal):
+        """Move a single event to a new date."""
+        cal.add_event(title="Reunión", event_date=date(2026, 3, 10), event_time="10:00")
+        result = cal.update_event(title="Reunión", new_date=date(2026, 3, 15))
+        assert result['status'] == 'updated'
+        events = cal.search_events("Reunión")
+        assert events[0]['date'] == date(2026, 3, 15)
+
+    def test_update_nonexistent_event_returns_not_found(self, cal):
+        """Updating a non-existent event returns not_found."""
+        result = cal.update_event(title="NoExiste", new_time="10:00")
+        assert result['status'] == 'not_found'
+
+    def test_update_time_and_title_together(self, cal):
+        """Update both time and title in one call."""
+        cal.add_event(title="Inglés", event_date=date(2026, 3, 10), event_time="18:00")
+        result = cal.update_event(title="Inglés", new_time="19:00", new_title="Clase de inglés")
+        assert result['status'] == 'updated'
+        events = cal.search_events("Clase de inglés")
+        assert events[0]['time'] == '19:00'
