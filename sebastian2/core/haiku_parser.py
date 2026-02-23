@@ -15,7 +15,7 @@ class HaikuParser:
     {
         "module": "inventory | shopping | packing | notes | calendar | weather | unknown",
         "action": "add | set | remove | clear_all | create | list | list_all_lists |
-                   check | search | get | explain | list_categories | move_list |
+                   check | search | get | forecast | explain | list_categories | move_list |
                    show_tickets | clear_tickets | unknown",
         "intent_type": "command | conversation  (only present when module=unknown)",
         "item": "string (item name)",
@@ -32,7 +32,8 @@ class HaikuParser:
         "recurrence_end": "YYYY-MM-DD or null (calendar)",
         "time_window": "today | tomorrow | week | month | YYYY-MM (calendar list)",
         "query": "search term (calendar search / ticket actions)",
-        "city": "city name for weather, or null to use saved location"
+        "days": "number of forecast days (optional, for forecast action)",
+        "city": "city name for weather/forecast, or null to use saved location"
     }
     """
 
@@ -107,7 +108,7 @@ Ejemplos de nombres de listas por módulo:
 Devuelve SOLO JSON válido con esta estructura:
 {{
   "module": "inventory | shopping | packing | notes | calendar | weather | unknown",
-  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | explain | list_categories | move_list | unknown",
+  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | forecast | explain | list_categories | move_list | unknown",
   "intent_type": "command | conversation (SOLO cuando module es unknown)",
   "item": "nombre del item",
   "quantity": número (opcional),
@@ -124,7 +125,8 @@ Devuelve SOLO JSON válido con esta estructura:
   "recurrence_end": "YYYY-MM-DD o null (cuándo termina la recurrencia)",
   "time_window": "today | tomorrow | week | month | YYYY-MM (para action: list)",
   "query": "texto de búsqueda (para action: search)",
-  "city": "nombre de ciudad para weather, o null para usar ubicación guardada del usuario"
+  "days": número (opcional, número de días de previsión para action: forecast),
+  "city": "nombre de ciudad para weather/forecast, o null para usar ubicación guardada del usuario"
 }}
 
 Ejemplos:
@@ -213,6 +215,15 @@ Ejemplos:
 \"hace frío en Madrid?\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": \"Madrid\"}}
 \"qué temperatura hace\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
 \"necesito paraguas hoy\" → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
+\"el tiempo esta semana\"         → {{\"module\": \"weather\", \"action\": \"forecast\", \"time_window\": \"week\", \"city\": null}}
+\"previsión para esta semana\"    → {{\"module\": \"weather\", \"action\": \"forecast\", \"time_window\": \"week\", \"city\": null}}
+\"el tiempo el fin de semana\"    → {{\"module\": \"weather\", \"action\": \"forecast\", \"time_window\": \"weekend\", \"city\": null}}
+\"qué tiempo hace el finde\"      → {{\"module\": \"weather\", \"action\": \"forecast\", \"time_window\": \"weekend\", \"city\": null}}
+\"el tiempo esta semana en Madrid\" → {{\"module\": \"weather\", \"action\": \"forecast\", \"time_window\": \"week\", \"city\": \"Madrid\"}}
+\"previsión 5 días\"              → {{\"module\": \"weather\", \"action\": \"forecast\", \"days\": 5, \"city\": null}}
+\"necesito paraguas\"             → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
+\"hace mucho viento hoy?\"        → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
+\"voy a salir, hay viento?\"      → {{\"module\": \"weather\", \"action\": \"get\", \"city\": null}}
 
 REGLA CRÍTICA para module: "unknown" — añade siempre intent_type:
 - Si el mensaje intenta una ACCIÓN (verbo imperativo + objeto, intención de hacer algo) → intent_type: "command"
