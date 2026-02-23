@@ -32,6 +32,22 @@ _FALLBACK_CITIES = {
     'barcelona': (41.3888,  2.1590, 'ES'),
     'valencia':  (39.4700, -0.3763, 'ES'),
     'bilbao':    (43.2630, -2.9350, 'ES'),
+    'salamanca':       (40.9701, -5.6635, 'ES'),
+    'león':            (42.5987, -5.5671, 'ES'),
+    'leon':            (42.5987, -5.5671, 'ES'),
+    'granada':         (37.1773, -3.5986, 'ES'),
+    'vitoria':         (42.8467, -2.6716, 'ES'),
+    'vitoria-gasteiz': (42.8467, -2.6716, 'ES'),
+    'córdoba':         (37.8882, -4.7794, 'ES'),
+    'cordoba':         (37.8882, -4.7794, 'ES'),
+    'valladolid':      (41.6523, -4.7245, 'ES'),
+    'burgos':          (42.3439, -3.6966, 'ES'),
+    'murcia':          (37.9834, -1.1299, 'ES'),
+    'alicante':        (38.3452, -0.4810, 'ES'),
+    'zaragoza':        (41.6561, -0.8773, 'ES'),
+    'pamplona':        (42.8169, -1.6432, 'ES'),
+    'santander':       (43.4623, -3.8099, 'ES'),
+    'logroño':         (42.4650, -2.4456, 'ES'),
 }
 
 _REFRANES_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'refranes.txt')

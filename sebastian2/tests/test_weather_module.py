@@ -161,3 +161,67 @@ class TestWeatherModule:
         assert '🌡️' in text   # temperature line
         assert '🌧️' in text   # rain/sun line
         assert '🍷' in text   # refran
+
+
+class TestFallbackCities:
+    """Test that ambiguous Spanish cities resolve correctly without geocoding."""
+
+    def setup_method(self):
+        with patch('modules.weather.UserSettingsModule'):
+            self.module = WeatherModule(None, "test_user_fallback")
+
+    def _make_mock_settings(self):
+        mock_settings = MagicMock()
+        mock_settings.get_weather_location.return_value = {
+            'location': '', 'lat': 0.0, 'lon': 0.0, 'country': ''
+        }
+        return mock_settings
+
+    def _make_mock_forecast(self, temp=10):
+        mock_forecast = MagicMock()
+        mock_forecast.return_value = {
+            'temp': temp, 'precip': 0, 'temp_max': temp + 5, 'temp_min': temp - 5,
+            'sunrise': '07:30', 'sunset': '18:00', 'precip_prob': 20,
+            'windgusts': 20, 'windspeed': 15,
+        }
+        return mock_forecast
+
+    def test_salamanca_resolves_to_spain(self):
+        mock_settings = self._make_mock_settings()
+        self.module._settings = mock_settings
+        with patch.object(self.module, '_fetch_forecast', return_value={
+            'temp': 10, 'precip': 0, 'temp_max': 15, 'temp_min': 5,
+            'sunrise': '07:30', 'sunset': '18:00', 'precip_prob': 20,
+            'windgusts': 20, 'windspeed': 15,
+        }):
+            self.module.get_weather('Salamanca')
+        call_args = mock_settings.set_weather_location.call_args
+        _, lat, lon, country = call_args[0]
+        assert country == 'ES', f"Expected ES, got {country}"
+        assert 40.0 < lat < 41.5, f"Lat {lat} outside Salamanca ES range"
+
+    def test_leon_resolves_to_spain(self):
+        mock_settings = self._make_mock_settings()
+        self.module._settings = mock_settings
+        with patch.object(self.module, '_fetch_forecast', return_value={
+            'temp': 8, 'precip': 0, 'temp_max': 12, 'temp_min': 3,
+            'sunrise': '08:00', 'sunset': '18:30', 'precip_prob': 10,
+            'windgusts': 15, 'windspeed': 10,
+        }):
+            self.module.get_weather('León')
+        call_args = mock_settings.set_weather_location.call_args
+        _, lat, lon, country = call_args[0]
+        assert country == 'ES', f"Expected ES, got {country}"
+
+    def test_vitoria_resolves_to_spain(self):
+        mock_settings = self._make_mock_settings()
+        self.module._settings = mock_settings
+        with patch.object(self.module, '_fetch_forecast', return_value={
+            'temp': 9, 'precip': 0, 'temp_max': 13, 'temp_min': 4,
+            'sunrise': '07:45', 'sunset': '18:15', 'precip_prob': 15,
+            'windgusts': 18, 'windspeed': 12,
+        }):
+            self.module.get_weather('Vitoria')
+        call_args = mock_settings.set_weather_location.call_args
+        _, lat, lon, country = call_args[0]
+        assert country == 'ES', f"Expected ES, got {country}"
