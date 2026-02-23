@@ -175,6 +175,7 @@ Cuando actualizas un item y cae por debajo del threshold, recibes un aviso:
 ✅ "busca notas sobre rebe"
 ✅ "busca notas de wifi"
 ✅ "qué notas tengo de juan?"
+→ Respuesta numerada: "1) rebe prefiere... (ID: 5)"
 ```
 
 **Listar todas:**
@@ -182,12 +183,23 @@ Cuando actualizas un item y cae por debajo del threshold, recibes un aviso:
 ✅ "mis notas"
 ✅ "lista de notas"
 ✅ "qué notas tengo?"
+→ Muestra hasta 10 notas numeradas con sus IDs
+```
+
+**Leer nota específica:**
+```
+✅ "lee la nota 5"
+✅ "muéstrame la nota 3"
+✅ "abre la nota 12"
+→ Muestra el contenido completo con tags
 ```
 
 **Características:**
 - Tags automáticos extraídos del contenido
 - Búsqueda por palabras clave
 - Texto libre (cualquier contenido)
+- Listas numeradas con IDs para fácil referencia
+- Lectura individual de notas completas
 
 ---
 
@@ -214,7 +226,10 @@ Cuando actualizas un item y cae por debajo del threshold, recibes un aviso:
 
 ### Solo Notes
 - `search` - Buscar notas por contenido o tags
+- `get` / `read` - Leer una nota específica por ID
+- `list` - Listar todas las notas (con numeración)
 - Tags automáticos del texto
+- Formato numerado: "1) contenido... (ID: X)"
 
 ---
 
@@ -430,13 +445,21 @@ Los tickets (QR, códigos de barras, DataMatrix, Aztec, PDF417) se asocian a eve
 
 ### 7. Tiempo (Weather)
 
-**Consultar el tiempo:**
+**Consultar el tiempo (actual):**
 ```
 ✅ "qué tiempo hace"
 ✅ "va a llover hoy"
 ✅ "cómo está el tiempo"
 ✅ "qué temperatura hace"
-✅ "necesito paraguas hoy"
+✅ "necesito paraguas hoy"          → Aviso si hay lluvia o probabilidad alta
+✅ "hace viento hoy"                → Aviso si velocidad ≥60 km/h (moderado) o ≥75 km/h (fuerte)
+```
+
+**Consultar pronósticos (múltiples días):**
+```
+✅ "el tiempo esta semana"          → Pronóstico de 7 días
+✅ "el tiempo el fin de semana"     → Viernes - domingo
+✅ "previsión 5 días"               → Próximos 5 días
 ```
 
 **Consultar con ciudad (actualiza tu ubicación por defecto):**
@@ -446,19 +469,35 @@ Los tickets (QR, códigos de barras, DataMatrix, Aztec, PDF417) se asocian a eve
 ✅ "hace frío en Madrid?"       → usa Madrid y la guarda como tu ciudad
 ```
 
+**Avisos automáticos:**
+- **Lluvia:** Si preguntas "necesito paraguas" y hay precipitación > 0.1mm o prob. > 50% → aviso 🌧️
+- **Viento:** Si preguntas "hace viento hoy" se disparan avisos:
+  - 60-74 km/h → ⚠️ Viento moderado
+  - ≥75 km/h → 🌬️ Viento fuerte
+
 **Comportamiento:**
 - La primera vez usa **Madrid** como ubicación por defecto
 - Cada vez que preguntas por una ciudad concreta, la guarda como tu nueva ubicación
 - La próxima vez que preguntas sin ciudad → usa la que guardaste
-- Ciudades predefinidas (sin geocoding): Madrid, Gijón, Oviedo, Magán, Toledo, Sevilla, Barcelona, Valencia, Bilbao
+- **Ciudades predefinidas (sin geocoding):** Madrid, Gijón, Oviedo, Magán, Toledo, Sevilla, Barcelona, Valencia, Bilbao, Salamanca, León, Granada, Vitoria, Córdoba, Valladolid, Burgos, Murcia, Alicante, Zaragoza, Pamplona, Santander, Logroño
 - Cualquier otra ciudad → geocoding automático via OpenMeteo (gratuito)
 
-**Formato de respuesta:**
+**Formato de respuesta (actual):**
 ```
 📍 Madrid, ES
 🌡️ Ahora: 8°C  |  Hoy: 5° – 14°C
 🌧️ Lluvia: 20%  |  🌅 07:45 – 🌇 18:30
 🍷 "refrán meteorológico"
+```
+
+**Formato de respuesta (pronóstico):**
+```
+📍 Madrid, ES — Pronóstico 7 días
+
+Lunes, 24 feb:    5° – 14°C  🌧️ 40%  💨 25 km/h
+Martes, 25 feb:   6° – 15°C  ☀️ 10%  💨 20 km/h
+Miércoles, 26 feb: 4° – 12°C  🌧️ 60%  💨 35 km/h
+...
 ```
 
 ---
