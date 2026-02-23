@@ -275,6 +275,51 @@ class TestGeocoding:
         assert call_kwargs['count'] == 5
 
 
+class TestUmbrellaAdvice:
+    """_build_advice returns appropriate warnings."""
+
+    def setup_method(self):
+        with patch('modules.weather.UserSettingsModule'):
+            self.module = WeatherModule(None, "test_user_advice")
+
+    def test_umbrella_warning_when_rain_likely(self):
+        forecast = {'precip_prob': 65, 'windgusts': 20}
+        advice = self.module._build_advice(forecast)
+        assert '☂️' in advice
+
+    def test_no_umbrella_when_dry(self):
+        forecast = {'precip_prob': 30, 'windgusts': 20}
+        advice = self.module._build_advice(forecast)
+        assert '☂️' not in advice
+
+    def test_wind_warning_when_gale(self):
+        forecast = {'precip_prob': 10, 'windgusts': 65}
+        advice = self.module._build_advice(forecast)
+        assert '🌬️' in advice
+
+    def test_severe_wind_warning(self):
+        forecast = {'precip_prob': 10, 'windgusts': 80}
+        advice = self.module._build_advice(forecast)
+        assert '🌪️' in advice
+
+    def test_no_wind_warning_when_calm(self):
+        forecast = {'precip_prob': 10, 'windgusts': 40}
+        advice = self.module._build_advice(forecast)
+        assert '🌬️' not in advice
+        assert '🌪️' not in advice
+
+    def test_both_warnings_combined(self):
+        forecast = {'precip_prob': 70, 'windgusts': 75}
+        advice = self.module._build_advice(forecast)
+        assert '☂️' in advice
+        assert '🌪️' in advice
+
+    def test_empty_advice_when_fine(self):
+        forecast = {'precip_prob': 20, 'windgusts': 25}
+        advice = self.module._build_advice(forecast)
+        assert advice == ''
+
+
 class TestForecastWindData:
     """Forecast dict includes wind data."""
 

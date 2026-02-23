@@ -67,6 +67,10 @@ _REFRANES = _load_refranes()
 class WeatherModule:
     """Fetches weather for the user's saved location or an explicit city."""
 
+    _RAIN_THRESHOLD = 50      # precip_prob % to warn about rain
+    _WIND_WARN_KMH = 60       # windgusts km/h → moderate wind warning
+    _WIND_SEVERE_KMH = 75     # windgusts km/h → severe wind warning
+
     def __init__(self, conn, user_id: str):
         self.conn = conn
         self.user_id = user_id
@@ -208,6 +212,22 @@ class WeatherModule:
             'weathercode': daily['weathercode'],
         }
 
+    def _build_advice(self, forecast: dict) -> str:
+        """Build umbrella/wind advice string. Returns '' if nothing to warn about."""
+        lines = []
+        precip_prob = forecast.get('precip_prob', 0) or 0
+        windgusts = forecast.get('windgusts', 0) or 0
+
+        if precip_prob >= self._RAIN_THRESHOLD:
+            lines.append("☂️ Lleve paraguas, señor. Probabilidad alta de lluvia.")
+
+        if windgusts >= self._WIND_SEVERE_KMH:
+            lines.append(f"🌪️ Viento severo ({windgusts:.0f} km/h) — evite salir si puede.")
+        elif windgusts >= self._WIND_WARN_KMH:
+            lines.append(f"🌬️ Ráfagas de {windgusts:.0f} km/h — tome precauciones.")
+
+        return '\n'.join(lines)
+
     def _format_response(
         self, location: str, country: str, forecast: dict, location_updated: bool
     ) -> str:
@@ -218,5 +238,8 @@ class WeatherModule:
         lines.append(f"📍 {location}, {country}")
         lines.append(f"🌡️ Ahora: {forecast['temp']}°C  |  Hoy: {forecast['temp_min']}° – {forecast['temp_max']}°C")
         lines.append(f"🌧️ Lluvia: {forecast['precip_prob']}%  |  🌅 {forecast['sunrise']} – 🌇 {forecast['sunset']}")
+        advice = self._build_advice(forecast)
+        if advice:
+            lines.append(advice)
         lines.append(f'🍷 "{refran}"')
         return '\n'.join(lines)
