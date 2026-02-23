@@ -131,12 +131,19 @@ class WeatherModule:
         """Return user's saved weather location."""
         return self._settings.get_weather_location()
 
+    def _prefer_spanish_result(self, results: list) -> dict:
+        """Given a list of geocoding results, prefer country_code=ES if present."""
+        for r in results:
+            if r.get('country_code') == 'ES':
+                return r
+        return results[0]
+
     def _geocode(self, city: str) -> Optional[dict]:
-        """Call OpenMeteo geocoding API. Returns dict or None if not found."""
+        """Call OpenMeteo geocoding API. Fetches top 5 and prefers ES results."""
         try:
             resp = requests.get(
                 'https://geocoding-api.open-meteo.com/v1/search',
-                params={'name': city, 'count': 1, 'language': 'es', 'format': 'json'},
+                params={'name': city, 'count': 5, 'language': 'es', 'format': 'json'},
                 timeout=5
             )
             resp.raise_for_status()
@@ -144,7 +151,7 @@ class WeatherModule:
             results = data.get('results', [])
             if not results:
                 return None
-            r = results[0]
+            r = self._prefer_spanish_result(results)
             return {
                 'name': r['name'],
                 'lat': r['latitude'],

@@ -225,3 +225,47 @@ class TestFallbackCities:
         call_args = mock_settings.set_weather_location.call_args
         _, lat, lon, country = call_args[0]
         assert country == 'ES', f"Expected ES, got {country}"
+
+
+class TestGeocoding:
+    """Test geocoding prefers Spanish results when available."""
+
+    def setup_method(self):
+        with patch('modules.weather.UserSettingsModule'):
+            self.module = WeatherModule(None, "test_user_geo")
+
+    @patch('modules.weather.requests.get')
+    def test_prefers_spanish_result_over_latin_american(self, mock_get):
+        # Simulate OpenMeteo returning Mexico first, then Spain
+        mock_get.return_value.raise_for_status = MagicMock()
+        mock_get.return_value.json.return_value = {
+            'results': [
+                {'name': 'Salamanca', 'latitude': 22.0, 'longitude': -101.0, 'country_code': 'MX'},
+                {'name': 'Salamanca', 'latitude': 40.97, 'longitude': -5.66, 'country_code': 'ES'},
+            ]
+        }
+        result = self.module._geocode('Salamanca')
+        assert result['country'] == 'ES'
+        assert abs(result['lat'] - 40.97) < 0.1
+
+    @patch('modules.weather.requests.get')
+    def test_falls_back_to_first_when_no_es(self, mock_get):
+        # No Spanish result — return first (existing behavior)
+        mock_get.return_value.raise_for_status = MagicMock()
+        mock_get.return_value.json.return_value = {
+            'results': [
+                {'name': 'Miami', 'latitude': 25.77, 'longitude': -80.19, 'country_code': 'US'},
+                {'name': 'Miami', 'latitude': 26.0, 'longitude': -80.5, 'country_code': 'US'},
+            ]
+        }
+        result = self.module._geocode('Miami')
+        assert result['country'] == 'US'
+        assert abs(result['lat'] - 25.77) < 0.1
+
+    @patch('modules.weather.requests.get')
+    def test_geocode_requests_count_5(self, mock_get):
+        mock_get.return_value.raise_for_status = MagicMock()
+        mock_get.return_value.json.return_value = {'results': []}
+        self.module._geocode('Test')
+        call_kwargs = mock_get.call_args[1]['params']
+        assert call_kwargs['count'] == 5
