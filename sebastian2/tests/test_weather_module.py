@@ -349,6 +349,36 @@ class TestForecastWindData:
         assert result['weathercode'] == 2
 
 
+class TestWeatherRouter:
+    """Router dispatches weather actions correctly."""
+
+    def setup_method(self):
+        from db.connection import get_connection
+        self.conn = get_connection()
+
+    def teardown_method(self):
+        from db.connection import close_connection
+        close_connection()
+
+    @patch('modules.weather.WeatherModule.get_forecast')
+    def test_router_dispatches_forecast_week(self, mock_get_forecast):
+        from core.router import ModuleRouter
+        mock_get_forecast.return_value = {'success': True, 'result': 'preview', 'data': {}}
+        router = ModuleRouter("test_user_router")
+        result = router._route_weather({'action': 'forecast', 'time_window': 'week', 'city': None})
+        mock_get_forecast.assert_called_once()
+        assert result['success'] is True
+
+    @patch('modules.weather.WeatherModule.get_forecast')
+    def test_router_dispatches_forecast_weekend(self, mock_get_forecast):
+        from core.router import ModuleRouter
+        mock_get_forecast.return_value = {'success': True, 'result': 'preview', 'data': {}}
+        router = ModuleRouter("test_user_router")
+        result = router._route_weather({'action': 'forecast', 'time_window': 'weekend', 'city': None})
+        mock_get_forecast.assert_called_once_with(city=None, time_window='weekend', days=None)
+        assert result['success'] is True
+
+
 class TestMultiDayForecast:
     """get_forecast returns formatted multi-day forecast."""
 

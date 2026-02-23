@@ -948,6 +948,10 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
         weather = WeatherModule(self.conn, self.user_id)
         if action == 'get':
             return weather.get_weather(city)
+        if action == 'forecast':
+            time_window = parsed.get('time_window', 'week')
+            days = parsed.get('days')
+            return weather.get_forecast(city=city, time_window=time_window, days=days)
         return {'success': False, 'result': f"Acción de tiempo desconocida: {action}"}
 
     def cleanup(self):
