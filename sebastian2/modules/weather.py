@@ -228,6 +228,108 @@ class WeatherModule:
 
         return '\n'.join(lines)
 
+    def _wmo_icon(self, code: int) -> str:
+        """WMO weathercode → emoji icon."""
+        if code == 0:
+            return '☀️'
+        if code <= 3:
+            return '🌤️' if code == 1 else ('⛅' if code == 2 else '🌥️')
+        if code <= 48:
+            return '🌫️'
+        if code <= 67:
+            return '🌧️'
+        if code <= 77:
+            return '🌨️'
+        if code <= 82:
+            return '🌦️'
+        return '⛈️'
+
+    def _format_forecast(self, location: str, country: str, data: dict, label: str) -> str:
+        """Format multi-day forecast data into readable text."""
+        from datetime import date as _date
+        weekdays_es = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+        months_es = ['ene', 'feb', 'mar', 'abr', 'may', 'jun',
+                     'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+        lines = [f"📍 {location}, {country} — {label}\n"]
+        for i, date_str in enumerate(data['dates']):
+            d = _date.fromisoformat(date_str)
+            wd = weekdays_es[d.weekday()]
+            mo = months_es[d.month - 1]
+            icon = self._wmo_icon(data['weathercode'][i])
+            tmin = data['temp_min'][i]
+            tmax = data['temp_max'][i]
+            rain = data['precip_prob'][i]
+            gusts = data['windgusts'][i]
+
+            line = f"{wd} {d.day} {mo}  {icon} {tmin:.0f}°–{tmax:.0f}°  💧{rain}%"
+            if gusts >= self._WIND_SEVERE_KMH:
+                line += f"  🌪️{gusts:.0f} km/h ⚠️"
+            elif gusts >= self._WIND_WARN_KMH:
+                line += f"  🌬️{gusts:.0f} km/h"
+            lines.append(line)
+
+        refran = random.choice(_REFRANES)
+        lines.append(f'\n🍷 "{refran}"')
+        return '\n'.join(lines)
+
+    def get_forecast(self, city: Optional[str], time_window: str = 'week', days: int = None) -> dict:
+        """
+        Get multi-day forecast.
+
+        time_window: 'week' (7 days), 'weekend' (next Sat+Sun), or ignored if days given.
+        days: explicit number of days to fetch (overrides time_window for fetch).
+        """
+        from datetime import date as _date, timedelta
+
+        # Resolve location
+        if city:
+            key = city.lower().strip()
+            if key in _FALLBACK_CITIES:
+                lat, lon, country = _FALLBACK_CITIES[key]
+                display_name = city.title()
+            else:
+                geo = self._geocode(city)
+                if not geo:
+                    return {
+                        'success': False,
+                        'result': f"No encontré la ciudad '{city}'.",
+                        'data': {}
+                    }
+                display_name, lat, lon, country = geo['name'], geo['lat'], geo['lon'], geo['country']
+                self._settings.set_weather_location(display_name, lat, lon, country)
+        else:
+            saved = self._settings.get_weather_location()
+            display_name, lat, lon, country = saved['location'], saved['lat'], saved['lon'], saved['country']
+
+        # Determine how many days to fetch
+        fetch_days = days or 7
+
+        try:
+            data = self._fetch_forecast(lat, lon, days=fetch_days)
+        except Exception as e:
+            logger.error(f"Forecast fetch failed: {e}")
+            return {'success': False, 'result': "No pude obtener la previsión ahora mismo.", 'data': {}}
+
+        # Filter for weekend if requested
+        if time_window == 'weekend' and not days:
+            today = _date.today()
+            weekend_dates = set()
+            for i in range(7):
+                d = today + timedelta(days=i)
+                if d.weekday() in (5, 6):  # Sat=5, Sun=6
+                    weekend_dates.add(d.isoformat())
+            indices = [i for i, d in enumerate(data['dates']) if d in weekend_dates]
+            if not indices:
+                return {'success': False, 'result': "No encontré el fin de semana en la previsión.", 'data': {}}
+            data = {k: [v[i] for i in indices] if isinstance(v, list) else v for k, v in data.items()}
+
+        labels = {'week': 'Previsión semanal', 'weekend': 'Fin de semana'}
+        label = labels.get(time_window, f'Próximos {fetch_days} días')
+
+        result_text = self._format_forecast(display_name, country, data, label)
+        return {'success': True, 'result': result_text, 'data': data}
+
     def _format_response(
         self, location: str, country: str, forecast: dict, location_updated: bool
     ) -> str:

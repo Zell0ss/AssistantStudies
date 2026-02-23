@@ -347,3 +347,78 @@ class TestForecastWindData:
         assert result['windspeed'] == 25.0
         assert 'weathercode' in result
         assert result['weathercode'] == 2
+
+
+class TestMultiDayForecast:
+    """get_forecast returns formatted multi-day forecast."""
+
+    def setup_method(self):
+        patcher = patch('modules.weather.UserSettingsModule')
+        self._patcher = patcher
+        patcher.start()
+        self.module = WeatherModule(None, "test_user_forecast")
+
+    def teardown_method(self):
+        self._patcher.stop()
+
+    def _make_daily(self, n=7):
+        """Helper: make mock daily data for N days starting 2026-02-23."""
+        from datetime import date, timedelta
+        base = date(2026, 2, 23)
+        dates = [(base + timedelta(days=i)).isoformat() for i in range(n)]
+        return {
+            'dates': dates,
+            'temp_max': [15.0] * n,
+            'temp_min': [8.0] * n,
+            'precip_prob': [30] * n,
+            'windspeed': [20.0] * n,
+            'windgusts': [35.0] * n,
+            'weathercode': [1] * n,
+        }
+
+    @patch('modules.weather.WeatherModule._fetch_forecast')
+    def test_week_forecast_returns_7_days(self, mock_forecast):
+        self.module._settings.get_weather_location.return_value = {
+            'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
+        }
+        mock_forecast.return_value = self._make_daily(7)
+        result = self.module.get_forecast(city=None, time_window='week')
+        assert result['success'] is True
+        lines = result['result'].split('\n')
+        day_lines = [l for l in lines if '°' in l]
+        assert len(day_lines) == 7
+
+    @patch('modules.weather.WeatherModule._fetch_forecast')
+    def test_weekend_forecast_returns_2_days(self, mock_forecast):
+        self.module._settings.get_weather_location.return_value = {
+            'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
+        }
+        mock_forecast.return_value = self._make_daily(7)
+        result = self.module.get_forecast(city=None, time_window='weekend')
+        assert result['success'] is True
+        lines = result['result'].split('\n')
+        day_lines = [l for l in lines if '°' in l]
+        assert len(day_lines) == 2
+
+    @patch('modules.weather.WeatherModule._fetch_forecast')
+    def test_forecast_includes_wind_warning_line(self, mock_forecast):
+        self.module._settings.get_weather_location.return_value = {
+            'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
+        }
+        data = self._make_daily(3)
+        data['windgusts'] = [70.0, 30.0, 30.0]
+        mock_forecast.return_value = data
+        result = self.module.get_forecast(city=None, time_window='week', days=3)
+        assert '🌬️' in result['result']
+
+    def test_wmo_icon_sunny(self):
+        assert self.module._wmo_icon(0) == '☀️'
+
+    def test_wmo_icon_rain(self):
+        assert self.module._wmo_icon(61) == '🌧️'
+
+    def test_wmo_icon_snow(self):
+        assert self.module._wmo_icon(71) == '🌨️'
+
+    def test_wmo_icon_storm(self):
+        assert self.module._wmo_icon(95) == '⛈️'
