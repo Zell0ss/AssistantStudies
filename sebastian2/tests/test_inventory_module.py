@@ -49,6 +49,14 @@ def test_set_inventory_updates_quantity(inventory_module):
     item = inventory_module.get("aguacates")
     assert item['quantity'] == 2
 
+def test_set_quantity_creates_item_if_not_exists(inventory_module):
+    """set_quantity on a new item should create it (upsert), not fail"""
+    result = inventory_module.set_quantity("leche", 13)
+    assert result.get('status') in ('added', 'updated'), f"Expected added/updated, got: {result}"
+    item = inventory_module.get("leche")
+    assert item is not None
+    assert item['quantity'] == 13
+
 def test_get_nonexistent_item_returns_none(inventory_module):
     """Test getting item that doesn't exist"""
     item = inventory_module.get("nonexistent")

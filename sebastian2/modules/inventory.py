@@ -173,11 +173,7 @@ class InventoryModule(ItemListModule):
         """
         item = self.get(item_name)
         if not item:
-            return {
-                'status': 'error',
-                'message': f'Item {item_name} no existe',
-                'warning': False
-            }
+            return self.add(item_name, quantity)
 
         if quantity <= 0:
             # Remove item if quantity set to zero or below
