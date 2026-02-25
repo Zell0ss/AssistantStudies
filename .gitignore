@@ -15,6 +15,7 @@ logs/*.zip
 .env
 credentials.json
 token.json
+.claude/
 
 # Database backups
 *_backup_*.sql
