@@ -467,3 +467,63 @@ class TestMultiDayForecast:
 
     def test_wmo_icon_storm(self):
         assert self.module._wmo_icon(95) == '⛈️'
+
+
+class TestTomorrowForecast:
+    """get_forecast with days=1 (Haiku sets days:1 for 'mañana') must not crash."""
+
+    def setup_method(self):
+        patcher = patch('modules.weather.UserSettingsModule')
+        self._patcher = patcher
+        patcher.start()
+        self.module = WeatherModule(None, "test_user_tomorrow")
+
+    def teardown_method(self):
+        self._patcher.stop()
+
+    def _make_daily(self, n):
+        from datetime import date, timedelta
+        base = date.today() + timedelta(days=1)
+        dates = [(base + timedelta(days=i)).isoformat() for i in range(n)]
+        return {
+            'dates': dates,
+            'temp_max': [14.0] * n,
+            'temp_min': [7.0] * n,
+            'precip_prob': [20] * n,
+            'windspeed': [15.0] * n,
+            'windgusts': [25.0] * n,
+            'weathercode': [2] * n,
+        }
+
+    @patch('modules.weather.WeatherModule._fetch_forecast')
+    def test_tomorrow_forecast_does_not_crash(self, mock_forecast):
+        """get_forecast(time_window='tomorrow', days=1) must return success, not KeyError."""
+        self.module._settings.get_weather_location.return_value = {
+            'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
+        }
+        mock_forecast.return_value = self._make_daily(2)
+        result = self.module.get_forecast(city=None, time_window='tomorrow', days=1)
+        assert result['success'] is True
+
+    @patch('modules.weather.WeatherModule._fetch_forecast')
+    def test_tomorrow_forecast_fetches_at_least_2_days(self, mock_forecast):
+        """_fetch_forecast must be called with days>=2 to get multi-day format."""
+        self.module._settings.get_weather_location.return_value = {
+            'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
+        }
+        mock_forecast.return_value = self._make_daily(2)
+        self.module.get_forecast(city=None, time_window='tomorrow', days=1)
+        called_days = mock_forecast.call_args[1]['days']
+        assert called_days >= 2
+
+    @patch('modules.weather.WeatherModule._fetch_forecast')
+    def test_tomorrow_forecast_shows_one_day(self, mock_forecast):
+        """time_window='tomorrow' result contains exactly 1 day line."""
+        self.module._settings.get_weather_location.return_value = {
+            'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
+        }
+        mock_forecast.return_value = self._make_daily(2)
+        result = self.module.get_forecast(city=None, time_window='tomorrow', days=1)
+        lines = result['result'].split('\n')
+        day_lines = [l for l in lines if '°' in l]
+        assert len(day_lines) == 1

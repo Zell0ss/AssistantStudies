@@ -305,8 +305,10 @@ class WeatherModule:
             saved = self._settings.get_weather_location()
             display_name, lat, lon, country = saved['location'], saved['lat'], saved['lon'], saved['country']
 
-        # Determine how many days to fetch
-        fetch_days = days or 7
+        # Determine how many days to fetch.
+        # Always fetch at least 2 so _fetch_forecast returns the multi-day format
+        # (days==1 triggers single-day format which lacks the 'dates' key).
+        fetch_days = max(days, 2) if days else 7
 
         try:
             data = self._fetch_forecast(lat, lon, days=fetch_days)
@@ -314,8 +316,12 @@ class WeatherModule:
             logger.error(f"Forecast fetch failed: {e}")
             return {'success': False, 'result': "No pude obtener la previsión ahora mismo.", 'data': {}}
 
+        # Filter for tomorrow if requested (keep only index 1)
+        if time_window == 'tomorrow':
+            data = {k: [v[1]] if isinstance(v, list) else v for k, v in data.items()}
+
         # Filter for weekend if requested
-        if time_window == 'weekend' and not days:
+        elif time_window == 'weekend' and not days:
             today = _date.today()
             weekend_dates = set()
             for i in range(7):
@@ -327,7 +333,7 @@ class WeatherModule:
                 return {'success': False, 'result': "No encontré el fin de semana en la previsión.", 'data': {}}
             data = {k: [v[i] for i in indices] if isinstance(v, list) else v for k, v in data.items()}
 
-        labels = {'week': 'Previsión semanal', 'weekend': 'Fin de semana'}
+        labels = {'week': 'Previsión semanal', 'weekend': 'Fin de semana', 'tomorrow': 'Mañana'}
         label = labels.get(time_window, f'Próximos {fetch_days} días')
 
         result_text = self._format_forecast(display_name, country, data, label)
