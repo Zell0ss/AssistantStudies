@@ -324,6 +324,33 @@ class TestUpdateEvent:
         assert events[0]['time'] == '19:00'
 
 
+class TestNoteVisibleInSearch:
+    def test_search_events_includes_note_field(self, cal):
+        """search_events() result includes 'note' from the notes JSON when present."""
+        result = cal.add_event(title="Pilates", event_date=date(2026, 3, 10), event_time="19:00")
+        cal.add_note(result['event_id'], "llevar dinero")
+        events = cal.search_events("Pilates")
+        assert len(events) == 1
+        assert events[0].get('note') == 'llevar dinero'
+
+    def test_search_events_note_is_none_when_not_set(self, cal):
+        """search_events() result has note=None when event has no note."""
+        cal.add_event(title="Yoga", event_date=date(2026, 3, 10), event_time="08:00")
+        events = cal.search_events("Yoga")
+        assert events[0].get('note') is None
+
+    def test_list_events_includes_note(self, cal):
+        """list_events() result includes 'note' when present."""
+        from datetime import timedelta
+        tomorrow = date.today() + timedelta(days=1)
+        result = cal.add_event(title="Médico", event_date=tomorrow, event_time="10:00")
+        cal.add_note(result['event_id'], "llevar informe")
+        events = cal.list_events('tomorrow')
+        médico = next((e for e in events if e['title'] == 'Médico'), None)
+        assert médico is not None
+        assert médico.get('note') == 'llevar informe'
+
+
 class TestAddNote:
     def test_add_note_to_event(self, cal):
         """add_note() stores note text in notes JSON."""

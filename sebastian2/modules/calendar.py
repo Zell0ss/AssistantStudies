@@ -320,6 +320,11 @@ class CalendarModule(BaseModule):
             event_date = row['event_date']
             event_time = None
 
+        notes_raw = row.get('notes')
+        if isinstance(notes_raw, str):
+            notes_raw = json.loads(notes_raw)
+        note = notes_raw.get('note') if isinstance(notes_raw, dict) else None
+
         return {
             'event_id': row['id'],
             'title': row['title'],
@@ -327,6 +332,7 @@ class CalendarModule(BaseModule):
             'time': event_time,
             'all_day': bool(row['all_day']),
             'recurring': recurring,
+            'note': note,
         }
 
     def list_events(self, time_window: str) -> List[Dict[str, Any]]:
@@ -346,7 +352,7 @@ class CalendarModule(BaseModule):
 
         query = """
             SELECT id, title, event_date, start_datetime, end_datetime,
-                   all_day, recurrence_rule, recurrence_end
+                   all_day, recurrence_rule, recurrence_end, notes
             FROM events
             WHERE user_id = %s
             AND (
@@ -561,7 +567,7 @@ class CalendarModule(BaseModule):
         cursor = self.execute_query(
             """
             SELECT id, title, event_date, start_datetime, end_datetime,
-                   all_day, recurrence_rule, recurrence_end
+                   all_day, recurrence_rule, recurrence_end, notes
             FROM events
             WHERE user_id = %s AND LOWER(title) LIKE LOWER(%s)
             ORDER BY start_datetime, event_date

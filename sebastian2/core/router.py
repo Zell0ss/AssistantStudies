@@ -1101,6 +1101,8 @@ def _format_events_list(events: list, time_window: str = '', label: str = '') ->
             lines.append(f"• (todo el día) — {e['title']}{recurring_icon}")
         else:
             lines.append(f"• {e['time']} — {e['title']}{recurring_icon}")
+        if e.get('note'):
+            lines.append(f"  📝 {e['note']}")
 
     return '\n'.join(lines)
 
