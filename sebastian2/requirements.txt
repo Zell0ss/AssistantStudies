@@ -3,7 +3,7 @@ pyTelegramBotAPI==4.14.0
 telegram-markdown-entities==0.1.1
 
 # Database
-PyMySQL==1.1.0
+PyMySQL==1.1.1
 dbutils==3.0.3
 
 # LLM
