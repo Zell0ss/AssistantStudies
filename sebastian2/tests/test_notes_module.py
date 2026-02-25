@@ -88,3 +88,53 @@ def test_archived_notes_excluded_by_default(notes_module):
     # Search should not find archived note
     results = notes_module.search("archivar")
     assert len(results) == 0
+
+
+class TestAddTagReturnValue:
+    def test_add_tag_returns_status_dict(self, notes_module):
+        """add_tag() should return a status dict with tags list."""
+        note_id = notes_module.create("Nota de prueba")
+        result = notes_module.add_tag(note_id, "scroogebot")
+        assert isinstance(result, dict)
+        assert result['status'] in ('added', 'already_present')
+        assert 'tags' in result
+
+    def test_add_tag_note_not_found_returns_not_found(self, notes_module):
+        """add_tag() on a missing note should return {'status': 'not_found'}."""
+        result = notes_module.add_tag(99999999, "scroogebot")
+        assert isinstance(result, dict)
+        assert result['status'] == 'not_found'
+
+    def test_add_tag_already_present_returns_already_present(self, notes_module):
+        """add_tag() with an existing tag should return 'already_present'."""
+        note_id = notes_module.create("Nota doble", tags=["scroogebot"])
+        result = notes_module.add_tag(note_id, "scroogebot")
+        assert result['status'] == 'already_present'
+
+
+class TestRemoveTag:
+    def test_remove_tag_from_existing_note(self, notes_module):
+        """remove_tag() removes a tag that was present."""
+        note_id = notes_module.create("Nota con tags", tags=["rebe", "scroogebot"])
+        result = notes_module.remove_tag(note_id, "scroogebot")
+        assert result['status'] == 'removed'
+        note = notes_module.get(note_id)
+        tags = json.loads(note['tags']) if isinstance(note['tags'], str) else note['tags']
+        assert "scroogebot" not in tags
+        assert "rebe" in tags
+
+    def test_remove_tag_note_not_found_returns_not_found(self, notes_module):
+        """remove_tag() on a missing note should return {'status': 'not_found'}."""
+        result = notes_module.remove_tag(99999999, "scroogebot")
+        assert isinstance(result, dict)
+        assert result['status'] == 'not_found'
+
+    def test_remove_tag_not_present_is_noop(self, notes_module):
+        """remove_tag() when tag is not present should return 'not_present' status."""
+        note_id = notes_module.create("Nota sin ese tag", tags=["rebe"])
+        result = notes_module.remove_tag(note_id, "scroogebot")
+        assert result['status'] == 'not_present'
+        # Tags list unchanged
+        note = notes_module.get(note_id)
+        tags = json.loads(note['tags']) if isinstance(note['tags'], str) else note['tags']
+        assert "rebe" in tags

@@ -37,7 +37,9 @@ class HaikuParser:
         "new_title": "string (for update action: new event name)",
         "new_date": "YYYY-MM-DD (for update action: new event date)",
         "new_time": "HH:MM (for update action: new event time)",
-        "new_all_day": "boolean (for update action: new all_day flag)"
+        "new_all_day": "boolean (for update action: new all_day flag)",
+        "add_tags": "array of strings (for notes update: tags to add)",
+        "remove_tags": "array of strings (for notes update: tags to remove)"
     }
     """
 
@@ -135,7 +137,9 @@ Devuelve SOLO JSON válido con esta estructura:
   "new_title": "nuevo nombre del evento (para action: update)",
   "new_date": "YYYY-MM-DD nueva fecha del evento (para action: update)",
   "new_time": "HH:MM nueva hora del evento en formato 24h (para action: update)",
-  "new_all_day": true/false nuevo valor de todo_el_día (para action: update)
+  "new_all_day": true/false nuevo valor de todo_el_día (para action: update),
+  "add_tags": ["tag1", "tag2"] (para notes action: update — tags a añadir),
+  "remove_tags": ["tag1"] (para notes action: update — tags a eliminar)
 }}
 
 Ejemplos:
@@ -168,6 +172,10 @@ Ejemplos:
 "muéstrame la nota 3" → {{"module": "notes", "action": "read", "note_id": 3}}
 "borra la nota 299" → {{"module": "notes", "action": "delete", "note_id": 299}}
 "elimina nota 12" → {{"module": "notes", "action": "delete", "note_id": 12}}
+"pon tag a nota 728: scroogebot" → {{"module": "notes", "action": "update", "note_id": 728, "add_tags": ["scroogebot"]}}
+"añade tag rebe a la nota 5" → {{"module": "notes", "action": "update", "note_id": 5, "add_tags": ["rebe"]}}
+"quita el tag bug de la nota 12" → {{"module": "notes", "action": "update", "note_id": 12, "remove_tags": ["bug"]}}
+"elimina tag personal de nota 3" → {{"module": "notes", "action": "update", "note_id": 3, "remove_tags": ["personal"]}}
 
 "cómo funcionan las listas?" → {{"module": "shopping", "action": "explain"}}
 "explícame el sistema de listas" → {{"module": "shopping", "action": "explain"}}

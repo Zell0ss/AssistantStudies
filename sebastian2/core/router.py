@@ -783,6 +783,41 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
                 'result': f"No encontré la nota {note_id}."
             }
 
+        elif action == 'update':
+            note_id = intent.get('note_id')
+            if not note_id:
+                return {'success': False, 'result': "¿Qué nota quieres actualizar? Dime el número."}
+
+            add_tags = intent.get('add_tags') or []
+            remove_tags = intent.get('remove_tags') or []
+
+            if not add_tags and not remove_tags:
+                return {'success': False, 'result': "¿Qué tags quieres añadir o quitar?"}
+
+            messages = []
+            for tag in add_tags:
+                r = self.notes.add_tag(note_id, tag)
+                if r['status'] == 'not_found':
+                    return {'success': False, 'result': r['message']}
+                if r['status'] == 'added':
+                    messages.append(f"✅ Tag '{tag}' añadido")
+                elif r['status'] == 'already_present':
+                    messages.append(f"ℹ️ Tag '{tag}' ya estaba")
+
+            for tag in remove_tags:
+                r = self.notes.remove_tag(note_id, tag)
+                if r['status'] == 'not_found':
+                    return {'success': False, 'result': r['message']}
+                if r['status'] == 'removed':
+                    messages.append(f"🗑️ Tag '{tag}' eliminado")
+                elif r['status'] == 'not_present':
+                    messages.append(f"ℹ️ Tag '{tag}' no estaba")
+
+            return {
+                'success': True,
+                'result': f"Nota {note_id} actualizada:\n" + '\n'.join(messages)
+            }
+
         else:
             return {
                 'success': False,

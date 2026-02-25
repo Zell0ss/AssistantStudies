@@ -16,6 +16,7 @@ class NotesModule(BaseModule):
     - search(query) - Search notes by content (LIKE query)
     - list_by_tag(tag) - Get notes with specific tag
     - add_tag(note_id, tag) - Add tag to existing note
+    - remove_tag(note_id, tag) - Remove tag from existing note
     """
 
     def create(self, content, tags=None):
@@ -135,28 +136,53 @@ class NotesModule(BaseModule):
         Args:
             note_id: Note ID
             tag: Tag to add
+
+        Returns:
+            Dict with status: 'added' | 'already_present' | 'not_found'
         """
-        # Get current note
         note = self.get(note_id)
         if not note:
-            return
+            return {'status': 'not_found', 'message': f"No encontré la nota {note_id}"}
 
-        # Parse existing tags
-        if note['tags']:
-            tags = json.loads(note['tags']) if isinstance(note['tags'], str) else note['tags']
-        else:
-            tags = []
+        tags = json.loads(note['tags']) if isinstance(note['tags'], str) else (note['tags'] or [])
 
-        # Add new tag if not already present
+        if tag in tags:
+            return {'status': 'already_present', 'tags': tags}
+
+        tags.append(tag)
+        self.execute_query(
+            "UPDATE notes SET tags = %s WHERE id = %s AND user_id = %s",
+            (json.dumps(tags), note_id, self.user_id)
+        )
+        self.commit()
+        logger.info(f"Added tag '{tag}' to note {note_id}")
+        return {'status': 'added', 'tags': tags}
+
+    def remove_tag(self, note_id, tag):
+        """
+        Remove a tag from an existing note.
+
+        Args:
+            note_id: Note ID
+            tag: Tag to remove
+
+        Returns:
+            Dict with status: 'removed' | 'not_present' | 'not_found'
+        """
+        note = self.get(note_id)
+        if not note:
+            return {'status': 'not_found', 'message': f"No encontré la nota {note_id}"}
+
+        tags = json.loads(note['tags']) if isinstance(note['tags'], str) else (note['tags'] or [])
+
         if tag not in tags:
-            tags.append(tag)
-            tags_json = json.dumps(tags)
+            return {'status': 'not_present', 'tags': tags}
 
-            query = """
-                UPDATE notes
-                SET tags = %s
-                WHERE id = %s AND user_id = %s
-            """
-            self.execute_query(query, (tags_json, note_id, self.user_id))
-            self.commit()
-            logger.info(f"Added tag '{tag}' to note {note_id}")
+        tags.remove(tag)
+        self.execute_query(
+            "UPDATE notes SET tags = %s WHERE id = %s AND user_id = %s",
+            (json.dumps(tags), note_id, self.user_id)
+        )
+        self.commit()
+        logger.info(f"Removed tag '{tag}' from note {note_id}")
+        return {'status': 'removed', 'tags': tags}
