@@ -995,7 +995,7 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
         intent_type = parsed.get('intent_type', 'command')
 
         if intent_type == 'conversation':
-            user_msg = parsed.get('message') or parsed.get('item') or ''
+            user_msg = parsed.get('_raw_message') or parsed.get('message') or ''
             chat = ChatModule(self.conn, self.user_id)
             reply = chat.respond(user_msg) if user_msg else chat.respond("...")
             return {

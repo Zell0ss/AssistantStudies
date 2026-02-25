@@ -223,6 +223,7 @@ Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
 
             # Parse intent
             parsed = parser.parse(message.text)
+            parsed['_raw_message'] = message.text  # preserve original for chat.respond()
             logger.debug(f"Parsed intent: {parsed}")
 
             # Route to module

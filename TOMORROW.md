@@ -19,9 +19,21 @@
    - Router: `append` handler in `_route_notes()`
    - Haiku: append action + 3 examples
 
+4. **refranes.txt** — Deduplicated (~125 → 106 lines) + 7 new weather-themed rhyming refranes
+
+5. **Conversation (Alfred) message bug** — `chat.respond()` was receiving `"..."` instead of the actual user message
+   - Root cause: router used `parsed.get('message') or parsed.get('item')`, but Haiku never outputs a `message` field
+   - Fix: `handlers.py` now injects `parsed['_raw_message'] = message.text` before routing
+   - Fix: `_route_unknown()` uses `parsed.get('_raw_message') or parsed.get('message')`
+   - Tests: 3 new tests in `TestRouterDispatch` (including `test_router_passes_raw_message_to_respond`)
+
 ### Test counts
-- 206 passing / 221 total (15 pre-existing failures in item_list/handlers/integration)
+- 208 passing / 223 total (15 pre-existing failures in item_list/handlers/integration)
 
 ### Pending
-- Deploy to seb01 (migration 006 for weather still needs to run on production)
-- Push remaining commits (`git push`)
+- **Deploy to seb01**: migrations 006 (weather) and 007 (conversations) need to run on production
+- **Calendar note bug** (next to fix): "añade a la cita de mañana de las 19:00 nota: llevar dinero"
+  - Haiku parses: `{module: calendar, action: update, title: None, date: 2026-02-26, time: '19:00', note: 'llevar dinero'}`
+  - Error: `'NoneType' object has no attribute 'strip'` in `_route_calendar()` update handler
+  - Root cause: `title = intent.get('title', '').strip()` — key exists with value `None`, so `intent.get('title', '')` returns `None`, not `''`
+  - Fix needed: `(intent.get('title') or '').strip()` + support note-only update (find event by date+time, add note to it)

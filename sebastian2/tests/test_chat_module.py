@@ -126,19 +126,49 @@ class TestRouterDispatch:
         chat, conn, user_id = setup
         router = ModuleRouter(user_id)
 
-        mock_response = MagicMock()
-        mock_response.content = [MagicMock(text="Siempre a su disposición, señor.")]
-
-        with patch.object(ChatModule, 'respond', return_value="Siempre a su disposición, señor."):
+        with patch.object(ChatModule, 'respond', return_value="Siempre a su disposición, señor.") as mock_respond:
             result = router.route({
                 'module': 'unknown',
                 'action': 'unknown',
                 'intent_type': 'conversation',
-                'message': 'gracias'
+                '_raw_message': 'gracias',
             })
 
         assert result['success'] is True
         assert "señor" in result['result']
+
+    def test_router_passes_raw_message_to_respond(self, setup):
+        """Router must pass _raw_message (injected by handler) to chat.respond(), not '' or '...'."""
+        chat, conn, user_id = setup
+        router = ModuleRouter(user_id)
+
+        with patch.object(ChatModule, 'respond', return_value="De nada.") as mock_respond:
+            router.route({
+                'module': 'unknown',
+                'action': 'unknown',
+                'intent_type': 'conversation',
+                '_raw_message': 'muchas gracias',
+                # No 'message' field — as Haiku actually returns
+            })
+
+        mock_respond.assert_called_once_with('muchas gracias')
+
+    def test_router_without_raw_message_uses_empty_fallback(self, setup):
+        """When neither _raw_message nor message is present, respond() still gets called (not crash)."""
+        chat, conn, user_id = setup
+        router = ModuleRouter(user_id)
+
+        with patch.object(ChatModule, 'respond', return_value="Buenas.") as mock_respond:
+            result = router.route({
+                'module': 'unknown',
+                'action': 'unknown',
+                'intent_type': 'conversation',
+                # No _raw_message, no message — simulates parse failure
+            })
+
+        assert result['success'] is True
+        # respond() called with something (empty string or fallback), not raised
+        mock_respond.assert_called_once()
 
     def test_command_intent_gets_polite_refusal(self):
         """Router returns polite refusal for unknown command intents."""
@@ -148,7 +178,7 @@ class TestRouterDispatch:
             'module': 'unknown',
             'action': 'unknown',
             'intent_type': 'command',
-            'message': 'exporta mis listas a pdf'
+            '_raw_message': 'exporta mis listas a pdf',
         })
 
         assert result['success'] is False
