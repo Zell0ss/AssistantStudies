@@ -462,6 +462,84 @@ class CalendarModule(BaseModule):
         logger.info(f"Cleared {count} ticket(s) from event {event_id}")
         return {'status': 'cleared', 'count': count}
 
+    def add_note(self, event_id: int, note_text: str) -> Dict[str, Any]:
+        """
+        Store a free-text note on an event's notes JSON (key 'note').
+
+        Args:
+            event_id: Event ID
+            note_text: Text to store
+
+        Returns:
+            Dict with status: 'noted' | 'not_found'
+        """
+        cursor = self.execute_query(
+            "SELECT id, notes FROM events WHERE id = %s AND user_id = %s",
+            (event_id, self.user_id)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return {'status': 'not_found', 'message': f"Evento {event_id} no encontrado"}
+
+        notes = row['notes'] or {}
+        if isinstance(notes, str):
+            notes = json.loads(notes)
+
+        notes['note'] = note_text
+        self.execute_query(
+            "UPDATE events SET notes = %s WHERE id = %s AND user_id = %s",
+            (json.dumps(notes, ensure_ascii=False), event_id, self.user_id)
+        )
+        self.commit()
+        logger.info(f"Added note to event {event_id}: {note_text[:60]}")
+        return {'status': 'noted', 'note': note_text}
+
+    def find_by_datetime(self, event_date: date, event_time: str) -> Optional[Dict[str, Any]]:
+        """
+        Find an event by exact date and time.
+
+        Checks single events first, then recurring events that fall on event_date.
+
+        Args:
+            event_date: Date to search
+            event_time: Time as "HH:MM" string
+
+        Returns:
+            Event dict (with event_id, title) or None if not found
+        """
+        from datetime import time as time_type
+        time_obj = datetime.strptime(event_time, '%H:%M').time()
+
+        cursor = self.execute_query(
+            """
+            SELECT id, title, recurrence_rule, recurrence_end, start_datetime, event_date, all_day
+            FROM events
+            WHERE user_id = %s AND TIME(start_datetime) = %s
+            """,
+            (self.user_id, time_obj)
+        )
+        rows = cursor.fetchall()
+
+        for row in rows:
+            if not row['recurrence_rule']:
+                # Single event: check date matches
+                if row['start_datetime'] and row['start_datetime'].date() == event_date:
+                    return {'event_id': row['id'], 'title': row['title']}
+            else:
+                # Recurring: check if it occurs on event_date
+                base_dt = row['start_datetime']
+                if not base_dt:
+                    continue
+                rule = self._rule_to_rrule(row['recurrence_rule'], base_dt, row['recurrence_end'])
+                if not rule:
+                    continue
+                start = datetime.combine(event_date, time_type(0, 0))
+                end = datetime.combine(event_date, time_type(23, 59, 59))
+                if rule.between(start, end, inc=True):
+                    return {'event_id': row['id'], 'title': row['title']}
+
+        return None
+
     def find_upcoming_events(self, limit: int = 5) -> List[Dict[str, Any]]:
         """Return next N upcoming events (next 30 days). Used for ticket association UI."""
         events = self.list_events('month')

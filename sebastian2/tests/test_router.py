@@ -262,6 +262,63 @@ class TestCalendarRouting:
         assert 'no tiene tickets' in result_lower or 'no encontré' in result_lower
 
 
+class TestCalendarAddNote:
+    def test_update_with_null_title_does_not_crash(self, router):
+        """Router must not crash when Haiku returns title=None in calendar update."""
+        result = router.route({
+            'module': 'calendar',
+            'action': 'update',
+            'title': None,
+            'date': '2026-03-01',
+            'time': '19:00',
+        })
+        # Should return a clean error, not raise AttributeError
+        assert result['success'] is False
+        assert 'result' in result
+
+    def test_add_note_by_title(self, router):
+        """Router finds event by title and adds a note to it."""
+        router.route({
+            'module': 'calendar', 'action': 'add',
+            'title': 'Pilates', 'date': '2026-03-10', 'time': '19:00', 'all_day': False,
+        })
+        result = router.route({
+            'module': 'calendar',
+            'action': 'add_note',
+            'title': 'Pilates',
+            'note': 'llevar esterilla',
+        })
+        assert result['success'] is True
+        assert 'Pilates' in result['result']
+
+    def test_add_note_by_datetime(self, router):
+        """Router finds event by date+time when no title given."""
+        router.route({
+            'module': 'calendar', 'action': 'add',
+            'title': 'Médico', 'date': '2026-03-15', 'time': '10:30', 'all_day': False,
+        })
+        result = router.route({
+            'module': 'calendar',
+            'action': 'add_note',
+            'title': None,
+            'date': '2026-03-15',
+            'time': '10:30',
+            'note': 'llevar análisis',
+        })
+        assert result['success'] is True
+        assert 'Médico' in result['result']
+
+    def test_add_note_event_not_found(self, router):
+        """Router returns error when no event matches."""
+        result = router.route({
+            'module': 'calendar',
+            'action': 'add_note',
+            'title': 'NoExisteEsteEvento',
+            'note': 'algo',
+        })
+        assert result['success'] is False
+
+
 class TestWeatherRouting:
     def test_route_weather_get_no_city(self, router):
         from unittest.mock import patch

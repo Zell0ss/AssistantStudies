@@ -963,7 +963,7 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
             }
 
         if action == 'update':
-            title = intent.get('title', '').strip()
+            title = (intent.get('title') or '').strip()
             if not title:
                 return {'success': False, 'result': "¿Qué evento quieres modificar?"}
 
@@ -982,6 +982,34 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
             if result['status'] == 'not_found':
                 return {'success': False, 'result': result['message']}
             return {'success': True, 'result': result['message'], 'data': result}
+
+        if action == 'add_note':
+            note_text = (intent.get('note') or '').strip()
+            if not note_text:
+                return {'success': False, 'result': "¿Qué quieres anotar en la cita?"}
+
+            title = (intent.get('title') or '').strip()
+            event_date = _parse_date_optional(intent.get('date'))
+            event_time = intent.get('time')
+
+            event = None
+            if title:
+                events = cal.search_events(title)
+                event = events[0] if events else None
+            elif event_date and event_time:
+                event = cal.find_by_datetime(event_date, event_time)
+
+            if not event:
+                return {'success': False, 'result': "No encontré la cita. Dime el nombre o la fecha y hora."}
+
+            result = cal.add_note(event['event_id'], note_text)
+            if result['status'] == 'not_found':
+                return {'success': False, 'result': result['message']}
+            return {
+                'success': True,
+                'result': f"📝 Nota guardada en '{event['title']}': {note_text}",
+                'data': result,
+            }
 
         return {'success': False, 'result': f"Acción de calendario desconocida: {action}"}
 

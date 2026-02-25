@@ -115,7 +115,7 @@ Ejemplos de nombres de listas por módulo:
 Devuelve SOLO JSON válido con esta estructura:
 {{
   "module": "inventory | shopping | packing | notes | calendar | weather | unknown",
-  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | forecast | explain | list_categories | move_list | update | append | unknown",
+  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | forecast | explain | list_categories | move_list | update | append | add_note | unknown",
   "intent_type": "command | conversation (SOLO cuando module es unknown)",
   "item": "nombre del item",
   "quantity": número (opcional),
@@ -139,7 +139,8 @@ Devuelve SOLO JSON válido con esta estructura:
   "new_time": "HH:MM nueva hora del evento en formato 24h (para action: update)",
   "new_all_day": true/false nuevo valor de todo_el_día (para action: update),
   "add_tags": ["tag1", "tag2"] (para notes action: update — tags a añadir),
-  "remove_tags": ["tag1"] (para notes action: update — tags a eliminar)
+  "remove_tags": ["tag1"] (para notes action: update — tags a eliminar),
+  "note": "texto libre a anotar en una cita del calendario (para action: add_note)"
 }}
 
 Ejemplos:
@@ -228,6 +229,10 @@ Ejemplos:
 "cambia la reunión de las 10 a las 11" → {{"module": "calendar", "action": "update", "title": "reunión", "new_time": "11:00"}}
 "renombra inglés como clase de inglés" → {{"module": "calendar", "action": "update", "title": "inglés", "new_title": "clase de inglés"}}
 "el dentista del jueves ahora es el viernes a las 9" → {{"module": "calendar", "action": "update", "title": "dentista", "date": "2026-02-26", "new_date": "2026-02-27", "new_time": "09:00"}}
+"añade a la cita de mañana de las 19:00 nota: llevar dinero" → {{"module": "calendar", "action": "add_note", "title": null, "date": "2026-02-26", "time": "19:00", "note": "llevar dinero"}}
+"apunta en la cita de pilates: llevar esterilla" → {{"module": "calendar", "action": "add_note", "title": "pilates", "note": "llevar esterilla"}}
+"anota en la revisión médica del martes: llevar análisis" → {{"module": "calendar", "action": "add_note", "title": "revisión médica", "date": "2026-03-03", "note": "llevar análisis"}}
+"ponle nota a la cita de las 10: traer documentos" → {{"module": "calendar", "action": "add_note", "title": null, "time": "10:00", "note": "traer documentos"}}
 
 \"cómo funciona el tiempo?\" → {{\"module\": \"weather\", \"action\": \"explain\"}}
 \"explícame el tiempo\" → {{\"module\": \"weather\", \"action\": \"explain\"}}

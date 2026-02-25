@@ -322,3 +322,63 @@ class TestUpdateEvent:
         assert result['status'] == 'updated'
         events = cal.search_events("Clase de inglés")
         assert events[0]['time'] == '19:00'
+
+
+class TestAddNote:
+    def test_add_note_to_event(self, cal):
+        """add_note() stores note text in notes JSON."""
+        result = cal.add_event(title="Pilates", event_date=date(2026, 3, 10), event_time="19:00")
+        event_id = result['event_id']
+        result = cal.add_note(event_id, "llevar dinero")
+        assert result['status'] == 'noted'
+        notes = cal.get_event_notes(event_id)
+        assert notes['note'] == 'llevar dinero'
+
+    def test_add_note_preserves_existing_tickets(self, cal):
+        """add_note() does not wipe tickets already in the notes JSON."""
+        import json
+        result = cal.add_event(title="Concierto", event_date=date(2026, 3, 20), event_time="21:00")
+        event_id = result['event_id']
+        cal.add_ticket(event_id, {'type': 'QR_CODE', 'value': 'ABC123'})
+        cal.add_note(event_id, "llevar carnet")
+        notes = cal.get_event_notes(event_id)
+        assert notes['note'] == 'llevar carnet'
+        assert len(notes['tickets']) == 1
+
+    def test_add_note_overwrites_previous_note(self, cal):
+        """A second add_note() replaces the first."""
+        result = cal.add_event(title="Yoga", event_date=date(2026, 3, 10), event_time="08:00")
+        event_id = result['event_id']
+        cal.add_note(event_id, "primera nota")
+        cal.add_note(event_id, "nota actualizada")
+        notes = cal.get_event_notes(event_id)
+        assert notes['note'] == 'nota actualizada'
+
+    def test_add_note_event_not_found(self, cal):
+        """add_note() on missing event returns not_found."""
+        result = cal.add_note(99999999, "llevar algo")
+        assert result['status'] == 'not_found'
+
+
+class TestFindByDatetime:
+    def test_find_single_event_by_date_and_time(self, cal):
+        """find_by_datetime() returns event dict for a matching single event."""
+        cal.add_event(title="Médico", event_date=date(2026, 3, 15), event_time="10:30")
+        result = cal.find_by_datetime(date(2026, 3, 15), "10:30")
+        assert result is not None
+        assert result['title'] == 'Médico'
+
+    def test_find_by_datetime_returns_none_when_no_match(self, cal):
+        """find_by_datetime() returns None when no event at that date/time."""
+        result = cal.find_by_datetime(date(2026, 12, 31), "23:59")
+        assert result is None
+
+    def test_find_recurring_event_by_datetime(self, cal):
+        """find_by_datetime() finds a recurring event that occurs on the given date."""
+        from datetime import timedelta
+        next_monday = date.today() + timedelta(days=(7 - date.today().weekday()) % 7 or 7)
+        cal.add_event(title="Pilates semanal", event_date=next_monday,
+                      event_time="19:00", recurrence_rule="weekly:MON")
+        result = cal.find_by_datetime(next_monday, "19:00")
+        assert result is not None
+        assert 'Pilates' in result['title']
