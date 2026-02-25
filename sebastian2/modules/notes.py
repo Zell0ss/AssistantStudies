@@ -129,6 +129,30 @@ class NotesModule(BaseModule):
         logger.info(f"Deleted note {note_id}")
         return True
 
+    def append_text(self, note_id, text):
+        """
+        Append text to an existing note (adds newline + text).
+
+        Args:
+            note_id: Note ID
+            text: Text to append
+
+        Returns:
+            Dict with status: 'appended' | 'not_found'
+        """
+        note = self.get(note_id)
+        if not note:
+            return {'status': 'not_found', 'message': f"No encontré la nota {note_id}"}
+
+        new_content = note['content'] + '\n' + text
+        self.execute_query(
+            "UPDATE notes SET content = %s WHERE id = %s AND user_id = %s",
+            (new_content, note_id, self.user_id)
+        )
+        self.commit()
+        logger.info(f"Appended text to note {note_id}")
+        return {'status': 'appended', 'content': new_content}
+
     def add_tag(self, note_id, tag):
         """
         Add a tag to an existing note.

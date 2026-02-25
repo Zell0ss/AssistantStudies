@@ -818,6 +818,23 @@ Para saber más: "cómo funciona el calendario?", "explícame el tiempo\""""
                 'result': f"Nota {note_id} actualizada:\n" + '\n'.join(messages)
             }
 
+        elif action == 'append':
+            note_id = intent.get('note_id')
+            text = (intent.get('item') or '').strip()
+
+            if not note_id:
+                return {'success': False, 'result': "¿A qué nota quieres añadir texto? Dime el número."}
+            if not text:
+                return {'success': False, 'result': "¿Qué texto quieres añadir a la nota?"}
+
+            result = self.notes.append_text(note_id, text)
+            if result['status'] == 'not_found':
+                return {'success': False, 'result': result['message']}
+            return {
+                'success': True,
+                'result': f"✅ Texto añadido a la nota {note_id}."
+            }
+
         else:
             return {
                 'success': False,

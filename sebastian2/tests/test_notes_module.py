@@ -90,6 +90,29 @@ def test_archived_notes_excluded_by_default(notes_module):
     assert len(results) == 0
 
 
+class TestAppendText:
+    def test_append_text_to_existing_note(self, notes_module):
+        """append_text() adds a newline + text to existing content."""
+        note_id = notes_module.create("Texto original")
+        result = notes_module.append_text(note_id, "acordarse de regar las plantas")
+        assert result['status'] == 'appended'
+        note = notes_module.get(note_id)
+        assert note['content'] == "Texto original\nacordarse de regar las plantas"
+
+    def test_append_text_note_not_found_returns_not_found(self, notes_module):
+        """append_text() on a missing note returns {'status': 'not_found'}."""
+        result = notes_module.append_text(99999999, "texto extra")
+        assert result['status'] == 'not_found'
+
+    def test_append_multiple_times(self, notes_module):
+        """append_text() called twice stacks lines correctly."""
+        note_id = notes_module.create("Línea 1")
+        notes_module.append_text(note_id, "Línea 2")
+        notes_module.append_text(note_id, "Línea 3")
+        note = notes_module.get(note_id)
+        assert note['content'] == "Línea 1\nLínea 2\nLínea 3"
+
+
 class TestAddTagReturnValue:
     def test_add_tag_returns_status_dict(self, notes_module):
         """add_tag() should return a status dict with tags list."""

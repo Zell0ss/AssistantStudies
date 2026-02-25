@@ -16,7 +16,7 @@ class HaikuParser:
         "module": "inventory | shopping | packing | notes | calendar | weather | unknown",
         "action": "add | set | remove | clear_all | create | list | list_all_lists |
                    check | search | get | forecast | explain | list_categories | move_list |
-                   show_tickets | clear_tickets | update | unknown",
+                   show_tickets | clear_tickets | update | append | unknown",
         "intent_type": "command | conversation  (only present when module=unknown)",
         "item": "string (item name)",
         "quantity": "number (optional)",
@@ -115,7 +115,7 @@ Ejemplos de nombres de listas por módulo:
 Devuelve SOLO JSON válido con esta estructura:
 {{
   "module": "inventory | shopping | packing | notes | calendar | weather | unknown",
-  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | forecast | explain | list_categories | move_list | update | unknown",
+  "action": "add | set | remove | clear_all | create | list | list_all_lists | check | search | get | forecast | explain | list_categories | move_list | update | append | unknown",
   "intent_type": "command | conversation (SOLO cuando module es unknown)",
   "item": "nombre del item",
   "quantity": número (opcional),
@@ -172,6 +172,9 @@ Ejemplos:
 "muéstrame la nota 3" → {{"module": "notes", "action": "read", "note_id": 3}}
 "borra la nota 299" → {{"module": "notes", "action": "delete", "note_id": 299}}
 "elimina nota 12" → {{"module": "notes", "action": "delete", "note_id": 12}}
+"añade a nota 97 acordarse de regar las plantas" → {{"module": "notes", "action": "append", "note_id": 97, "item": "acordarse de regar las plantas"}}
+"añade texto a nota 5: llamar al médico" → {{"module": "notes", "action": "append", "note_id": 5, "item": "llamar al médico"}}
+"agrega a la nota 12 que ya está resuelto" → {{"module": "notes", "action": "append", "note_id": 12, "item": "ya está resuelto"}}
 "pon tag a nota 728: scroogebot" → {{"module": "notes", "action": "update", "note_id": 728, "add_tags": ["scroogebot"]}}
 "añade tag rebe a la nota 5" → {{"module": "notes", "action": "update", "note_id": 5, "add_tags": ["rebe"]}}
 "quita el tag bug de la nota 12" → {{"module": "notes", "action": "update", "note_id": 12, "remove_tags": ["bug"]}}
