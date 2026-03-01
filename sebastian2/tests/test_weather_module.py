@@ -390,9 +390,9 @@ class TestMultiDayForecast:
         self._patcher.stop()
 
     def _make_daily(self, n=7):
-        """Helper: make mock daily data for N days starting 2026-02-23."""
+        """Helper: make mock daily data for N days starting today."""
         from datetime import date, timedelta
-        base = date(2026, 2, 23)
+        base = date.today()
         dates = [(base + timedelta(days=i)).isoformat() for i in range(n)]
         return {
             'dates': dates,
@@ -418,10 +418,13 @@ class TestMultiDayForecast:
 
     @patch('modules.weather.WeatherModule._fetch_forecast')
     def test_weekend_forecast_returns_2_days(self, mock_forecast):
+        from datetime import date, timedelta
         self.module._settings.get_weather_location.return_value = {
             'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
         }
-        mock_forecast.return_value = self._make_daily(7)
+        # Need enough days to cover the next full Sat+Sun
+        # From today, next weekend could be up to 6 days away → 14 days is safe
+        mock_forecast.return_value = self._make_daily(14)
         result = self.module.get_forecast(city=None, time_window='weekend')
         assert result['success'] is True
         lines = result['result'].split('\n')
