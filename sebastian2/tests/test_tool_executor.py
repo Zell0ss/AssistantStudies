@@ -175,3 +175,41 @@ def test_calendar_add_note_dispatches(mock_add_note, db):
     result = executor.execute("calendar_add_note", {"event_id": 42, "note_text": "llevar dinero"})
     mock_add_note.assert_called_once_with(event_id=42, note_text="llevar dinero")
     assert result['status'] == 'updated'
+
+
+@patch('modules.inventory.InventoryModule.add')
+def test_inventory_add_dispatches(mock_add, db):
+    """inventory_add calls InventoryModule.add with correct args."""
+    mock_add.return_value = {'status': 'added', 'item': {'name': 'aceite'}}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("inventory_add", {"item_name": "aceite", "quantity": 2})
+    mock_add.assert_called_once_with(
+        item_name="aceite",
+        quantity=2,
+        unit="unidades",
+        threshold=2,
+    )
+    assert result['status'] == 'added'
+
+
+@patch('modules.inventory.InventoryModule.remove')
+def test_inventory_remove_dispatches(mock_remove, db):
+    """inventory_remove calls InventoryModule.remove with item_name."""
+    mock_remove.return_value = True
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("inventory_remove", {"item_name": "aceite"})
+    mock_remove.assert_called_once_with("aceite")
+    assert result is True
+
+
+@patch('modules.inventory.InventoryModule.set_quantity')
+def test_inventory_set_quantity_dispatches(mock_set, db):
+    """inventory_set_quantity calls InventoryModule.set_quantity with item_name and quantity."""
+    mock_set.return_value = {'status': 'updated'}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("inventory_set_quantity", {"item_name": "aceite", "quantity": 5})
+    mock_set.assert_called_once_with("aceite", 5)
+    assert result['status'] == 'updated'

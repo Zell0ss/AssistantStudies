@@ -46,6 +46,10 @@ class ToolExecutor:
             # Inventory
             "inventory_list":            self._inventory_list,
             "inventory_check_low_stock": self._inventory_check_low_stock,
+            "inventory_add":             self._inventory_add,
+            "inventory_remove":          self._inventory_remove,
+            "inventory_set_quantity":    self._inventory_set_quantity,
+            "inventory_update_quantity": self._inventory_update_quantity,
             # Shopping
             "shopping_list":             self._shopping_list,
             # Notes
@@ -139,6 +143,27 @@ class ToolExecutor:
     def _inventory_check_low_stock(self, inputs: dict):
         module = InventoryModule(self._db, self._user_id, 'inventario', 'inventory')
         return module.check_low_stock()
+
+    def _inventory_add(self, inputs: dict):
+        module = InventoryModule(self._db, self._user_id, 'inventario', 'inventory')
+        return module.add(
+            item_name=inputs['item_name'],
+            quantity=inputs.get('quantity', 1),
+            unit=inputs.get('unit', 'unidades'),
+            threshold=inputs.get('threshold', 2),
+        )
+
+    def _inventory_remove(self, inputs: dict):
+        module = InventoryModule(self._db, self._user_id, 'inventario', 'inventory')
+        return module.remove(inputs['item_name'])
+
+    def _inventory_set_quantity(self, inputs: dict):
+        module = InventoryModule(self._db, self._user_id, 'inventario', 'inventory')
+        return module.set_quantity(inputs['item_name'], inputs['quantity'])
+
+    def _inventory_update_quantity(self, inputs: dict):
+        module = InventoryModule(self._db, self._user_id, 'inventario', 'inventory')
+        return module.update_quantity(inputs['item_name'], inputs['delta'])
 
     # ── Shopping ──────────────────────────────────────────────────────────────
 
