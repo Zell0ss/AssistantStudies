@@ -104,6 +104,27 @@ NOTES_TOOLS = [
         }
     },
     {
+        "name": "notes_remove_tag",
+        "description": (
+            "Elimina un tag de una nota existente. "
+            "Usa notes_search primero para obtener el note_id."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "note_id": {
+                    "type": "integer",
+                    "description": "ID numérico de la nota."
+                },
+                "tag": {
+                    "type": "string",
+                    "description": "Tag a eliminar."
+                }
+            },
+            "required": ["note_id", "tag"]
+        }
+    },
+    {
         "name": "notes_delete",
         "description": (
             "Elimina permanentemente una nota. "

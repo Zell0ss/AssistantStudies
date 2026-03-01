@@ -62,6 +62,7 @@ class ToolExecutor:
             "notes_create":              self._notes_create,
             "notes_append":              self._notes_append,
             "notes_add_tag":             self._notes_add_tag,
+            "notes_remove_tag":          self._notes_remove_tag,
             "notes_delete":              self._notes_delete,
         }
 
@@ -220,6 +221,10 @@ class ToolExecutor:
     def _notes_add_tag(self, inputs: dict):
         module = NotesModule(self._db, self._user_id)
         return module.add_tag(inputs['note_id'], inputs['tag'])
+
+    def _notes_remove_tag(self, inputs: dict):
+        module = NotesModule(self._db, self._user_id)
+        return module.remove_tag(inputs['note_id'], inputs['tag'])
 
     def _notes_delete(self, inputs: dict):
         module = NotesModule(self._db, self._user_id)

@@ -273,12 +273,12 @@ def test_list_clear_dispatches(mock_clear, db):
 @patch('modules.notes.NotesModule.create')
 def test_notes_create_dispatches(mock_create, db):
     """notes_create calls NotesModule.create with content and tags."""
-    mock_create.return_value = {'note_id': 7, 'status': 'created'}
+    mock_create.return_value = 7
     from core.tool_executor import ToolExecutor
     executor = ToolExecutor(db, '99999')
     result = executor.execute("notes_create", {"content": "Comprar flores", "tags": ["pendiente"]})
     mock_create.assert_called_once_with("Comprar flores", ["pendiente"])
-    assert result['note_id'] == 7
+    assert result == 7
 
 
 @patch('modules.notes.NotesModule.append_text')
@@ -301,6 +301,17 @@ def test_notes_add_tag_dispatches(mock_tag, db):
     result = executor.execute("notes_add_tag", {"note_id": 7, "tag": "urgente"})
     mock_tag.assert_called_once_with(7, "urgente")
     assert result['status'] == 'added'
+
+
+@patch('modules.notes.NotesModule.remove_tag')
+def test_notes_remove_tag_dispatches(mock_remove_tag, db):
+    """notes_remove_tag calls NotesModule.remove_tag with note_id and tag."""
+    mock_remove_tag.return_value = {'status': 'removed'}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("notes_remove_tag", {"note_id": 7, "tag": "urgente"})
+    mock_remove_tag.assert_called_once_with(7, "urgente")
+    assert result['status'] == 'removed'
 
 
 @patch('modules.notes.NotesModule.delete')
