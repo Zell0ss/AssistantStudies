@@ -124,7 +124,14 @@ def test_calendar_add_event_dispatches(mock_add, db):
     result = executor.execute("calendar_add_event", {
         "title": "Dentista", "date": "2026-03-10", "time": "10:00"
     })
-    mock_add.assert_called_once()
+    from datetime import date
+    mock_add.assert_called_once_with(
+        title="Dentista",
+        event_date=date(2026, 3, 10),
+        event_time="10:00",
+        all_day=False,
+        recurrence_rule=None,
+    )
     assert result['status'] == 'added'
 
 
@@ -135,7 +142,8 @@ def test_calendar_remove_event_dispatches(mock_remove, db):
     from core.tool_executor import ToolExecutor
     executor = ToolExecutor(db, '99999')
     result = executor.execute("calendar_remove_event", {"title": "Dentista"})
-    mock_remove.assert_called_once()
+    from datetime import date
+    mock_remove.assert_called_once_with(title="Dentista", event_date=None)
     assert result['status'] == 'removed'
 
 
@@ -148,5 +156,22 @@ def test_calendar_update_event_dispatches(mock_update, db):
     result = executor.execute("calendar_update_event", {
         "title": "Dentista", "new_time": "11:00"
     })
-    mock_update.assert_called_once()
+    mock_update.assert_called_once_with(
+        title="Dentista",
+        event_date=None,
+        new_title=None,
+        new_date=None,
+        new_time="11:00",
+    )
+    assert result['status'] == 'updated'
+
+
+@patch('modules.calendar.CalendarModule.add_note')
+def test_calendar_add_note_dispatches(mock_add_note, db):
+    """calendar_add_note calls CalendarModule.add_note with event_id and note_text."""
+    mock_add_note.return_value = {'status': 'updated', 'message': 'Nota añadida'}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("calendar_add_note", {"event_id": 42, "note_text": "llevar dinero"})
+    mock_add_note.assert_called_once_with(event_id=42, note_text="llevar dinero")
     assert result['status'] == 'updated'

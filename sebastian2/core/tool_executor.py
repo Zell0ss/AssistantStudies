@@ -35,10 +35,10 @@ class ToolExecutor:
             "calendar_search_events":    self._calendar_search_events,
             "calendar_list_events":      self._calendar_list_events,
             "calendar_find_by_datetime": self._calendar_find_by_datetime,
-            "calendar_add_event":    self._calendar_add_event,
-            "calendar_remove_event": self._calendar_remove_event,
-            "calendar_update_event": self._calendar_update_event,
-            "calendar_add_note":     self._calendar_add_note,
+            "calendar_add_event":        self._calendar_add_event,
+            "calendar_remove_event":     self._calendar_remove_event,
+            "calendar_update_event":     self._calendar_update_event,
+            "calendar_add_note":         self._calendar_add_note,
             # Weather
             "weather_get":               self._weather_get,
             "weather_forecast":          self._weather_forecast,
@@ -102,6 +102,7 @@ class ToolExecutor:
             new_title=inputs.get('new_title'),
             new_date=new_date,
             new_time=inputs.get('new_time'),
+            # new_all_day not exposed to agent in v2
         )
 
     def _calendar_add_note(self, inputs: dict):
