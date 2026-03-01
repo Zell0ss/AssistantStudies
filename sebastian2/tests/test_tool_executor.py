@@ -201,7 +201,7 @@ def test_inventory_remove_dispatches(mock_remove, db):
     executor = ToolExecutor(db, '99999')
     result = executor.execute("inventory_remove", {"item_name": "aceite"})
     mock_remove.assert_called_once_with("aceite")
-    assert result is True
+    assert result == {'status': 'removed'}
 
 
 @patch('modules.inventory.InventoryModule.set_quantity')
@@ -212,4 +212,15 @@ def test_inventory_set_quantity_dispatches(mock_set, db):
     executor = ToolExecutor(db, '99999')
     result = executor.execute("inventory_set_quantity", {"item_name": "aceite", "quantity": 5})
     mock_set.assert_called_once_with("aceite", 5)
+    assert result['status'] == 'updated'
+
+
+@patch('modules.inventory.InventoryModule.update_quantity')
+def test_inventory_update_quantity_dispatches(mock_update, db):
+    """inventory_update_quantity calls InventoryModule.update_quantity with item_name and delta."""
+    mock_update.return_value = {'status': 'updated', 'message': 'Actualizado aceite: 3 unidades', 'warning': False}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("inventory_update_quantity", {"item_name": "aceite", "delta": -2})
+    mock_update.assert_called_once_with("aceite", -2)
     assert result['status'] == 'updated'

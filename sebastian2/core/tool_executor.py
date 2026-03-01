@@ -155,7 +155,8 @@ class ToolExecutor:
 
     def _inventory_remove(self, inputs: dict):
         module = InventoryModule(self._db, self._user_id, 'inventario', 'inventory')
-        return module.remove(inputs['item_name'])
+        removed = module.remove(inputs['item_name'])
+        return {'status': 'removed'} if removed else {'status': 'not_found'}
 
     def _inventory_set_quantity(self, inputs: dict):
         module = InventoryModule(self._db, self._user_id, 'inventario', 'inventory')

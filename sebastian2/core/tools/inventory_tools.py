@@ -30,7 +30,7 @@ INVENTORY_TOOLS = [
         "name": "inventory_add",
         "description": (
             "Añade un artículo al inventario o incrementa su cantidad si ya existe. "
-            "Útil cuando el usuario dice 'he comprado aceite' o 'tengo 3 latas de tomate'."
+            "Útil cuando el usuario dice 'he comprado aceite' o 'añade 2 bricks de leche'."
         ),
         "input_schema": {
             "type": "object",
