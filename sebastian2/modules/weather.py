@@ -347,7 +347,6 @@ class WeatherModule:
         Returns single-day data dict with list values of length 1.
         """
         saved = self._settings.get_weather_location()
-        display_name = saved['location']
         lat, lon, country = saved['lat'], saved['lon'], saved['country']
 
         try:
