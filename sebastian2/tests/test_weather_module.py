@@ -1,5 +1,6 @@
 # tests/test_weather_module.py
 import pytest
+from datetime import date, timedelta
 from modules.user_settings import UserSettingsModule
 from db.connection import get_connection, close_connection
 
@@ -458,6 +459,34 @@ class TestMultiDayForecast:
         result = self.module.get_forecast(city='Salamanca', time_window='week', days=2)
         assert result['success'] is True
         self.module._settings.set_weather_location.assert_called_once()
+
+    @patch('modules.weather.WeatherModule._fetch_forecast')
+    def test_get_forecast_for_date_returns_single_day(self, mock_forecast):
+        """get_forecast_for_date filters to exactly the requested date."""
+        self.module._settings.get_weather_location.return_value = {
+            'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
+        }
+        mock_forecast.return_value = self._make_daily(14)
+        target = (date.today() + timedelta(days=3)).isoformat()
+
+        result = self.module.get_forecast_for_date(target)
+
+        assert result['success'] is True
+        assert result['data']['dates'] == [target]
+        assert len(result['data']['temp_max']) == 1
+
+    @patch('modules.weather.WeatherModule._fetch_forecast')
+    def test_get_forecast_for_date_not_found(self, mock_forecast):
+        """get_forecast_for_date returns failure if date not in 14-day window."""
+        self.module._settings.get_weather_location.return_value = {
+            'location': 'Madrid', 'lat': 40.4, 'lon': -3.7, 'country': 'ES'
+        }
+        mock_forecast.return_value = self._make_daily(14)
+        far_future = (date.today() + timedelta(days=30)).isoformat()
+
+        result = self.module.get_forecast_for_date(far_future)
+
+        assert result['success'] is False
 
     def test_wmo_icon_sunny(self):
         assert self.module._wmo_icon(0) == '☀️'

@@ -339,6 +339,34 @@ class WeatherModule:
         result_text = self._format_forecast(display_name, country, data, label)
         return {'success': True, 'result': result_text, 'data': data}
 
+    def get_forecast_for_date(self, date_str: str) -> dict:
+        """
+        Get weather forecast for a specific date (YYYY-MM-DD).
+
+        Fetches a 14-day forecast and filters to the requested date.
+        Returns single-day data dict with list values of length 1.
+        """
+        saved = self._settings.get_weather_location()
+        display_name = saved['location']
+        lat, lon, country = saved['lat'], saved['lon'], saved['country']
+
+        try:
+            data = self._fetch_forecast(lat, lon, days=14)
+        except Exception as e:
+            logger.error(f"Forecast fetch failed for date {date_str}: {e}")
+            return {'success': False, 'result': "No pude obtener la previsión.", 'data': {}}
+
+        if date_str not in data.get('dates', []):
+            return {
+                'success': False,
+                'result': f"La fecha {date_str} está fuera del rango de previsión (14 días).",
+                'data': {}
+            }
+
+        idx = data['dates'].index(date_str)
+        day_data = {k: [v[idx]] if isinstance(v, list) else v for k, v in data.items()}
+        return {'success': True, 'result': '', 'data': day_data}
+
     def _format_response(
         self, location: str, country: str, forecast: dict, location_updated: bool
     ) -> str:
