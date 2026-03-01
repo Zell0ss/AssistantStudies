@@ -59,6 +59,10 @@ class ToolExecutor:
             # Notes
             "notes_search":              self._notes_search,
             "notes_get":                 self._notes_get,
+            "notes_create":              self._notes_create,
+            "notes_append":              self._notes_append,
+            "notes_add_tag":             self._notes_add_tag,
+            "notes_delete":              self._notes_delete,
         }
 
         handler = dispatch.get(tool_name)
@@ -204,3 +208,20 @@ class ToolExecutor:
     def _notes_get(self, inputs: dict):
         module = NotesModule(self._db, self._user_id)
         return module.get(inputs['note_id'])
+
+    def _notes_create(self, inputs: dict):
+        module = NotesModule(self._db, self._user_id)
+        return module.create(inputs['content'], inputs.get('tags'))
+
+    def _notes_append(self, inputs: dict):
+        module = NotesModule(self._db, self._user_id)
+        return module.append_text(inputs['note_id'], inputs['text'])
+
+    def _notes_add_tag(self, inputs: dict):
+        module = NotesModule(self._db, self._user_id)
+        return module.add_tag(inputs['note_id'], inputs['tag'])
+
+    def _notes_delete(self, inputs: dict):
+        module = NotesModule(self._db, self._user_id)
+        deleted = module.delete(inputs['note_id'])
+        return {'status': 'deleted'} if deleted else {'status': 'not_found'}
