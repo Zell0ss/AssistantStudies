@@ -130,20 +130,20 @@ def test_add_item_creates_list_and_item(db):
 
     # Verify list was created
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM lists WHERE user_id = ? AND list_type = ?",
+    cursor.execute("SELECT * FROM lists WHERE user_id = ? AND list_category = ?",
                    (12345, "inventory"))
     list_row = cursor.fetchone()
     assert list_row is not None
-    assert list_row[1] == 12345  # user_id
-    assert list_row[2] == "inventory"  # list_type
+    assert list_row['user_id'] == 12345
+    assert list_row['list_category'] == "inventory"
 
     # Verify item was added
-    cursor.execute("SELECT * FROM list_items WHERE list_id = ?", (list_row[0],))
+    cursor.execute("SELECT * FROM list_items WHERE list_id = ?", (list_row['id'],))
     item_row = cursor.fetchone()
     assert item_row is not None
-    assert item_row[2] == "Tomates"  # name
-    assert item_row[3] == 5  # quantity
-    assert item_row[4] == "kg"  # unit
+    assert item_row['name'] == "Tomates"
+    assert item_row['quantity'] == 5
+    assert item_row['unit'] == "kg"
 
 
 def test_add_duplicate_item_updates_quantity(db):
@@ -162,13 +162,13 @@ def test_add_duplicate_item_updates_quantity(db):
         SELECT li.name, li.quantity
         FROM list_items li
         JOIN lists l ON li.list_id = l.id
-        WHERE l.user_id = ? AND l.list_type = ?
+        WHERE l.user_id = ? AND l.list_category = ?
     """, (12345, "shopping"))
 
     items = cursor.fetchall()
     assert len(items) == 1
-    assert items[0][0] == "Pan"
-    assert items[0][1] == 5  # 2 + 3
+    assert items[0]['name'] == "Pan"
+    assert items[0]['quantity'] == 5  # 2 + 3
 
 
 def test_remove_item(db):
@@ -275,40 +275,44 @@ def test_set_quantity(db):
 
 def test_list_all_lists(db):
     """Test listing all lists for a user."""
-    # Create multiple lists
-    module1 = ItemListModule(db, 12345, 'test_list', 'inventory')
+    # Create lists with different categories (different names to avoid collisions)
+    module1 = ItemListModule(db, 12345, 'despensa', 'inventory')
     module1.add("Item1")
 
-    module2 = ItemListModule(db, 12345, 'test_list', 'shopping')
+    module2 = ItemListModule(db, 12345, 'compra', 'shopping')
     module2.add("Item2")
 
-    module3 = ItemListModule(db, 12345, 'test_list', 'packing')
+    module3 = ItemListModule(db, 12345, 'gijón', 'packing')
     module3.add("Item3")
 
     # List all lists for user
     lists = ItemListModule.list_all_lists(db, user_id=12345)
 
     assert len(lists) == 3
-    list_types = [lst['list_type'] for lst in lists]
-    assert "inventory" in list_types
-    assert "shopping" in list_types
-    assert "packing" in list_types
+    list_categories = [lst['list_category'] for lst in lists]
+    assert "inventory" in list_categories
+    assert "shopping" in list_categories
+    assert "packing" in list_categories
 
 
 def test_create_list(db):
     """Test explicitly creating a named list."""
-    # Create a named list
-    list_id = ItemListModule.create_list(db, 12345, "Compra semanal", "shopping")
+    # create_list returns a dict with list_id and status
+    result = ItemListModule.create_list(db, 12345, "Compra semanal", "shopping")
 
-    # Verify list was created
+    assert result is not None
+    assert 'list_id' in result
+    list_id = result['list_id']
+
+    # Verify list was created in DB
     cursor = db.cursor()
     cursor.execute("SELECT * FROM lists WHERE id = ?", (list_id,))
     row = cursor.fetchone()
 
     assert row is not None
-    assert row[1] == 12345  # user_id
-    assert row[2] == "shopping"  # list_type
-    assert row[3] == "Compra semanal"  # name
+    assert row['user_id'] == 12345
+    assert row['list_category'] == "shopping"
+    assert row['name'] == "Compra semanal"
 
 
 def test_multiple_users_separate_lists(db):

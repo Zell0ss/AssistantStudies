@@ -336,7 +336,7 @@ class ItemListModule:
         if not row:
             return False
 
-        current_quantity = row[0]
+        current_quantity = row['quantity']
         new_quantity = current_quantity + delta
 
         # Prevent negative quantities
