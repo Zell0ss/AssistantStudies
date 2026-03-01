@@ -4,7 +4,6 @@ Telegram bot handlers for Sebastian 2.0.
 
 Integrates parser, router, formatter, and sprite system.
 """
-import io
 import telebot
 from telegram_markdown import parse_markdown_to_entities
 from bot.formatter import ResponseFormatter
@@ -13,8 +12,9 @@ from modules.user_settings import UserSettingsModule
 from sprites.sprite_system import SpriteSystem
 from db.connection import get_connection
 from bot.ticket_handler import handle_media, try_resolve_pending
-from modules.ticket_generator import generate_image
 from loguru import logger
+# Note: `import io` and `from modules.ticket_generator import generate_image`
+# are needed when the legacy show_tickets block (below) is re-enabled for v2.
 
 
 def _send_markdown(bot, chat_id, text):

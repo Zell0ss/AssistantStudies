@@ -9,6 +9,7 @@ Flow:
 5. Sonnet/Alfred synthesizes a Spanish response from collected data.
 """
 import json
+from datetime import date
 from loguru import logger
 from anthropic import Anthropic
 from core.tools import ALL_TOOLS
@@ -17,10 +18,17 @@ from utils.config import get_config
 
 _MAX_ITERATIONS = 8
 
-_PLANNER_SYSTEM = """Eres el núcleo de razonamiento de Sebastian, asistente personal.
-Tu único trabajo es decidir qué herramientas usar para responder la pregunta del usuario.
-Usa las herramientas necesarias para reunir la información. No respondas al usuario directamente.
-Cuando tengas toda la información necesaria, devuelve un texto breve indicando que ya tienes los datos."""
+
+def _planner_system() -> str:
+    """Return planner system prompt with today's date injected."""
+    today = date.today().isoformat()
+    return (
+        f"Hoy es {today}.\n"
+        "Eres el núcleo de razonamiento de Sebastian, asistente personal.\n"
+        "Tu único trabajo es decidir qué herramientas usar para responder la pregunta del usuario.\n"
+        "Usa las herramientas necesarias para reunir la información. No respondas al usuario directamente.\n"
+        "Cuando tengas toda la información necesaria, devuelve un texto breve indicando que ya tienes los datos."
+    )
 
 _ALFRED_SYSTEM = """Eres Sebastian, el asistente personal de tu señor.
 Tu estilo es el de Alfred Pennyworth: servicial, eficiente, con flema británica.
@@ -57,7 +65,7 @@ class Orchestrator:
             response = self._client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=1024,
-                system=_PLANNER_SYSTEM,
+                system=_planner_system(),
                 tools=ALL_TOOLS,
                 messages=messages
             )
