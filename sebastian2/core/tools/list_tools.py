@@ -4,8 +4,9 @@ LIST_TOOLS = [
     {
         "name": "list_items",
         "description": (
-            "Lista todos los artículos de una lista del usuario (compra, maleta, etc.). "
-            "Devuelve los artículos con nombre, cantidad y unidad."
+            "Lista los artículos de una lista de usuario: compra, maleta, farmacia, etc. "
+            "No usar para el inventario del hogar (usa inventory_list para eso). "
+            "Devuelve artículos con nombre y cantidad."
         ),
         "input_schema": {
             "type": "object",

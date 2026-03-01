@@ -246,3 +246,25 @@ def test_list_remove_item_dispatches(mock_remove, db):
     result = executor.execute("list_remove_item", {"list_name": "compra", "item_name": "leche"})
     mock_remove.assert_called_once_with("leche")
     assert result == {'status': 'removed'}
+
+
+@patch('modules.item_list.ItemListModule.list_all')
+def test_list_items_dispatches(mock_list_all, db):
+    """list_items calls ItemListModule.list_all for the named list."""
+    mock_list_all.return_value = [{'item_name': 'leche', 'quantity': 2}]
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("list_items", {"list_name": "maleta"})
+    mock_list_all.assert_called_once_with()
+    assert result[0]['item_name'] == 'leche'
+
+
+@patch('modules.item_list.ItemListModule.clear_all')
+def test_list_clear_dispatches(mock_clear, db):
+    """list_clear calls ItemListModule.clear_all and returns count."""
+    mock_clear.return_value = 3
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("list_clear", {"list_name": "compra"})
+    mock_clear.assert_called_once_with()
+    assert result == {'status': 'cleared', 'count': 3}

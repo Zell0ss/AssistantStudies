@@ -11,7 +11,6 @@ from modules.calendar import CalendarModule
 from modules.weather import WeatherModule
 from modules.inventory import InventoryModule
 from modules.item_list import ItemListModule
-from modules.shopping import ShoppingModule
 from modules.notes import NotesModule
 
 
@@ -174,6 +173,7 @@ class ToolExecutor:
     # ── Lists (generic) ───────────────────────────────────────────────────────
 
     def _list_items(self, inputs: dict):
+        # Default only reached via the 'shopping_list' backward-compat alias (no list_name supplied)
         list_name = inputs.get('list_name', 'compra')
         module = ItemListModule(self._db, self._user_id, list_name, 'shopping')
         return module.list_all()
