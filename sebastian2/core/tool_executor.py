@@ -10,6 +10,7 @@ from loguru import logger
 from modules.calendar import CalendarModule
 from modules.weather import WeatherModule
 from modules.inventory import InventoryModule
+from modules.item_list import ItemListModule
 from modules.shopping import ShoppingModule
 from modules.notes import NotesModule
 
@@ -50,8 +51,12 @@ class ToolExecutor:
             "inventory_remove":          self._inventory_remove,
             "inventory_set_quantity":    self._inventory_set_quantity,
             "inventory_update_quantity": self._inventory_update_quantity,
-            # Shopping
-            "shopping_list":             self._shopping_list,
+            # Lists (generic)
+            "shopping_list":    self._list_items,   # backward-compatible alias
+            "list_items":       self._list_items,
+            "list_add_item":    self._list_add_item,
+            "list_remove_item": self._list_remove_item,
+            "list_clear":       self._list_clear,
             # Notes
             "notes_search":              self._notes_search,
             "notes_get":                 self._notes_get,
@@ -166,11 +171,29 @@ class ToolExecutor:
         module = InventoryModule(self._db, self._user_id, 'inventario', 'inventory')
         return module.update_quantity(inputs['item_name'], inputs['delta'])
 
-    # ── Shopping ──────────────────────────────────────────────────────────────
+    # ── Lists (generic) ───────────────────────────────────────────────────────
 
-    def _shopping_list(self, inputs: dict):
-        module = ShoppingModule(self._db, self._user_id, 'compra', 'shopping')
+    def _list_items(self, inputs: dict):
+        list_name = inputs.get('list_name', 'compra')
+        module = ItemListModule(self._db, self._user_id, list_name, 'shopping')
         return module.list_all()
+
+    def _list_add_item(self, inputs: dict):
+        module = ItemListModule(self._db, self._user_id, inputs['list_name'], 'shopping')
+        return module.add(
+            item_name=inputs['item_name'],
+            quantity=inputs.get('quantity', 1),
+        )
+
+    def _list_remove_item(self, inputs: dict):
+        module = ItemListModule(self._db, self._user_id, inputs['list_name'], 'shopping')
+        removed = module.remove(inputs['item_name'])
+        return {'status': 'removed'} if removed else {'status': 'not_found'}
+
+    def _list_clear(self, inputs: dict):
+        module = ItemListModule(self._db, self._user_id, inputs['list_name'], 'shopping')
+        count = module.clear_all()
+        return {'status': 'cleared', 'count': count}
 
     # ── Notes ─────────────────────────────────────────────────────────────────
 

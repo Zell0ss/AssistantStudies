@@ -1,16 +1,4 @@
-"""Shopping tool definitions for Orchestrator."""
+"""Shopping tools — kept for backward compatibility; generic list tools in list_tools.py."""
+from .list_tools import LIST_TOOLS
 
-SHOPPING_TOOLS = [
-    {
-        "name": "shopping_list",
-        "description": (
-            "Lista todos los artículos de la lista de compra del usuario. "
-            "Útil para saber qué hay pendiente de comprar."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "required": []
-        }
-    }
-]
+SHOPPING_TOOLS = LIST_TOOLS

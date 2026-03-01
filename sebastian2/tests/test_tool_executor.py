@@ -224,3 +224,25 @@ def test_inventory_update_quantity_dispatches(mock_update, db):
     result = executor.execute("inventory_update_quantity", {"item_name": "aceite", "delta": -2})
     mock_update.assert_called_once_with("aceite", -2)
     assert result['status'] == 'updated'
+
+
+@patch('modules.item_list.ItemListModule.add')
+def test_list_add_item_dispatches(mock_add, db):
+    """list_add_item calls ItemListModule.add for the named list."""
+    mock_add.return_value = {'status': 'added', 'item': {'name': 'leche'}}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("list_add_item", {"list_name": "compra", "item_name": "leche"})
+    mock_add.assert_called_once_with(item_name="leche", quantity=1)
+    assert result['status'] == 'added'
+
+
+@patch('modules.item_list.ItemListModule.remove')
+def test_list_remove_item_dispatches(mock_remove, db):
+    """list_remove_item calls ItemListModule.remove."""
+    mock_remove.return_value = True
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("list_remove_item", {"list_name": "compra", "item_name": "leche"})
+    mock_remove.assert_called_once_with("leche")
+    assert result == {'status': 'removed'}
