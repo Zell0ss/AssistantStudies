@@ -113,3 +113,40 @@ def test_weather_forecast_for_date_dispatches(mock_forecast, db):
     result = executor.execute("weather_forecast_for_date", {"date": "2026-03-05"})
     mock_forecast.assert_called_once_with("2026-03-05")
     assert result['precip_prob'] == [70]
+
+
+@patch('modules.calendar.CalendarModule.add_event')
+def test_calendar_add_event_dispatches(mock_add, db):
+    """calendar_add_event calls CalendarModule.add_event with correct args."""
+    mock_add.return_value = {'status': 'added', 'message': 'Evento añadido'}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("calendar_add_event", {
+        "title": "Dentista", "date": "2026-03-10", "time": "10:00"
+    })
+    mock_add.assert_called_once()
+    assert result['status'] == 'added'
+
+
+@patch('modules.calendar.CalendarModule.remove_event')
+def test_calendar_remove_event_dispatches(mock_remove, db):
+    """calendar_remove_event calls CalendarModule.remove_event."""
+    mock_remove.return_value = {'status': 'removed', 'message': 'Eliminado'}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("calendar_remove_event", {"title": "Dentista"})
+    mock_remove.assert_called_once()
+    assert result['status'] == 'removed'
+
+
+@patch('modules.calendar.CalendarModule.update_event')
+def test_calendar_update_event_dispatches(mock_update, db):
+    """calendar_update_event calls CalendarModule.update_event."""
+    mock_update.return_value = {'status': 'updated', 'message': 'Actualizado'}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("calendar_update_event", {
+        "title": "Dentista", "new_time": "11:00"
+    })
+    mock_update.assert_called_once()
+    assert result['status'] == 'updated'

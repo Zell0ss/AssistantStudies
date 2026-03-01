@@ -35,6 +35,10 @@ class ToolExecutor:
             "calendar_search_events":    self._calendar_search_events,
             "calendar_list_events":      self._calendar_list_events,
             "calendar_find_by_datetime": self._calendar_find_by_datetime,
+            "calendar_add_event":    self._calendar_add_event,
+            "calendar_remove_event": self._calendar_remove_event,
+            "calendar_update_event": self._calendar_update_event,
+            "calendar_add_note":     self._calendar_add_note,
             # Weather
             "weather_get":               self._weather_get,
             "weather_forecast":          self._weather_forecast,
@@ -71,6 +75,38 @@ class ToolExecutor:
         module = CalendarModule(self._db, self._user_id)
         event_date = date.fromisoformat(inputs['date'])
         return module.find_by_datetime(event_date, inputs['time'])
+
+    def _calendar_add_event(self, inputs: dict):
+        module = CalendarModule(self._db, self._user_id)
+        event_date = date.fromisoformat(inputs['date']) if inputs.get('date') else None
+        return module.add_event(
+            title=inputs['title'],
+            event_date=event_date,
+            event_time=inputs.get('time'),
+            all_day=inputs.get('all_day', False),
+            recurrence_rule=inputs.get('recurrence_rule'),
+        )
+
+    def _calendar_remove_event(self, inputs: dict):
+        module = CalendarModule(self._db, self._user_id)
+        event_date = date.fromisoformat(inputs['date']) if inputs.get('date') else None
+        return module.remove_event(title=inputs['title'], event_date=event_date)
+
+    def _calendar_update_event(self, inputs: dict):
+        module = CalendarModule(self._db, self._user_id)
+        event_date = date.fromisoformat(inputs['date']) if inputs.get('date') else None
+        new_date = date.fromisoformat(inputs['new_date']) if inputs.get('new_date') else None
+        return module.update_event(
+            title=inputs['title'],
+            event_date=event_date,
+            new_title=inputs.get('new_title'),
+            new_date=new_date,
+            new_time=inputs.get('new_time'),
+        )
+
+    def _calendar_add_note(self, inputs: dict):
+        module = CalendarModule(self._db, self._user_id)
+        return module.add_note(event_id=inputs['event_id'], note_text=inputs['note_text'])
 
     # ── Weather ───────────────────────────────────────────────────────────────
 

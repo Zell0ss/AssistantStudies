@@ -62,5 +62,121 @@ CALENDAR_TOOLS = [
             },
             "required": ["date", "time"]
         }
-    }
+    },
+    # ── Write tools ────────────────────────────────────────────────────────────
+    {
+        "name": "calendar_add_event",
+        "description": (
+            "Crea un nuevo evento en el calendario. "
+            "Usa esta herramienta cuando el usuario quiera añadir una cita, recordatorio o evento."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Título del evento. Ejemplo: 'Dentista', 'Teatro Jovellanos'."
+                },
+                "date": {
+                    "type": "string",
+                    "description": "Fecha en formato YYYY-MM-DD. Ejemplo: '2026-03-10'."
+                },
+                "time": {
+                    "type": "string",
+                    "description": "Hora en formato HH:MM (24h). Omite si es todo el día. Ejemplo: '10:00'."
+                },
+                "all_day": {
+                    "type": "boolean",
+                    "description": "True si el evento es todo el día (sin hora específica)."
+                },
+                "recurrence_rule": {
+                    "type": "string",
+                    "description": (
+                        "Regla de recurrencia. Valores: 'daily', "
+                        "'weekly:MON', 'weekly:MON,WED', 'monthly:15', 'monthly:first-TUE'. "
+                        "Omite si es un evento único."
+                    )
+                }
+            },
+            "required": ["title"]
+        }
+    },
+    {
+        "name": "calendar_remove_event",
+        "description": (
+            "Elimina un evento del calendario por título. "
+            "Si hay varios eventos con el mismo nombre, devuelve 'needs_clarification' "
+            "con la lista de opciones para que el usuario especifique cuál."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Título del evento a eliminar."
+                },
+                "date": {
+                    "type": "string",
+                    "description": "Fecha YYYY-MM-DD para desambiguar si hay varios eventos con el mismo nombre."
+                }
+            },
+            "required": ["title"]
+        }
+    },
+    {
+        "name": "calendar_update_event",
+        "description": (
+            "Modifica un evento existente: cambia su título, fecha u hora. "
+            "Identifica el evento por su título actual (y opcionalmente fecha). "
+            "Proporciona solo los campos que cambien."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Título actual del evento (para identificarlo)."
+                },
+                "date": {
+                    "type": "string",
+                    "description": "Fecha actual YYYY-MM-DD del evento (para desambiguar)."
+                },
+                "new_title": {
+                    "type": "string",
+                    "description": "Nuevo título (si se cambia)."
+                },
+                "new_date": {
+                    "type": "string",
+                    "description": "Nueva fecha YYYY-MM-DD (si se cambia)."
+                },
+                "new_time": {
+                    "type": "string",
+                    "description": "Nueva hora HH:MM (si se cambia)."
+                }
+            },
+            "required": ["title"]
+        }
+    },
+    {
+        "name": "calendar_add_note",
+        "description": (
+            "Añade una nota de texto libre a un evento existente (identificado por event_id). "
+            "Útil para apuntar 'llevar dinero', 'confirmar cita', etc. junto a un evento. "
+            "Usa calendar_search_events o calendar_find_by_datetime primero para obtener el event_id."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "event_id": {
+                    "type": "integer",
+                    "description": "ID numérico del evento (obtenido con calendar_search_events)."
+                },
+                "note_text": {
+                    "type": "string",
+                    "description": "Texto de la nota a añadir al evento."
+                }
+            },
+            "required": ["event_id", "note_text"]
+        }
+    },
 ]
