@@ -133,3 +133,83 @@ def test_tool_executor_error_handled_gracefully(mock_anthropic_cls, db):
         result = orch.handle("busca algo")
 
     assert isinstance(result, str)
+
+
+class TestOrchestratorEndToEnd:
+    """Full compound-query flow with mocked Anthropic API and mocked module calls."""
+
+    @pytest.fixture
+    def db(self):
+        conn = sqlite3.connect(':memory:')
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.executescript('''
+            CREATE TABLE user_settings (
+                user_id TEXT PRIMARY KEY,
+                sprite_skin TEXT DEFAULT 'default',
+                weather_location TEXT DEFAULT 'Madrid',
+                weather_lat REAL DEFAULT 40.4168,
+                weather_lon REAL DEFAULT -3.7038,
+                weather_country TEXT DEFAULT 'ES'
+            );
+            INSERT INTO user_settings VALUES
+                ('99999','default','Madrid',40.4168,-3.7038,'ES');
+        ''')
+        conn.commit()
+        yield MySQLCompatibleConnection(conn)
+
+    @patch('core.orchestrator.Anthropic')
+    @patch('core.tool_executor.ToolExecutor.execute')
+    def test_paraguas_al_teatro_flow(self, mock_execute, mock_anthropic_cls, db):
+        """
+        Full compound query: search calendar for 'teatro', get weather for that date.
+        Verifies Orchestrator calls both tools and synthesizes using the data.
+        """
+        mock_client = MagicMock()
+        mock_anthropic_cls.return_value = mock_client
+
+        def execute_side_effect(tool_name, tool_input):
+            if tool_name == 'calendar_search_events':
+                return [{'event_id': 42, 'title': 'Teatro Jovellanos',
+                         'date': '2026-03-05', 'time': '19:30', 'all_day': False}]
+            if tool_name == 'weather_forecast_for_date':
+                return {'dates': ['2026-03-05'], 'precip_prob': [75],
+                        'temp_max': [14.0], 'temp_min': [9.0], 'windgusts': [40.0]}
+            return []
+
+        mock_execute.side_effect = execute_side_effect
+
+        # Haiku: requests calendar search, then weather, then done
+        mock_client.messages.create.side_effect = [
+            _make_tool_use_response('calendar_search_events', 't1', {'query': 'teatro'}),
+            _make_tool_use_response('weather_forecast_for_date', 't2', {'date': '2026-03-05'}),
+            _make_text_response('Tengo la información necesaria.'),
+            # Synthesizer (Sonnet)
+            _make_text_response(
+                'Sí señor. El Teatro Jovellanos es el miércoles a las 19:30. '
+                'Hay un 75% de probabilidad de lluvia. ☂️ Lleve paraguas.'
+            ),
+        ]
+
+        from core.orchestrator import Orchestrator
+        orch = Orchestrator(db, '99999')
+        result = orch.handle("¿necesito llevar paraguas al teatro?")
+
+        # Both tools were called
+        called_tools = [c[0][0] for c in mock_execute.call_args_list]
+        assert 'calendar_search_events' in called_tools
+        assert 'weather_forecast_for_date' in called_tools
+
+        # calendar_search_events was called with 'teatro'
+        calendar_call = next(c for c in mock_execute.call_args_list
+                             if c[0][0] == 'calendar_search_events')
+        assert calendar_call[0][1] == {'query': 'teatro'}
+
+        # weather_forecast_for_date was called with the date from the calendar result
+        weather_call = next(c for c in mock_execute.call_args_list
+                            if c[0][0] == 'weather_forecast_for_date')
+        assert weather_call[0][1] == {'date': '2026-03-05'}
+
+        # Final response is a string (Alfred synthesized it)
+        assert isinstance(result, str)
+        assert len(result) > 10
