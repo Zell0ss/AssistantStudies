@@ -7,9 +7,8 @@ Integrates parser, router, formatter, and sprite system.
 import io
 import telebot
 from telegram_markdown import parse_markdown_to_entities
-from core.haiku_parser import HaikuParser
-from core.router import ModuleRouter
 from bot.formatter import ResponseFormatter
+from core.orchestrator import Orchestrator
 from modules.user_settings import UserSettingsModule
 from sprites.sprite_system import SpriteSystem
 from db.connection import get_connection
@@ -34,7 +33,6 @@ def setup_handlers(bot, config):
         config: Configuration dict with authorized_users, authorized_ids
     """
     # Initialize components
-    parser = HaikuParser()
     formatter = ResponseFormatter()
     sprite_system = SpriteSystem()
 
@@ -204,9 +202,9 @@ Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
     @bot.message_handler(func=lambda message: True, content_types=['text'])
     def handle_text(message):
         """
-        Handle all text messages.
+        Handle all text messages via the Orchestrator.
 
-        Flow: parse → route → format → send photo with caption
+        Flow: Orchestrator (Haiku tool loop + Sonnet synthesis) → send text → send sprite
         """
         if not authorized(message.chat.username, message.chat.id):
             bot.reply_to(message, "No estás autorizado para usar este bot.")
@@ -221,78 +219,57 @@ Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
                 f"Processing text from {message.chat.username}: {message.text[:50]}..."
             )
 
-            # Parse intent
-            parsed = parser.parse(message.text)
-            parsed['_raw_message'] = message.text  # preserve original for chat.respond()
-            logger.debug(f"Parsed intent: {parsed}")
-
-            # Route to module
-            router = ModuleRouter(str(message.chat.id))
-            result = router.route(parsed)
-            logger.debug(f"Router result: {result}")
-
-            # Get user's sprite skin preference
+            # Orchestrate response via tool use loop
             conn = get_connection()
-            settings = UserSettingsModule(conn, str(message.chat.id))
+            orchestrator = Orchestrator(conn, str(message.chat.id))
+            response_text = orchestrator.handle(message.text)
+            logger.debug(f"Orchestrator response: {response_text[:100]}")
+
+            # Send text message
+            _send_markdown(bot, message.chat.id, response_text)
+
+            # --- Legacy show_tickets block (dead code in v1 — write tools not yet wired) ---
+            # When ticket write tools are implemented, this block should be revisited.
+            # Left intentionally: removing it would require router/parsed context which
+            # the Orchestrator path no longer provides.
+            # if (parsed.get("module") == "calendar" and
+            #         parsed.get("action") == "show_tickets" and
+            #         isinstance(result.get("data"), dict) and
+            #         result["data"].get("tickets")):
+            #     for ticket in result["data"]["tickets"]:
+            #         try:
+            #             img_bytes = generate_image(ticket)
+            #             if img_bytes:
+            #                 bot.send_photo(
+            #                     message.chat.id,
+            #                     io.BytesIO(img_bytes),
+            #                     caption=ticket['type']
+            #                 )
+            #             else:
+            #                 bot.send_message(
+            #                     message.chat.id,
+            #                     f"📋 {ticket['type']}: {ticket['value']}"
+            #                 )
+            #         except Exception as e:
+            #             logger.error(f"Failed to send ticket image: {e}")
+            # --- end legacy block ---
+
+            # Get sprite skin and send sprite
+            conn2 = get_connection()
+            settings = UserSettingsModule(conn2, str(message.chat.id))
             user_skin = settings.get_sprite_skin()
-
-            # Build context for formatter
-            data = result.get("data", {})
-            context = {
-                "module": parsed.get("module"),
-                "action": parsed.get("action"),
-                "low_stock": result.get("low_stock", False),
-                "empty": (
-                    data == [] or
-                    data is None or
-                    (isinstance(data, dict) and data.get("empty", False))
-                )
-            }
-
-            # Format response with sprite (using user's skin)
-            response = formatter.format_response(result, context, user_skin=user_skin)
-            logger.debug(f"Formatted response with skin '{user_skin}': {response}")
-
-            # Send text message first
-            _send_markdown(bot, message.chat.id, response["caption"])
-
-            # If show_tickets returned ticket data, send images
-            if (parsed.get("module") == "calendar" and
-                    parsed.get("action") == "show_tickets" and
-                    isinstance(result.get("data"), dict) and
-                    result["data"].get("tickets")):
-                for ticket in result["data"]["tickets"]:
-                    try:
-                        img_bytes = generate_image(ticket)
-                        if img_bytes:
-                            bot.send_photo(
-                                message.chat.id,
-                                io.BytesIO(img_bytes),
-                                caption=ticket['type']
-                            )
-                        else:
-                            bot.send_message(
-                                message.chat.id,
-                                f"📋 {ticket['type']}: {ticket['value']}"
-                            )
-                    except Exception as e:
-                        logger.error(f"Failed to send ticket image: {e}")
-
-            # Then send sprite as document to preserve transparency
+            sprite_path = sprite_system.get_sprite('neutral', skin=user_skin)
             try:
-                with open(response["sprite_path"], 'rb') as sprite:
+                with open(sprite_path, 'rb') as sprite:
                     bot.send_document(
                         chat_id=message.chat.id,
                         document=sprite,
-                        disable_notification=True  # Silent notification
+                        disable_notification=True
                     )
-                logger.info(f"Response sent successfully to {message.chat.username}")
-            except FileNotFoundError:
-                logger.error(f"Sprite file not found: {response['sprite_path']}")
-                # Text already sent, so just log the error
+            except (FileNotFoundError, TypeError):
+                pass  # Sprite failure is non-fatal
 
-            # Cleanup router connection
-            router.cleanup()
+            logger.info(f"Response sent successfully to {message.chat.username}")
 
         except Exception as e:
             logger.error(f"Error processing message: {e}", exc_info=True)
