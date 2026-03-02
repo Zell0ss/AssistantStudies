@@ -2,6 +2,72 @@
 
 ---
 
+# 🚀 Deployment 4: Orchestrator + Pending Plans (2026-03-02)
+
+**Version**: Sebastian 2.0 — Orchestrator (Haiku+Sonnet) + Pending Plans
+**Status**: Ready to deploy — 274/274 tests passing
+
+## What's New
+
+- **Orquestador completo**: Haiku como planner (tool-use loop), Sonnet/Alfred como sintetizador
+- **Planes pendientes**: Si el orquestador necesita un dato, guarda el estado y pregunta al usuario; retoma al responder
+- **`/abort`**: Nuevo comando para cancelar un plan abierto
+- **Limpieza de planes**: Al arrancar el bot, al expirar (24h) y con `/abort`
+
+## Pre-Deployment Steps
+
+### 1. Backup Production Database
+```bash
+mysqldump -u root -p sebastian_db > sebastian_db_backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### 2. Stop bot
+```bash
+sudo systemctl stop sebastian.service
+```
+
+### 3. Pull latest code
+```bash
+git pull origin main
+```
+
+### 4. Run migration 007 (conversations) if not already done
+```bash
+mysql -u root -p sebastian_db < db/migrations/007_conversations.sql
+```
+
+### 5. Run migration 008 (pending_plans) — NEW
+```bash
+mysql -u root -p sebastian_db < db/migrations/008_pending_plans.sql
+# Verify:
+mysql -u root -p sebastian_db -e "DESCRIBE pending_plans"
+```
+
+### 6. Start bot
+```bash
+sudo systemctl start sebastian.service
+sudo journalctl -u sebastian.service -f
+```
+
+## Smoke Tests
+
+```
+✅ "¿debo llevar paraguas a pilates?"
+   → Bot: "¿En qué ciudad tienes pilates?"
+   → Usuario: "Madrid"
+   → Bot: responde con tiempo en Madrid ✅
+
+✅ /abort (con plan abierto)
+   → "Plan cancelado, señor."
+
+✅ /abort (sin plan abierto)
+   → "No hay ningún plan pendiente."
+
+✅ "qué tengo esta semana" → agenda normal sin interferencias
+```
+
+---
+
 # ✅ Deployment 3: Calendar + Tickets (2026-02-18)
 
 **Version**: Sebastian 2.0 — Calendar, Ticket Scanning & Regeneration

@@ -116,7 +116,13 @@ def setup_handlers(bot, config):
 • "apunta que Rebe prefiere manzanas verdes"
 • "busca notas sobre Rebe"
 
+🌤️ **Tiempo:**
+• "qué tiempo hace"
+• "¿necesito paraguas mañana?"
+• "el tiempo esta semana en Gijón"
+
 💬 Escribe lo que necesitas en lenguaje natural.
+Si el bot te hace una pregunta y quieres cancelar: /abort
 Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
 """
         bot.reply_to(message, help_text, parse_mode='Markdown')

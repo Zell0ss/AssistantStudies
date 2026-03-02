@@ -6,7 +6,7 @@ Referencia rápida de todos los comandos disponibles por tipo de lista.
 
 ## 📊 Resumen del Sistema
 
-Sebastian 2.0 gestiona 7 módulos:
+Sebastian 2.0 gestiona 7 módulos mediante un **Orquestador** (Haiku planner + Sonnet Alfred):
 
 1. **Inventory** - Múltiples inventarios nombrados (con cantidades y alertas de stock bajo)
 2. **Shopping** - Listas de compra múltiples (con cantidades)
@@ -15,6 +15,17 @@ Sebastian 2.0 gestiona 7 módulos:
 5. **Calendar** - Agenda personal con eventos recurrentes
 6. **Tickets** - Entradas y códigos QR/barcode asociados a eventos
 7. **Tiempo** - Consulta del tiempo actual con ubicación persistente por usuario
+
+### Arquitectura del Orquestador
+
+```
+Mensaje usuario → Haiku (planner, tool-use loop)
+               → ToolExecutor → módulos → BD
+               → Sonnet/Alfred (síntesis, estilo)
+               → Respuesta en español
+```
+
+**Planes pendientes:** Si el orquestador necesita un dato que no está en tu mensaje (ej: ciudad), te lo pregunta y guarda el plan. Cuando respondas, retoma la ejecución. Usa `/abort` para cancelar.
 
 ---
 
@@ -552,8 +563,20 @@ id, user_id, content, tags (JSON), created_at, updated_at
 
 ### Tabla: `user_settings`
 ```sql
-user_id, sprite_skin, created_at, updated_at
+user_id, sprite_skin, weather_location, weather_lat, weather_lon, weather_country, created_at, updated_at
 ```
+
+### Tabla: `conversations`
+```sql
+id, user_id, user_msg, bot_reply, created_at
+```
+
+### Tabla: `pending_plans`
+```sql
+id, user_id, original_message, messages_json (LONGTEXT), question, missing_field, created_at, expires_at
+```
+- Un solo plan abierto por usuario (UNIQUE KEY en user_id)
+- TTL de 24h; se limpia también con `/abort` y al reiniciar el bot
 
 ---
 
@@ -567,8 +590,10 @@ user_id, sprite_skin, created_at, updated_at
 | 004 | `004_calendar.sql` | Tabla events para el calendario |
 | 005 | `005_event_notes.sql` | Columna notes JSON en events (tickets) |
 | 006 | `006_weather_location.sql` | Columnas weather_location/lat/lon/country en user_settings |
+| 007 | `007_conversations.sql` | Tabla conversations (historial de chat intra-día) |
+| 008 | `008_pending_plans.sql` | Tabla pending_plans (planes pendientes del orquestador) |
 
 ---
 
-**Última actualización:** 2026-02-18
-**Versión Sebastian:** 2.0 (Calendar + Tickets)
+**Última actualización:** 2026-03-02
+**Versión Sebastian:** 2.0 (Orchestrator + Pending Plans)
