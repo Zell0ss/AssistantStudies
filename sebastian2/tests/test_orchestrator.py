@@ -4,6 +4,31 @@ import pytest
 import sqlite3
 from unittest.mock import MagicMock, patch
 from tests.test_item_list_module import MySQLCompatibleConnection
+from core.orchestrator import _messages_to_json, _messages_from_json
+
+
+def test_messages_roundtrip_plain_string():
+    messages = [{"role": "user", "content": "Hola"}]
+    assert _messages_from_json(_messages_to_json(messages)) == messages
+
+
+def test_messages_roundtrip_dict_content():
+    messages = [
+        {"role": "user", "content": "Hola"},
+        {"role": "assistant", "content": [{"type": "text", "text": "Señor"}]},
+    ]
+    result = _messages_from_json(_messages_to_json(messages))
+    assert result[1]["content"][0]["text"] == "Señor"
+
+
+def test_messages_to_json_handles_sdk_objects():
+    """SDK objects with model_dump() are serialized as dicts."""
+    sdk_obj = MagicMock()
+    sdk_obj.model_dump.return_value = {"type": "text", "text": "hi"}
+    messages = [{"role": "assistant", "content": [sdk_obj]}]
+    result = _messages_from_json(_messages_to_json(messages))
+    assert result[0]["content"][0]["type"] == "text"
+    assert result[0]["content"][0]["text"] == "hi"
 
 
 @pytest.fixture
@@ -69,6 +94,30 @@ def test_simple_no_tools_returns_synthesis(mock_anthropic_cls, db):
 
     assert isinstance(result, str)
     assert len(result) > 0
+
+
+@patch('core.orchestrator.Anthropic')
+@patch('core.tool_executor.ToolExecutor.execute')
+@patch('core.orchestrator.logger')
+def test_tool_steps_are_logged(mock_logger, mock_execute, mock_anthropic_cls, db):
+    """Calling a tool logs 'Calling tool X' before and 'Tool X →' after."""
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_execute.return_value = [{'event_id': 42, 'title': 'Teatro'}]
+    mock_client.messages.create.side_effect = [
+        _make_tool_use_response('calendar_search_events', 'tool_1', {'query': 'teatro'}),
+        _make_text_response("Tengo toda la info"),
+        _make_text_response("El teatro es el miércoles."),
+    ]
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    orch.handle("¿cuándo es el teatro?")
+
+    all_debug_calls = [str(c) for c in mock_logger.debug.call_args_list]
+    all_info_calls = [str(c) for c in mock_logger.info.call_args_list]
+    assert any("calendar_search_events" in c and "Calling" in c for c in all_debug_calls)
+    assert any("calendar_search_events" in c and "→" in c for c in all_info_calls)
 
 
 @patch('core.orchestrator.Anthropic')

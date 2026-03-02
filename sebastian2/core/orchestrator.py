@@ -19,6 +19,25 @@ from utils.config import get_config
 _MAX_ITERATIONS = 8
 
 
+def _messages_to_json(messages: list) -> str:
+    """Serialize Haiku messages to JSON. Converts SDK objects via model_dump()."""
+    serializable = []
+    for msg in messages:
+        content = msg["content"]
+        if isinstance(content, list):
+            content = [
+                block.model_dump() if hasattr(block, 'model_dump') else block
+                for block in content
+            ]
+        serializable.append({"role": msg["role"], "content": content})
+    return json.dumps(serializable, ensure_ascii=False)
+
+
+def _messages_from_json(json_str: str) -> list:
+    """Deserialize messages JSON. Anthropic API accepts plain dicts."""
+    return json.loads(json_str)
+
+
 def _planner_system() -> str:
     """Return planner system prompt with today's date injected."""
     today = date.today().isoformat()
@@ -81,6 +100,10 @@ class Orchestrator:
             had_error = False
             for block in tool_blocks:
                 try:
+                    logger.debug(
+                        f"Calling tool {block.name} | input: "
+                        f"{json.dumps(block.input, ensure_ascii=False)}"
+                    )
                     raw = self._executor.execute(block.name, block.input)
                     result_content = json.dumps(raw, default=str, ensure_ascii=False)
                     tool_results_summary.append({
@@ -88,7 +111,7 @@ class Orchestrator:
                         "input": block.input,
                         "result": raw
                     })
-                    logger.info(f"Tool {block.name} → {result_content[:150]}")
+                    logger.info(f"Tool {block.name} → {result_content[:200]}")
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
@@ -133,5 +156,15 @@ class Orchestrator:
             max_tokens=400,
             system=_ALFRED_SYSTEM,
             messages=[{"role": "user", "content": synthesis_prompt}]
+        )
+        return response.content[0].text.strip()
+
+    def _ask_user(self, question: str) -> str:
+        """Have Alfred ask the user for clarification in his characteristic style."""
+        response = self._client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=100,
+            system=_ALFRED_SYSTEM,
+            messages=[{"role": "user", "content": f"Necesito preguntarle esto al usuario: {question}"}]
         )
         return response.content[0].text.strip()
