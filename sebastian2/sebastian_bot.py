@@ -59,6 +59,14 @@ def main():
         logger.info("Bot is ready to receive messages!")
         logger.info("=" * 60)
 
+        # Clear all pending plans on startup (plans are session-scoped)
+        try:
+            from db.connection import get_connection
+            from db.pending_plan_repo import PendingPlanRepository
+            PendingPlanRepository(get_connection()).delete_all()
+        except Exception as e:
+            logger.warning(f"Could not clear pending plans on startup: {e}")
+
         # Start infinite polling
         bot.infinity_polling(timeout=60, long_polling_timeout=60)
 
