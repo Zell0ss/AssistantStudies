@@ -92,14 +92,15 @@ def test_calendar_search_events_dispatches(mock_search, db):
 
 @patch('modules.weather.WeatherModule.get_weather')
 def test_weather_get_dispatches(mock_weather, db):
-    """weather_get calls WeatherModule.get_weather and returns data field."""
+    """weather_get calls WeatherModule.get_weather and returns pre-formatted text."""
     mock_weather.return_value = {
-        'success': True, 'result': 'texto', 'data': {'temp': 15.0}
+        'success': True, 'result': '📍 Madrid, ES\n🌡️ 15°C', 'data': {'temp': 15.0}
     }
     from core.tool_executor import ToolExecutor
     executor = ToolExecutor(db, '99999')
     result = executor.execute("weather_get", {})
-    assert result['temp'] == 15.0
+    assert isinstance(result, str)
+    assert 'Madrid' in result
 
 
 @patch('modules.weather.WeatherModule.get_forecast_for_date')

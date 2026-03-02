@@ -4,6 +4,7 @@ Telegram bot handlers for Sebastian 2.0.
 
 Integrates parser, router, formatter, and sprite system.
 """
+import io
 import telebot
 from telegram_markdown import parse_markdown_to_entities
 from bot.formatter import ResponseFormatter
@@ -246,11 +247,20 @@ Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
             # Orchestrate response via tool use loop
             conn = get_connection()
             orchestrator = Orchestrator(conn, str(message.chat.id))
-            response_text = orchestrator.handle(message.text)
+            result = orchestrator.handle(message.text)
+            response_text = result["text"]
+            ticket_images = result.get("images", [])
             logger.debug(f"Orchestrator response: {response_text[:100]}")
 
             # Send text message
             _send_markdown(bot, message.chat.id, response_text)
+
+            # Send ticket images if any
+            for img_bytes in ticket_images:
+                try:
+                    bot.send_photo(chat_id=message.chat.id, photo=io.BytesIO(img_bytes))
+                except Exception as e:
+                    logger.warning(f"Failed to send ticket image: {e}")
 
             # --- Legacy show_tickets block (dead code in v1 — write tools not yet wired) ---
             # When ticket write tools are implemented, this block should be revisited.

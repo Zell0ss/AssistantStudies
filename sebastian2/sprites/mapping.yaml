@@ -27,6 +27,6 @@ default_skin: sebastian
 # Available skins (add new skins here as you create them)
 available_skins:
   - sebastian
-  # - cute
+  - josem
   # - serious
   # Add more skins here...

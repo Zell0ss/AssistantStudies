@@ -15,6 +15,7 @@ from anthropic import Anthropic
 from core.tools import ALL_TOOLS
 from core.tool_executor import ToolExecutor
 from db.pending_plan_repo import PendingPlanRepository
+from modules.ticket_generator import generate_image
 from utils.config import get_config
 
 _MAX_ITERATIONS = 8
@@ -134,7 +135,7 @@ class Orchestrator:
                     rc.input["question"],
                     rc.input.get("missing_field"),
                 )
-                return self._ask_user(rc.input["question"])
+                return {"text": self._ask_user(rc.input["question"]), "images": []}
 
             # Execute tools normally
             tool_results = []
@@ -166,7 +167,10 @@ class Orchestrator:
             messages.append({"role": "user", "content": tool_results})
 
         self._repo.delete(self._user_id)
-        return self._synthesize(original_message, tool_results_summary)
+        return {
+            "text": self._synthesize(original_message, tool_results_summary),
+            "images": self._collect_images(tool_results_summary),
+        }
 
     def handle(self, user_message: str) -> str:
         """
@@ -220,7 +224,7 @@ class Orchestrator:
                         block.input["question"],
                         block.input.get("missing_field"),
                     )
-                    return self._ask_user(block.input["question"])
+                    return {"text": self._ask_user(block.input["question"]), "images": []}
                 try:
                     logger.debug(
                         f"Calling tool {block.name} | input: "
@@ -253,7 +257,24 @@ class Orchestrator:
             messages.append({"role": "assistant", "content": response.content})
             messages.append({"role": "user", "content": tool_results})
 
-        return self._synthesize(user_message, tool_results_summary)
+        return {
+            "text": self._synthesize(user_message, tool_results_summary),
+            "images": self._collect_images(tool_results_summary),
+        }
+
+    def _collect_images(self, tool_results_summary: list) -> list:
+        """Generate ticket images from any calendar_get_tickets tool results."""
+        images = []
+        for item in tool_results_summary:
+            if item['tool'] == 'calendar_get_tickets':
+                for ticket in item.get('result', []):
+                    try:
+                        img_bytes = generate_image(ticket)
+                        if img_bytes:
+                            images.append(img_bytes)
+                    except Exception as e:
+                        logger.warning(f"Failed to generate ticket image: {e}")
+        return images
 
     def _synthesize(self, user_message: str, tool_results: list) -> str:
         """Call Sonnet to synthesize a Spanish Alfred-style response."""

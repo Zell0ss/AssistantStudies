@@ -158,6 +158,41 @@ CALENDAR_TOOLS = [
         }
     },
     {
+        "name": "calendar_get_tickets",
+        "description": (
+            "Obtiene las entradas o tickets (QR, códigos de barras) almacenados en un evento. "
+            "Devuelve una lista de tickets con su tipo y valor. "
+            "Usa calendar_search_events primero para obtener el event_id."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "event_id": {
+                    "type": "integer",
+                    "description": "ID numérico del evento (obtenido con calendar_search_events)."
+                }
+            },
+            "required": ["event_id"]
+        }
+    },
+    {
+        "name": "calendar_clear_tickets",
+        "description": (
+            "Elimina todos los tickets almacenados en un evento. "
+            "Usa calendar_search_events primero para obtener el event_id."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "event_id": {
+                    "type": "integer",
+                    "description": "ID numérico del evento."
+                }
+            },
+            "required": ["event_id"]
+        }
+    },
+    {
         "name": "calendar_add_note",
         "description": (
             "Añade una nota de texto libre a un evento existente (identificado por event_id). "

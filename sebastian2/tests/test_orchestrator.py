@@ -108,8 +108,9 @@ def test_simple_no_tools_returns_synthesis(mock_anthropic_cls, db):
     orch = Orchestrator(db, '99999')
     result = orch.handle("Hola")
 
-    assert isinstance(result, str)
-    assert len(result) > 0
+    assert isinstance(result, dict)
+    assert len(result["text"]) > 0
+    assert result["images"] == []
 
 
 @patch('core.orchestrator.Anthropic')
@@ -158,8 +159,9 @@ def test_single_tool_call_then_synthesis(mock_execute, mock_anthropic_cls, db):
     result = orch.handle("¿cuándo es el teatro?")
 
     mock_execute.assert_called_once_with('calendar_search_events', {'query': 'teatro'})
-    assert isinstance(result, str)
-    assert len(result) > 0
+    assert isinstance(result, dict)
+    assert len(result["text"]) > 0
+    assert result["images"] == []
 
 
 @patch('core.orchestrator.Anthropic')
@@ -178,7 +180,8 @@ def test_max_iterations_stops_loop(mock_anthropic_cls, db):
         orch = Orchestrator(db, '99999')
         result = orch.handle("infinite loop test")
 
-    assert isinstance(result, str)
+    assert isinstance(result, dict)
+    assert result["images"] == []
 
 
 @patch('core.orchestrator.Anthropic')
@@ -197,7 +200,7 @@ def test_tool_executor_error_handled_gracefully(mock_anthropic_cls, db):
         orch = Orchestrator(db, '99999')
         result = orch.handle("busca algo")
 
-    assert isinstance(result, str)
+    assert isinstance(result, dict)
 
 
 class TestOrchestratorEndToEnd:
@@ -285,9 +288,10 @@ class TestOrchestratorEndToEnd:
                             if c[0][0] == 'weather_forecast_for_date')
         assert weather_call[0][1] == {'date': '2026-03-05'}
 
-        # Final response is a string (Alfred synthesized it)
-        assert isinstance(result, str)
-        assert len(result) > 10
+        # Final response is a dict with text and no ticket images
+        assert isinstance(result, dict)
+        assert len(result["text"]) > 10
+        assert result["images"] == []
 
 
 @patch('core.orchestrator.Anthropic')
@@ -328,7 +332,8 @@ def test_plan_resumed_when_user_answers(mock_repo_cls, mock_anthropic_cls, db):
         result = orch.handle("Madrid")
 
     mock_repo.delete.assert_called_once_with('99999')
-    assert isinstance(result, str)
+    assert isinstance(result, dict)
+    assert len(result["text"]) > 0
 
 
 @patch('core.orchestrator.Anthropic')
@@ -359,7 +364,8 @@ def test_plan_discarded_on_new_query(mock_repo_cls, mock_anthropic_cls, db):
     result = orch.handle("qué tiempo hace en Sevilla")
 
     mock_repo.delete.assert_called_once_with('99999')
-    assert isinstance(result, str)
+    assert isinstance(result, dict)
+    assert len(result["text"]) > 0
 
 
 @patch('core.orchestrator.Anthropic')
@@ -394,6 +400,7 @@ def test_request_clarification_saves_plan_and_asks_user(mock_repo_cls, mock_anth
     assert args[3] == '¿En qué ciudad?'         # question
     assert args[4] == 'city'                    # missing_field
 
-    # Result is the Alfred-style question
-    assert isinstance(result, str)
-    assert len(result) > 0
+    # Result is a dict — text is the Alfred-style question, no images
+    assert isinstance(result, dict)
+    assert len(result["text"]) > 0
+    assert result["images"] == []

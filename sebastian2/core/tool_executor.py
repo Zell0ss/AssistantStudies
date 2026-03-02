@@ -39,6 +39,8 @@ class ToolExecutor:
             "calendar_remove_event":     self._calendar_remove_event,
             "calendar_update_event":     self._calendar_update_event,
             "calendar_add_note":         self._calendar_add_note,
+            "calendar_get_tickets":      self._calendar_get_tickets,
+            "calendar_clear_tickets":    self._calendar_clear_tickets,
             # Weather
             "weather_get":               self._weather_get,
             "weather_forecast":          self._weather_forecast,
@@ -122,12 +124,23 @@ class ToolExecutor:
         module = CalendarModule(self._db, self._user_id)
         return module.add_note(event_id=inputs['event_id'], note_text=inputs['note_text'])
 
+    def _calendar_get_tickets(self, inputs: dict):
+        module = CalendarModule(self._db, self._user_id)
+        notes = module.get_event_notes(inputs['event_id'])
+        if not notes:
+            return []
+        return notes.get('tickets', [])
+
+    def _calendar_clear_tickets(self, inputs: dict):
+        module = CalendarModule(self._db, self._user_id)
+        return module.clear_tickets(inputs['event_id'])
+
     # ── Weather ───────────────────────────────────────────────────────────────
 
     def _weather_get(self, inputs: dict):
         module = WeatherModule(self._db, self._user_id)
         response = module.get_weather(inputs.get('city'))
-        return response.get('data', {})
+        return response.get('result', '')
 
     def _weather_forecast(self, inputs: dict):
         module = WeatherModule(self._db, self._user_id)
@@ -136,7 +149,7 @@ class ToolExecutor:
             time_window=inputs.get('time_window', 'week'),
             days=inputs.get('days')
         )
-        return response.get('data', {})
+        return response.get('result', '')
 
     def _weather_forecast_for_date(self, inputs: dict):
         module = WeatherModule(self._db, self._user_id)
