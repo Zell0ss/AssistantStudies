@@ -47,6 +47,16 @@ def db():
         );
         INSERT INTO user_settings VALUES
             ('99999','default','Madrid',40.4168,-3.7038,'ES');
+        CREATE TABLE IF NOT EXISTS pending_plans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL UNIQUE,
+            original_message TEXT NOT NULL,
+            messages_json TEXT NOT NULL,
+            question TEXT NOT NULL,
+            missing_field TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME NOT NULL
+        );
     ''')
     conn.commit()
     yield MySQLCompatibleConnection(conn)
@@ -209,6 +219,16 @@ class TestOrchestratorEndToEnd:
             );
             INSERT INTO user_settings VALUES
                 ('99999','default','Madrid',40.4168,-3.7038,'ES');
+            CREATE TABLE IF NOT EXISTS pending_plans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL UNIQUE,
+                original_message TEXT NOT NULL,
+                messages_json TEXT NOT NULL,
+                question TEXT NOT NULL,
+                missing_field TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME NOT NULL
+            );
         ''')
         conn.commit()
         yield MySQLCompatibleConnection(conn)
@@ -268,6 +288,78 @@ class TestOrchestratorEndToEnd:
         # Final response is a string (Alfred synthesized it)
         assert isinstance(result, str)
         assert len(result) > 10
+
+
+@patch('core.orchestrator.Anthropic')
+@patch('core.orchestrator.PendingPlanRepository')
+def test_plan_resumed_when_user_answers(mock_repo_cls, mock_anthropic_cls, db):
+    """When there is an open plan and user answers it, loop resumes from saved state."""
+    import json as _json
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_repo = MagicMock()
+    mock_repo_cls.return_value = mock_repo
+
+    saved_messages = [
+        {"role": "user", "content": "¿paraguas a pilates?"},
+        {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "rc_1", "name": "request_clarification",
+             "input": {"question": "¿En qué ciudad?", "missing_field": "city"}}
+        ]}
+    ]
+    mock_repo.get_active.return_value = {
+        "original_message": "¿paraguas a pilates?",
+        "messages_json": _json.dumps(saved_messages),
+        "question": "¿En qué ciudad?",
+        "missing_field": "city",
+    }
+
+    # is_plan_reply → "SI", then Haiku runs weather tool, then synthesizes
+    mock_client.messages.create.side_effect = [
+        _make_text_response("SI"),                                          # is_plan_reply check
+        _make_tool_use_response('weather_get', 'w1', {'city': 'Madrid'}),   # Haiku resumes
+        _make_text_response("Tengo el tiempo"),                             # Haiku done
+        _make_text_response("Lleve paraguas, señor."),                      # Alfred
+    ]
+
+    with patch('core.tool_executor.ToolExecutor.execute', return_value={'rain': 80}):
+        from core.orchestrator import Orchestrator
+        orch = Orchestrator(db, '99999')
+        result = orch.handle("Madrid")
+
+    mock_repo.delete.assert_called_once_with('99999')
+    assert isinstance(result, str)
+
+
+@patch('core.orchestrator.Anthropic')
+@patch('core.orchestrator.PendingPlanRepository')
+def test_plan_discarded_on_new_query(mock_repo_cls, mock_anthropic_cls, db):
+    """When Haiku decides the message is a new query, the plan is deleted and fresh flow runs."""
+    import json as _json
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_repo = MagicMock()
+    mock_repo_cls.return_value = mock_repo
+
+    mock_repo.get_active.return_value = {
+        "original_message": "¿paraguas a pilates?",
+        "messages_json": _json.dumps([{"role": "user", "content": "¿paraguas?"}]),
+        "question": "¿En qué ciudad?",
+        "missing_field": "city",
+    }
+
+    mock_client.messages.create.side_effect = [
+        _make_text_response("NO"),                      # is_plan_reply check
+        _make_text_response("No se necesitan tools"),   # fresh Haiku
+        _make_text_response("Buenos días, señor."),     # Alfred
+    ]
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    result = orch.handle("qué tiempo hace en Sevilla")
+
+    mock_repo.delete.assert_called_once_with('99999')
+    assert isinstance(result, str)
 
 
 @patch('core.orchestrator.Anthropic')

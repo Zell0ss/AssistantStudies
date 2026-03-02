@@ -69,6 +69,105 @@ class Orchestrator:
         self._executor = ToolExecutor(db, user_id)
         self._repo = PendingPlanRepository(db)
 
+    def _is_plan_reply(self, user_message: str, plan_question: str) -> bool:
+        """Ask Haiku whether the user message answers the pending plan question."""
+        response = self._client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=10,
+            system="Responde solo 'SI' o 'NO', sin más texto.",
+            messages=[{"role": "user", "content": (
+                f"Pregunta pendiente: '{plan_question}'.\n"
+                f"Mensaje del usuario: '{user_message}'.\n"
+                f"¿Es el mensaje una respuesta directa a la pregunta pendiente?"
+            )}]
+        )
+        return response.content[0].text.strip().upper().startswith('S')
+
+    def _resume_plan(self, plan: dict, user_answer: str) -> str:
+        """Resume a pending plan by injecting the user's answer as a tool_result."""
+        messages = _messages_from_json(plan["messages_json"])
+        original_message = plan["original_message"]
+
+        # Find the request_clarification tool_use_id from the last assistant message
+        last_content = messages[-1]["content"]
+        rc_block = next(
+            b for b in last_content
+            if isinstance(b, dict)
+            and b.get("type") == "tool_use"
+            and b.get("name") == "request_clarification"
+        )
+
+        # Inject user's answer as the tool_result for that call
+        messages.append({
+            "role": "user",
+            "content": [{
+                "type": "tool_result",
+                "tool_use_id": rc_block["id"],
+                "content": user_answer
+            }]
+        })
+
+        # Resume the tool loop
+        tool_results_summary = []
+        for iteration in range(_MAX_ITERATIONS):
+            response = self._client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1024,
+                system=_planner_system(),
+                tools=ALL_TOOLS,
+                messages=messages
+            )
+
+            tool_blocks = [b for b in response.content if b.type == 'tool_use']
+
+            if response.stop_reason == 'end_turn' or not tool_blocks:
+                break
+
+            # Check if Haiku needs yet another clarification
+            rc = next((b for b in tool_blocks if b.name == 'request_clarification'), None)
+            if rc:
+                messages_to_save = messages + [{"role": "assistant", "content": response.content}]
+                self._repo.save(
+                    self._user_id,
+                    original_message,
+                    _messages_to_json(messages_to_save),
+                    rc.input["question"],
+                    rc.input.get("missing_field"),
+                )
+                return self._ask_user(rc.input["question"])
+
+            # Execute tools normally
+            tool_results = []
+            had_error = False
+            for block in tool_blocks:
+                try:
+                    logger.debug(
+                        f"Calling tool {block.name} | input: "
+                        f"{json.dumps(block.input, ensure_ascii=False)}"
+                    )
+                    raw = self._executor.execute(block.name, block.input)
+                    result_content = json.dumps(raw, default=str, ensure_ascii=False)
+                    tool_results_summary.append({"tool": block.name, "input": block.input, "result": raw})
+                    logger.info(f"Tool {block.name} → {result_content[:200]}")
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": result_content
+                    })
+                except Exception as e:
+                    logger.error(f"Tool {block.name} failed: {e}")
+                    had_error = True
+                    break
+
+            if had_error:
+                break
+
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "user", "content": tool_results})
+
+        self._repo.delete(self._user_id)
+        return self._synthesize(original_message, tool_results_summary)
+
     def handle(self, user_message: str) -> str:
         """
         Process a user message and return the final Spanish response.
@@ -79,6 +178,16 @@ class Orchestrator:
         Returns:
             Alfred-style Spanish response string
         """
+        # ── Pending plan check ─────────────────────────────────────────────────────
+        plan = self._repo.get_active(self._user_id)
+        if plan:
+            if self._is_plan_reply(user_message, plan["question"]):
+                return self._resume_plan(plan, user_message)
+            else:
+                self._repo.delete(self._user_id)
+                # Fall through to normal handling
+        # ───────────────────────────────────────────────────────────────────────────
+
         messages = [{"role": "user", "content": user_message}]
         tool_results_summary = []
 
