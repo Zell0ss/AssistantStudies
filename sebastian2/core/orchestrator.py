@@ -14,6 +14,7 @@ from loguru import logger
 from anthropic import Anthropic
 from core.tools import ALL_TOOLS
 from core.tool_executor import ToolExecutor
+from db.pending_plan_repo import PendingPlanRepository
 from utils.config import get_config
 
 _MAX_ITERATIONS = 8
@@ -66,6 +67,7 @@ class Orchestrator:
         config = get_config()
         self._client = Anthropic(api_key=config['anthropic_apikey'])
         self._executor = ToolExecutor(db, user_id)
+        self._repo = PendingPlanRepository(db)
 
     def handle(self, user_message: str) -> str:
         """
@@ -99,6 +101,17 @@ class Orchestrator:
             tool_results = []
             had_error = False
             for block in tool_blocks:
+                if block.name == "request_clarification":
+                    # Save loop state including the assistant turn that made the call
+                    messages_to_save = messages + [{"role": "assistant", "content": response.content}]
+                    self._repo.save(
+                        self._user_id,
+                        user_message,
+                        _messages_to_json(messages_to_save),
+                        block.input["question"],
+                        block.input.get("missing_field"),
+                    )
+                    return self._ask_user(block.input["question"])
                 try:
                     logger.debug(
                         f"Calling tool {block.name} | input: "

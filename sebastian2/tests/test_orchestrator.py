@@ -72,6 +72,12 @@ def _make_tool_use_response(tool_name, tool_id, tool_input):
     content_block.name = tool_name
     content_block.id = tool_id
     content_block.input = tool_input
+    content_block.model_dump.return_value = {
+        'type': 'tool_use',
+        'id': tool_id,
+        'name': tool_name,
+        'input': tool_input,
+    }
     msg.content = [content_block]
     return msg
 
@@ -262,3 +268,40 @@ class TestOrchestratorEndToEnd:
         # Final response is a string (Alfred synthesized it)
         assert isinstance(result, str)
         assert len(result) > 10
+
+
+@patch('core.orchestrator.Anthropic')
+@patch('core.orchestrator.PendingPlanRepository')
+def test_request_clarification_saves_plan_and_asks_user(mock_repo_cls, mock_anthropic_cls, db):
+    """When Haiku calls request_clarification, plan is saved and Alfred asks the question."""
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_repo = MagicMock()
+    mock_repo_cls.return_value = mock_repo
+    mock_repo.get_active.return_value = None  # no existing plan
+
+    # Haiku calls request_clarification; Alfred reformulates the question
+    mock_client.messages.create.side_effect = [
+        _make_tool_use_response(
+            'request_clarification', 'rc_1',
+            {'question': '¿En qué ciudad?', 'missing_field': 'city'}
+        ),
+        _make_text_response('¿En qué ciudad tiene usted pilates, señor?'),
+    ]
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    result = orch.handle("¿paraguas a pilates?")
+
+    # Plan was saved
+    mock_repo.save.assert_called_once()
+    args = mock_repo.save.call_args[0]
+    assert args[0] == '99999'                   # user_id
+    assert args[1] == '¿paraguas a pilates?'    # original_message
+    # args[2] is messages_json (str)
+    assert args[3] == '¿En qué ciudad?'         # question
+    assert args[4] == 'city'                    # missing_field
+
+    # Result is the Alfred-style question
+    assert isinstance(result, str)
+    assert len(result) > 0
