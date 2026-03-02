@@ -199,6 +199,24 @@ Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
         )
         logger.info(f"{message.chat.username} changed skin to: {skin_name}")
 
+    @bot.message_handler(commands=['abort'])
+    def handle_abort(message):
+        if not authorized(message.chat.username, message.chat.id):
+            bot.reply_to(message, "No estás autorizado.")
+            return
+        try:
+            conn = get_connection()
+            from db.pending_plan_repo import PendingPlanRepository
+            repo = PendingPlanRepository(conn)
+            deleted = repo.delete(str(message.chat.id))
+            if deleted:
+                bot.reply_to(message, "Plan cancelado, señor.")
+            else:
+                bot.reply_to(message, "No hay ningún plan pendiente.")
+        except Exception as e:
+            logger.error(f"/abort failed: {e}")
+            bot.reply_to(message, "Error al cancelar el plan.")
+
     @bot.message_handler(func=lambda message: True, content_types=['text'])
     def handle_text(message):
         """
