@@ -4,11 +4,13 @@ from .weather_tools import WEATHER_TOOLS
 from .inventory_tools import INVENTORY_TOOLS
 from .list_tools import LIST_TOOLS
 from .notes_tools import NOTES_TOOLS
+from .clarification_tools import CLARIFICATION_TOOLS
 
 ALL_TOOLS = (
     CALENDAR_TOOLS +
     WEATHER_TOOLS +
     INVENTORY_TOOLS +
     LIST_TOOLS +
-    NOTES_TOOLS
+    NOTES_TOOLS +
+    CLARIFICATION_TOOLS
 )
