@@ -266,12 +266,13 @@ class Orchestrator:
                 )
             context = "\n\n".join(context_lines)
             synthesis_prompt = (
+                f"Hoy es {date.today().isoformat()}.\n"
                 f"El usuario preguntó: {user_message}\n\n"
                 f"Datos recogidos:\n{context}\n\n"
                 f"Responde al usuario en español, de forma concisa y útil."
             )
         else:
-            synthesis_prompt = user_message
+            synthesis_prompt = f"Hoy es {date.today().isoformat()}.\n{user_message}"
 
         response = self._client.messages.create(
             model="claude-sonnet-4-6",
