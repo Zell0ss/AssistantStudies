@@ -16,11 +16,11 @@ class PendingPlanRepository:
         """Insert or replace the open plan for this user."""
         expires_at = (datetime.now() + timedelta(hours=_TTL_HOURS)).strftime('%Y-%m-%d %H:%M:%S')
         cur = self._db.cursor()
-        cur.execute("DELETE FROM pending_plans WHERE user_id = ?", (user_id,))
+        cur.execute("DELETE FROM pending_plans WHERE user_id = %s", (user_id,))
         cur.execute(
             "INSERT INTO pending_plans"
             " (user_id, original_message, messages_json, question, missing_field, expires_at)"
-            " VALUES (?, ?, ?, ?, ?, ?)",
+            " VALUES (%s, %s, %s, %s, %s, %s)",
             (user_id, original_message, messages_json, question, missing_field, expires_at)
         )
         self._db.commit()
@@ -30,7 +30,7 @@ class PendingPlanRepository:
         """Return the active (non-expired) plan for user, or None."""
         cur = self._db.cursor()
         cur.execute(
-            "SELECT * FROM pending_plans WHERE user_id = ? AND expires_at > ?",
+            "SELECT * FROM pending_plans WHERE user_id = %s AND expires_at > %s",
             (user_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         )
         row = cur.fetchone()
@@ -39,7 +39,7 @@ class PendingPlanRepository:
     def delete(self, user_id: str) -> bool:
         """Delete the plan for user. Returns True if a row was deleted."""
         cur = self._db.cursor()
-        cur.execute("DELETE FROM pending_plans WHERE user_id = ?", (user_id,))
+        cur.execute("DELETE FROM pending_plans WHERE user_id = %s", (user_id,))
         self._db.commit()
         deleted = cur.rowcount > 0
         if deleted:
