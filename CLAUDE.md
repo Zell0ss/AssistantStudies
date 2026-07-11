@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Obsidian Vault
+
+When Josem refers to "el fichero en Obsidian", "el vault", or similar for this project, he means:
+`/data/library/mi-wiki/docs/Obsidian/30-projects/sebastian/` (on seb01).
+Contains ADR.md, backlog.md, and sprint briefs (e.g. SPRINT1_RECON.md, SPRINT1_HARNESS.md).
+
 ## Project Overview
 
 Sebastian is a Telegram bot powered by OpenAI's GPT models and LangChain, providing conversational AI, image generation, weather forecasts, wine expertise, and productivity features. The bot uses a LangChain agent system to orchestrate specialized tools/chains for different types of queries.
