@@ -1,6 +1,8 @@
 """Repository for pending orchestrator plans."""
 from datetime import datetime, timedelta
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 _TTL_HOURS = 24
 

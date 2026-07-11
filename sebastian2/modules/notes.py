@@ -3,7 +3,9 @@
 Notes module - free-form text with tags.
 """
 from modules.base import BaseModule
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 import json
 
 class NotesModule(BaseModule):

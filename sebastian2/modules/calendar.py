@@ -6,7 +6,9 @@ import json
 from datetime import date, datetime, time
 from typing import Optional, List, Dict, Any
 from modules.base import BaseModule
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY, MO, TU, WE, TH, FR, SA, SU
 import calendar as cal_lib
 

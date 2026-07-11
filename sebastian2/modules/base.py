@@ -3,7 +3,9 @@
 Base class for all domain modules.
 Provides database connection and common utilities.
 """
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 class BaseModule:
     """

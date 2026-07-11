@@ -2,15 +2,12 @@
 """
 Database connection management with connection pooling.
 """
-from utils.logging_config import setup_logging
-
-# Initialize logging
-setup_logging()
-
 import pymysql
 from dbutils.pooled_db import PooledDB
-from loguru import logger
+from logcentral_client import get_logger
 import yaml
+
+logger = get_logger("sebastian")
 
 _pool = None
 _connection = None

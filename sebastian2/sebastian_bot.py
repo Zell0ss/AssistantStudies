@@ -6,22 +6,21 @@ Sebastian 2.0 - Personal Assistant Telegram Bot
 Main entry point for the bot. Initializes all components and starts polling.
 """
 import telebot
+import utils.logging_config  # noqa: F401 — removes loguru's default handler once
 from utils.config import get_config
-from utils.logging_config import setup_logging
 from bot.handlers import setup_handlers
 from bot.scheduler import start_daily_reminder
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 
 def main():
     """
     Main entry point.
 
-    Loads configuration, sets up logging, initializes bot, and starts polling.
+    Loads configuration, initializes bot, and starts polling.
     """
-    # Setup logging first
-    setup_logging(log_level='INFO')
-
     logger.info("=" * 60)
     logger.info("Sebastian 2.0 Starting...")
     logger.info("=" * 60)

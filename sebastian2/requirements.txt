@@ -14,6 +14,9 @@ pyyaml==6.0.1
 python-dotenv==1.0.0
 loguru==0.7.2
 
+# LogCentral
+-e /data/logcentral/packages/client/
+
 # Calendar
 APScheduler==3.10.4
 python-dateutil==2.9.0

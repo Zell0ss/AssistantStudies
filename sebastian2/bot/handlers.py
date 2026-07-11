@@ -13,7 +13,9 @@ from modules.user_settings import UserSettingsModule
 from sprites.sprite_system import SpriteSystem
 from db.connection import get_connection
 from bot.ticket_handler import handle_media, try_resolve_pending
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 # Note: `import io` and `from modules.ticket_generator import generate_image`
 # are needed when the legacy show_tickets block (below) is re-enabled for v2.
 
@@ -306,42 +308,14 @@ Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
             logger.info(f"Response sent successfully to {message.chat.username}")
 
         except Exception as e:
-            logger.error(f"Error processing message: {e}", exc_info=True)
-
-            # Get user's skin (or use default if error)
+            logger.error(f"Error processing message from {message.chat.username}: {e}", exc_info=True)
             try:
-                conn = get_connection()
-                settings = UserSettingsModule(conn, str(message.chat.id))
-                user_skin = settings.get_sprite_skin()
-            except:
-                user_skin = None  # Will use default
-
-            # Send error response with confused sprite
-            error_result = {
-                "success": False,
-                "result": "Ups, algo salió mal. ¿Puedes intentarlo de nuevo?",
-                "data": {}
-            }
-            error_context = {"module": "unknown", "action": "unknown"}
-            error_response = formatter.format_response(error_result, error_context, user_skin=user_skin)
-
-            # Send error message
-            bot.send_message(
-                chat_id=message.chat.id,
-                text=error_response["caption"]
-            )
-
-            # Send error sprite
-            try:
-                with open(error_response["sprite_path"], 'rb') as sprite:
-                    bot.send_document(
-                        chat_id=message.chat.id,
-                        document=sprite,
-                        disable_notification=True
-                    )
-            except FileNotFoundError:
-                # Text already sent, just log the error
-                logger.error(f"Error sprite not found: {error_response['sprite_path']}")
+                bot.send_message(
+                    chat_id=message.chat.id,
+                    text="Lo siento, algo salió mal. Por favor inténtalo de nuevo."
+                )
+            except Exception as send_err:
+                logger.error(f"Failed to send error message to {message.chat.username}: {send_err}")
 
     @bot.message_handler(content_types=['photo'])
     def handle_photo(message):

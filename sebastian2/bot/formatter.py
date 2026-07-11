@@ -3,7 +3,9 @@
 import random
 from typing import Dict, Optional
 
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 from sprites.sprite_system import SpriteSystem
 
 

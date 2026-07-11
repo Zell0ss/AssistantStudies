@@ -6,7 +6,9 @@ Handles casual conversation when Haiku classifies intent_type as 'conversation'.
 Uses Sonnet for responses, persists today's exchanges in MariaDB.
 """
 from anthropic import Anthropic
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 from modules.base import BaseModule
 from utils.config import get_config
 

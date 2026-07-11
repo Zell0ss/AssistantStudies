@@ -8,7 +8,9 @@ are stored as value_b64 to enable lossless regeneration via zxingcpp.
 import io
 import base64
 from PIL import Image, ImageOps
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 _ZXING_TYPE_MAP = {
     'QRCode': 'QR_CODE',

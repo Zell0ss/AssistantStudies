@@ -1,7 +1,9 @@
 """Inventory module with threshold warning support."""
 from typing import Dict, Any, List, Optional
 from modules.item_list import ItemListModule
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 
 class InventoryModule(ItemListModule):

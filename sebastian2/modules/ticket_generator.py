@@ -13,7 +13,9 @@ Backward compat: tickets stored with image_b64 (old format) still work.
 import io
 import base64
 from typing import Optional
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 # Maps our type strings to zxingcpp.BarcodeFormat member names
 _ZXING_FORMAT_MAP = {

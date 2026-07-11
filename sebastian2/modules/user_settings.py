@@ -5,7 +5,9 @@ Manages user preferences like sprite skin selection.
 """
 
 from typing import Optional, Dict, Any
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 
 class UserSettingsModule:

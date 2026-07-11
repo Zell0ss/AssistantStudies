@@ -11,7 +11,9 @@ import os
 import requests
 import requests_cache
 from typing import Optional
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 from modules.user_settings import UserSettingsModule
 
 # 1-hour cache for forecast requests

@@ -6,7 +6,9 @@ and returns raw data (the 'data' field from module responses, or the
 direct return value for list modules).
 """
 from datetime import date
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 from modules.calendar import CalendarModule
 from modules.weather import WeatherModule
 from modules.inventory import InventoryModule

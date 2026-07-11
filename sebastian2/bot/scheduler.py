@@ -7,7 +7,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from db.connection import get_connection, close_connection
 from modules.calendar import CalendarModule
 from modules.chat import ChatModule
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 
 def _send_daily_reminder(bot, user_ids: list):

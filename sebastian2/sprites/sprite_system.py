@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import Dict, List
 
 import yaml
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 
 class SpriteSystem:

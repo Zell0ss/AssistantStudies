@@ -14,7 +14,9 @@ Pending state is stored in-memory with 5-minute timeout per user.
 import threading
 from datetime import datetime, timedelta
 from typing import Optional
-from loguru import logger
+from logcentral_client import get_logger
+
+logger = get_logger("sebastian")
 
 # In-memory pending state: user_id → {tickets, expires_at, timer}
 _pending: dict = {}
