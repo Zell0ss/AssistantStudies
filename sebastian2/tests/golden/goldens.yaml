@@ -1,0 +1,102 @@
+# Golden regression cases for the Orchestrator's agentic loop.
+#
+# mode:
+#   exact     - `expected` is a list[str]; the recorded tool-call sequence must equal it exactly (order matters).
+#   multiset  - `expected` is a list[str]; same tools, any order (duplicates matter, order doesn't).
+#   any_of    - `expected` is a list of list[str] alternatives; the recorded sequence must equal exactly one of them.
+#   none      - no tools expected at all (also fails if request_clarification is called).
+#
+# Fixtures assumed present (seeded by tests/golden/conftest.py, user_id = golden_test_user):
+#   - notes id 1017 and 1018
+#   - inventory item "Actimel" (qty 2)
+#   - calendar event "teatro" dated tomorrow, with one QR ticket attached
+#
+# NOTE on golden #8/#9 vs the original ADR table: calendar_get_tickets requires event_id
+# (its own tool description says "usa calendar_search_events primero") so the real expected
+# sequence chains both tools, not just the tickets tool alone. See session notes.
+
+- id: 1
+  phrase: "Guárdame esta nota / Gotas mama / HYABAK a demanada una en cada ojo (fijas 12-16-20-24 horas) / Pequeñas 9:00 y 21:00 una en cada ojo AZARGA / Monodosis una gota sola ojo derecho de Lumigan a las 23:00 / Separar el lexatin al menos 1h de la de dormir"
+  mode: exact
+  expected: [notes_create]
+  validates: "Nota multilínea con contenido médico intacto, sin resumir (revisar el input capturado en el informe, no solo la tool)"
+
+- id: 2
+  phrase: "Dime qué notas tengo"
+  mode: exact
+  expected: [notes_search]
+  validates: "Listado simple. PASS con cualquier query — notes_search es la única tool disponible para esta intención (gap de producto anotado aparte, no se toca en esta sesión)"
+
+- id: 3
+  phrase: "borra las notas 1017 y la 1018"
+  mode: multiset
+  expected: [notes_delete, notes_delete]
+  validates: "Encadenado: dos llamadas de un mensaje"
+
+- id: 4
+  phrase: "Qué tiempo va a hacer hoy en Madrid"
+  mode: exact
+  expected: [weather_get]
+  validates: "Caso base"
+
+- id: 5
+  phrase: "Mírame que tiempo hace hoy en Madrid. Si puedes dame a que hora sale el.sol"
+  mode: exact
+  expected: [weather_get]
+  validates: "Petición compuesta + errata real (\"el.sol\"). El sunrise ya viene en la respuesta de weather_get — dos llamadas sería FAIL por redundancia"
+
+- id: 6
+  phrase: "que tiempo va a hacer este fin de semana?"
+  mode: exact
+  expected: [weather_forecast]
+  validates: "Rango de fechas relativo (requiere datetime en prompt)"
+
+- id: 7
+  phrase: "qué citas tengo para hoy y ya está"
+  mode: exact
+  expected: [calendar_list_events]
+  validates: "Contención: \"y ya está\" prohíbe encadenar de más (p.ej. no debe seguir con calendar_get_tickets por cada evento)"
+
+- id: 8
+  phrase: "que tickets tengo para el teatro mañana?"
+  mode: exact
+  expected: [calendar_search_events, calendar_get_tickets]
+  validates: "Filtro evento+fecha relativa. Encadenado obligatorio: calendar_get_tickets requiere event_id, solo se obtiene buscando primero"
+
+- id: 9
+  phrase: "lee mi cita de teatro de mañana"
+  mode: any_of
+  expected:
+    - [calendar_search_events]
+    - [calendar_search_events, calendar_get_tickets]
+  validates: "Ambigua a propósito: lectura del evento vs lectura del ticket. Ambas aceptadas, se registra cuál elige"
+
+- id: 10
+  phrase: "Elimina de inventario actimeles"
+  mode: exact
+  expected: [inventory_remove]
+  validates: "Fuzzy match \"actimeles\" → \"Actimel\" (el match aproximado es responsabilidad del modelo/tool, no de esta golden)"
+
+- id: 11
+  phrase: "Actualiza Actimel a 6 unidades"
+  mode: exact
+  expected: [inventory_set_quantity]
+  validates: "Update con cantidad ABSOLUTA. Si el modelo llama a inventory_update_quantity (delta) es FAIL legítimo — imán de confusión conocido entre las dos tools de cantidad"
+
+- id: 12
+  phrase: "Cuando es san patricio?"
+  mode: none
+  expected: []
+  validates: "Conocimiento general sin tools"
+
+- id: 13
+  phrase: "gracias crack"
+  mode: none
+  expected: []
+  validates: "Charla pura, cero tools"
+
+- id: 14
+  phrase: "que hora es"
+  mode: none
+  expected: []
+  validates: "El bug histórico: sin fecha/hora en el prompt esto degeneraba en \"Son las 00:00 horas, señor\". Ahora el planner ya recibe la fecha de hoy — validar que responde sin tools (la hora exacta la resuelve Alfred con el datetime del synthesis prompt, no con una tool)"
