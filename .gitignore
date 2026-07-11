@@ -20,3 +20,4 @@ token.json
 # Database backups
 *_backup_*.sql
 backup_*.sql
+.env.legacy
