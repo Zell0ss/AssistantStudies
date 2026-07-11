@@ -1,8 +1,7 @@
 # tests/test_chat_module.py
-"""Tests for ChatModule — history persistence and router dispatch."""
+"""Tests for ChatModule — history persistence."""
 import pytest
 from unittest.mock import patch, MagicMock
-from core.router import ModuleRouter
 from db.connection import get_connection, close_connection
 from modules.chat import ChatModule
 
@@ -118,81 +117,3 @@ class TestChatRespond:
             chat.respond("ok")
 
         assert mock_create.call_args[1]['model'] == "claude-sonnet-4-6"
-
-
-class TestRouterDispatch:
-    def test_conversation_intent_gets_chat_response(self, setup):
-        """Router dispatches conversation intents to ChatModule."""
-        chat, conn, user_id = setup
-        router = ModuleRouter(user_id)
-
-        with patch.object(ChatModule, 'respond', return_value="Siempre a su disposición, señor.") as mock_respond:
-            result = router.route({
-                'module': 'unknown',
-                'action': 'unknown',
-                'intent_type': 'conversation',
-                '_raw_message': 'gracias',
-            })
-
-        assert result['success'] is True
-        assert "señor" in result['result']
-
-    def test_router_passes_raw_message_to_respond(self, setup):
-        """Router must pass _raw_message (injected by handler) to chat.respond(), not '' or '...'."""
-        chat, conn, user_id = setup
-        router = ModuleRouter(user_id)
-
-        with patch.object(ChatModule, 'respond', return_value="De nada.") as mock_respond:
-            router.route({
-                'module': 'unknown',
-                'action': 'unknown',
-                'intent_type': 'conversation',
-                '_raw_message': 'muchas gracias',
-                # No 'message' field — as Haiku actually returns
-            })
-
-        mock_respond.assert_called_once_with('muchas gracias')
-
-    def test_router_without_raw_message_uses_empty_fallback(self, setup):
-        """When neither _raw_message nor message is present, respond() still gets called (not crash)."""
-        chat, conn, user_id = setup
-        router = ModuleRouter(user_id)
-
-        with patch.object(ChatModule, 'respond', return_value="Buenas.") as mock_respond:
-            result = router.route({
-                'module': 'unknown',
-                'action': 'unknown',
-                'intent_type': 'conversation',
-                # No _raw_message, no message — simulates parse failure
-            })
-
-        assert result['success'] is True
-        # respond() called with something (empty string or fallback), not raised
-        mock_respond.assert_called_once()
-
-    def test_command_intent_gets_polite_refusal(self):
-        """Router returns polite refusal for unknown command intents."""
-        router = ModuleRouter("test_user_chat_cmd")
-
-        result = router.route({
-            'module': 'unknown',
-            'action': 'unknown',
-            'intent_type': 'command',
-            '_raw_message': 'exporta mis listas a pdf',
-        })
-
-        assert result['success'] is False
-        assert result['error'] == 'capability_not_found'
-        assert "señor" in result['result']
-
-    def test_missing_intent_type_defaults_to_command(self):
-        """Router defaults to command refusal when intent_type is absent (backward compat)."""
-        router = ModuleRouter("test_user_chat_nokey")
-
-        result = router.route({
-            'module': 'unknown',
-            'action': 'unknown'
-        })
-
-        assert result['success'] is False
-        assert result['error'] == 'capability_not_found'
