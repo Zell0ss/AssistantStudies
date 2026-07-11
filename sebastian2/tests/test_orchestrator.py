@@ -117,7 +117,7 @@ def test_simple_no_tools_returns_synthesis(mock_anthropic_cls, db):
 @patch('core.tool_executor.ToolExecutor.execute')
 @patch('core.orchestrator.logger')
 def test_tool_steps_are_logged(mock_logger, mock_execute, mock_anthropic_cls, db):
-    """Calling a tool logs 'Calling tool X' before and 'Tool X →' after."""
+    """Calling a tool logs its input at DEBUG and a name/status/latency summary at INFO."""
     mock_client = MagicMock()
     mock_anthropic_cls.return_value = mock_client
     mock_execute.return_value = [{'event_id': 42, 'title': 'Teatro'}]
@@ -132,9 +132,10 @@ def test_tool_steps_are_logged(mock_logger, mock_execute, mock_anthropic_cls, db
     orch.handle("¿cuándo es el teatro?")
 
     all_debug_calls = [str(c) for c in mock_logger.debug.call_args_list]
-    all_info_calls = [str(c) for c in mock_logger.info.call_args_list]
-    assert any("calendar_search_events" in c and "Calling" in c for c in all_debug_calls)
-    assert any("calendar_search_events" in c and "→" in c for c in all_info_calls)
+    # INFO calls for tool steps go through logger.bind(tool=..., latency_ms=...).info(...)
+    bound_info_calls = [str(c) for c in mock_logger.bind.return_value.info.call_args_list]
+    assert any("calendar_search_events" in c and "input=" in c for c in all_debug_calls)
+    assert any("calendar_search_events" in c and "→" in c for c in bound_info_calls)
 
 
 @patch('core.orchestrator.Anthropic')

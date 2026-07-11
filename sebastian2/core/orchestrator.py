@@ -9,14 +9,17 @@ Flow:
 5. Sonnet/Alfred synthesizes a Spanish response from collected data.
 """
 import json
-from datetime import date
-from loguru import logger
-from anthropic import Anthropic
+import time
+from datetime import datetime
+from logcentral_client import get_logger
+from anthropic import Anthropic, APIError, APIConnectionError, RateLimitError
 from core.tools import ALL_TOOLS
 from core.tool_executor import ToolExecutor
 from db.pending_plan_repo import PendingPlanRepository
 from modules.ticket_generator import generate_image
 from utils.config import get_config
+
+logger = get_logger("sebastian")
 
 _MAX_ITERATIONS = 8
 
@@ -40,14 +43,35 @@ def _messages_from_json(json_str: str) -> list:
     return json.loads(json_str)
 
 
+def _summarize_tool_result(raw) -> str:
+    """One-line summary of a tool result for INFO-level logging (full payload stays at DEBUG)."""
+    if isinstance(raw, dict):
+        if "status" in raw:
+            return f"status={raw['status']}"
+        return f"dict with {len(raw)} keys"
+    if isinstance(raw, list):
+        return f"{len(raw)} items"
+    if isinstance(raw, str):
+        return raw[:80] + ("…" if len(raw) > 80 else "")
+    if isinstance(raw, (int, float, bool)) or raw is None:
+        return f"value={raw}"
+    return str(type(raw).__name__)
+
+
+def _now_str() -> str:
+    """Return the current date AND time as a Spanish sentence, for prompt injection."""
+    now = datetime.now()
+    return f"Hoy es {now.strftime('%Y-%m-%d')} y son las {now.strftime('%H:%M')}."
+
+
 def _planner_system() -> str:
-    """Return planner system prompt with today's date injected."""
-    today = date.today().isoformat()
+    """Return planner system prompt with today's date and current time injected."""
     return (
-        f"Hoy es {today}.\n"
+        f"{_now_str()}\n"
         "Eres el núcleo de razonamiento de Sebastian, asistente personal.\n"
         "Tu único trabajo es decidir qué herramientas usar para responder la pregunta del usuario.\n"
         "Usa las herramientas necesarias para reunir la información. No respondas al usuario directamente.\n"
+        "Si la pregunta es la hora o la fecha actual, ya las tienes arriba — no necesitas ninguna herramienta.\n"
         "Cuando tengas toda la información necesaria, devuelve un texto breve indicando que ya tienes los datos."
     )
 
@@ -66,9 +90,37 @@ class Orchestrator:
         self._db = db
         self._user_id = user_id
         config = get_config()
-        self._client = Anthropic(api_key=config['anthropic_apikey'])
+        self._client = Anthropic(api_key=config['anthropic_apikey'], timeout=60.0)
         self._executor = ToolExecutor(db, user_id)
         self._repo = PendingPlanRepository(db)
+        self._turn_usage = {"tokens_in": 0, "tokens_out": 0, "models": set()}
+
+    def _track_usage(self, response, model: str) -> None:
+        """Accumulate model + token usage for the current turn (telemetry only)."""
+        self._turn_usage["models"].add(model)
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            self._turn_usage["tokens_in"] += getattr(usage, "input_tokens", 0) or 0
+            self._turn_usage["tokens_out"] += getattr(usage, "output_tokens", 0) or 0
+
+    def _log_turn_end(self, turn_start: float, iterations: int, outcome: str) -> None:
+        """Emit the single end-of-turn INFO line: iterations, models, tokens, total latency."""
+        latency_ms = round((time.perf_counter() - turn_start) * 1000, 1)
+        usage = self._turn_usage
+        models = ",".join(sorted(usage["models"])) or "none"
+        logger.bind(
+            user_id=self._user_id,
+            iterations=iterations,
+            models=models,
+            tokens_in=usage["tokens_in"],
+            tokens_out=usage["tokens_out"],
+            latency_ms=latency_ms,
+            outcome=outcome,
+        ).info(
+            f"Turn end | user={self._user_id} | outcome={outcome} | iterations={iterations} | "
+            f"models={models} | tokens_in={usage['tokens_in']} | tokens_out={usage['tokens_out']} | "
+            f"latency_ms={latency_ms}"
+        )
 
     def _is_plan_reply(self, user_message: str, plan_question: str) -> bool:
         """Ask Haiku whether the user message answers the pending plan question."""
@@ -82,12 +134,14 @@ class Orchestrator:
                 f"¿Es el mensaje una respuesta directa a la pregunta pendiente?"
             )}]
         )
+        self._track_usage(response, "claude-haiku-4-5-20251001")
         return response.content[0].text.strip().upper().startswith('S')
 
-    def _resume_plan(self, plan: dict, user_answer: str) -> str:
+    def _resume_plan(self, plan: dict, user_answer: str, turn_start: float) -> str:
         """Resume a pending plan by injecting the user's answer as a tool_result."""
         messages = _messages_from_json(plan["messages_json"])
         original_message = plan["original_message"]
+        iterations_used = 0
 
         # Find the request_clarification tool_use_id from the last assistant message
         last_content = messages[-1]["content"]
@@ -111,6 +165,7 @@ class Orchestrator:
         # Resume the tool loop
         tool_results_summary = []
         for iteration in range(_MAX_ITERATIONS):
+            iterations_used = iteration + 1
             response = self._client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=1024,
@@ -118,6 +173,7 @@ class Orchestrator:
                 tools=ALL_TOOLS,
                 messages=messages
             )
+            self._track_usage(response, "claude-haiku-4-5-20251001")
 
             tool_blocks = [b for b in response.content if b.type == 'tool_use']
 
@@ -135,28 +191,37 @@ class Orchestrator:
                     rc.input["question"],
                     rc.input.get("missing_field"),
                 )
-                return {"text": self._ask_user(rc.input["question"]), "images": []}
+                text = self._ask_user(rc.input["question"])
+                self._log_turn_end(turn_start, iterations_used, "clarification_requested")
+                return {"text": text, "images": []}
 
             # Execute tools normally
             tool_results = []
             had_error = False
             for block in tool_blocks:
                 try:
-                    logger.debug(
-                        f"Calling tool {block.name} | input: "
-                        f"{json.dumps(block.input, ensure_ascii=False)}"
-                    )
+                    t0 = time.perf_counter()
                     raw = self._executor.execute(block.name, block.input)
+                    latency_ms = round((time.perf_counter() - t0) * 1000, 1)
                     result_content = json.dumps(raw, default=str, ensure_ascii=False)
                     tool_results_summary.append({"tool": block.name, "input": block.input, "result": raw})
-                    logger.info(f"Tool {block.name} → {result_content[:200]}")
+                    logger.bind(tool=block.name, latency_ms=latency_ms).info(
+                        f"Tool {block.name} → {_summarize_tool_result(raw)} ({latency_ms}ms)"
+                    )
+                    logger.debug(
+                        f"Tool {block.name} | input={json.dumps(block.input, ensure_ascii=False)} | "
+                        f"full_result={result_content[:2000]}"
+                    )
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
                         "content": result_content
                     })
-                except Exception as e:
-                    logger.error(f"Tool {block.name} failed: {e}")
+                except Exception:
+                    logger.exception(
+                        f"Tool {block.name} failed | user={self._user_id} | "
+                        f"input={json.dumps(block.input, ensure_ascii=False)}"
+                    )
                     had_error = True
                     break
 
@@ -167,10 +232,10 @@ class Orchestrator:
             messages.append({"role": "user", "content": tool_results})
 
         self._repo.delete(self._user_id)
-        return {
-            "text": self._synthesize(original_message, tool_results_summary),
-            "images": self._collect_images(tool_results_summary),
-        }
+        text = self._synthesize(original_message, tool_results_summary)
+        images = self._collect_images(tool_results_summary)
+        self._log_turn_end(turn_start, iterations_used, "completed")
+        return {"text": text, "images": images}
 
     def handle(self, user_message: str) -> str:
         """
@@ -182,11 +247,42 @@ class Orchestrator:
         Returns:
             Alfred-style Spanish response string
         """
+        truncated = user_message[:200]
+        try:
+            return self._handle_inner(user_message)
+        except APIConnectionError:
+            logger.bind(user_id=self._user_id).exception(
+                f"Anthropic API connection error | user={self._user_id} | message={truncated!r}"
+            )
+            return {"text": "Lo siento, no puedo conectar con el servicio en este momento. Por favor, inténtelo más tarde.", "images": []}
+        except RateLimitError:
+            logger.bind(user_id=self._user_id).exception(
+                f"Anthropic API rate limit | user={self._user_id} | message={truncated!r}"
+            )
+            return {"text": "Demasiadas solicitudes al servicio. Por favor, espere un momento.", "images": []}
+        except APIError as e:
+            logger.bind(user_id=self._user_id).exception(
+                f"Anthropic API error (status={getattr(e, 'status_code', '?')}) | "
+                f"user={self._user_id} | message={truncated!r}"
+            )
+            if "credit balance" in str(e).lower() or "too low" in str(e).lower():
+                return {"text": "El servicio no está disponible temporalmente (créditos agotados). Por favor, contacte al administrador.", "images": []}
+            return {"text": "Error en el servicio de IA. Por favor, inténtelo más tarde.", "images": []}
+
+    def _handle_inner(self, user_message: str) -> dict:
+        """Core message handling logic (API errors propagate to handle())."""
+        turn_start = time.perf_counter()
+        self._turn_usage = {"tokens_in": 0, "tokens_out": 0, "models": set()}
+        logger.bind(user_id=self._user_id).info(
+            f"Turn start | user={self._user_id} | message={user_message[:200]!r}"
+        )
+        iterations_used = 0
+
         # ── Pending plan check ─────────────────────────────────────────────────────
         plan = self._repo.get_active(self._user_id)
         if plan:
             if self._is_plan_reply(user_message, plan["question"]):
-                return self._resume_plan(plan, user_message)
+                return self._resume_plan(plan, user_message, turn_start)
             else:
                 self._repo.delete(self._user_id)
                 # Fall through to normal handling
@@ -196,6 +292,7 @@ class Orchestrator:
         tool_results_summary = []
 
         for iteration in range(_MAX_ITERATIONS):
+            iterations_used = iteration + 1
             response = self._client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=1024,
@@ -203,6 +300,7 @@ class Orchestrator:
                 tools=ALL_TOOLS,
                 messages=messages
             )
+            self._track_usage(response, "claude-haiku-4-5-20251001")
 
             tool_blocks = [b for b in response.content if b.type == 'tool_use']
 
@@ -224,27 +322,36 @@ class Orchestrator:
                         block.input["question"],
                         block.input.get("missing_field"),
                     )
-                    return {"text": self._ask_user(block.input["question"]), "images": []}
+                    text = self._ask_user(block.input["question"])
+                    self._log_turn_end(turn_start, iterations_used, "clarification_requested")
+                    return {"text": text, "images": []}
                 try:
-                    logger.debug(
-                        f"Calling tool {block.name} | input: "
-                        f"{json.dumps(block.input, ensure_ascii=False)}"
-                    )
+                    t0 = time.perf_counter()
                     raw = self._executor.execute(block.name, block.input)
+                    latency_ms = round((time.perf_counter() - t0) * 1000, 1)
                     result_content = json.dumps(raw, default=str, ensure_ascii=False)
                     tool_results_summary.append({
                         "tool": block.name,
                         "input": block.input,
                         "result": raw
                     })
-                    logger.info(f"Tool {block.name} → {result_content[:200]}")
+                    logger.bind(tool=block.name, latency_ms=latency_ms).info(
+                        f"Tool {block.name} → {_summarize_tool_result(raw)} ({latency_ms}ms)"
+                    )
+                    logger.debug(
+                        f"Tool {block.name} | input={json.dumps(block.input, ensure_ascii=False)} | "
+                        f"full_result={result_content[:2000]}"
+                    )
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
                         "content": result_content
                     })
-                except Exception as e:
-                    logger.error(f"Tool {block.name} failed: {e}")
+                except Exception:
+                    logger.exception(
+                        f"Tool {block.name} failed | user={self._user_id} | "
+                        f"input={json.dumps(block.input, ensure_ascii=False)}"
+                    )
                     had_error = True
                     # On tool error, break out of the loop immediately
                     # so synthesis can handle graceful degradation
@@ -257,10 +364,10 @@ class Orchestrator:
             messages.append({"role": "assistant", "content": response.content})
             messages.append({"role": "user", "content": tool_results})
 
-        return {
-            "text": self._synthesize(user_message, tool_results_summary),
-            "images": self._collect_images(tool_results_summary),
-        }
+        text = self._synthesize(user_message, tool_results_summary)
+        images = self._collect_images(tool_results_summary)
+        self._log_turn_end(turn_start, iterations_used, "completed")
+        return {"text": text, "images": images}
 
     def _collect_images(self, tool_results_summary: list) -> list:
         """Generate ticket images from any calendar_get_tickets tool results."""
@@ -287,13 +394,13 @@ class Orchestrator:
                 )
             context = "\n\n".join(context_lines)
             synthesis_prompt = (
-                f"Hoy es {date.today().isoformat()}.\n"
+                f"{_now_str()}\n"
                 f"El usuario preguntó: {user_message}\n\n"
                 f"Datos recogidos:\n{context}\n\n"
                 f"Responde al usuario en español, de forma concisa y útil."
             )
         else:
-            synthesis_prompt = f"Hoy es {date.today().isoformat()}.\n{user_message}"
+            synthesis_prompt = f"{_now_str()}\n{user_message}"
 
         response = self._client.messages.create(
             model="claude-sonnet-4-6",
@@ -301,6 +408,7 @@ class Orchestrator:
             system=_ALFRED_SYSTEM,
             messages=[{"role": "user", "content": synthesis_prompt}]
         )
+        self._track_usage(response, "claude-sonnet-4-6")
         return response.content[0].text.strip()
 
     def _ask_user(self, question: str) -> str:
@@ -311,4 +419,5 @@ class Orchestrator:
             system=_ALFRED_SYSTEM,
             messages=[{"role": "user", "content": f"Necesito preguntarle esto al usuario: {question}"}]
         )
+        self._track_usage(response, "claude-sonnet-4-6")
         return response.content[0].text.strip()
