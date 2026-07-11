@@ -1,6 +1,6 @@
 -- Sebastian 2.0 - Pending orchestrator plans
 -- Stores Haiku loop state when a required input is missing
-
+USE sebastian_db;
 CREATE TABLE IF NOT EXISTS pending_plans (
     id               INT AUTO_INCREMENT PRIMARY KEY,
     user_id          VARCHAR(64) NOT NULL,

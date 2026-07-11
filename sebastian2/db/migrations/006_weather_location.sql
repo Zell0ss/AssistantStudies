@@ -1,6 +1,6 @@
 -- Sebastian 2.0 - Weather location support
 -- Adds per-user weather location to user_settings
-
+USE sebastian_db;
 ALTER TABLE user_settings
   ADD COLUMN IF NOT EXISTS weather_location VARCHAR(100) DEFAULT 'Madrid',
   ADD COLUMN IF NOT EXISTS weather_lat      FLOAT        DEFAULT 40.4168,
