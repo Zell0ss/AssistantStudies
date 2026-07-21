@@ -91,7 +91,7 @@ class Orchestrator:
         self._user_id = user_id
         config = get_config()
         self._client = Anthropic(api_key=config['anthropic_apikey'], timeout=60.0)
-        self._executor = ToolExecutor(db, user_id)
+        self._executor = ToolExecutor(db, user_id, config=config)
         self._repo = PendingPlanRepository(db)
         self._turn_usage = {"tokens_in": 0, "tokens_out": 0, "models": set()}
 

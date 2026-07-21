@@ -42,6 +42,17 @@ def db():
             weather_country TEXT DEFAULT 'ES'
         );
         INSERT INTO user_settings VALUES ('99999', 'default', 'Madrid', 40.4168, -3.7038, 'ES');
+        CREATE TABLE project_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            project TEXT NOT NULL,
+            priority TEXT DEFAULT 'normal',
+            done INTEGER DEFAULT 0,
+            notes TEXT,
+            tags TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     ''')
     conn.commit()
     yield MySQLCompatibleConnection(conn)
@@ -324,3 +335,76 @@ def test_notes_delete_dispatches(mock_delete, db):
     result = executor.execute("notes_delete", {"note_id": 7})
     mock_delete.assert_called_once_with(7)
     assert result == {'status': 'deleted'}
+
+
+# ── Tasks ─────────────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def vault_dir(tmp_path):
+    """Minimal fake vault (PROJECTS.md) for known-project validation + consult_docs."""
+    (tmp_path / "PROJECTS.md").write_text(
+        "## sebastian — Personal Assistant\nEstado: en desarrollo.\n"
+        "Puerto: n/a.\n\n"
+        "## glasspannel — Server Control Panel\nPuerto: 8420.\n",
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+@patch('modules.tasks.TasksModule.list')
+def test_tasks_list_dispatches(mock_list, db):
+    """tasks_list calls TasksModule.list with project/state passthrough."""
+    mock_list.return_value = [{'id': 1, 'title': 'revisar fuzzy match'}]
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("tasks_list", {"project": "sebastian", "state": "open"})
+    mock_list.assert_called_once_with(project="sebastian", state="open")
+    assert result[0]['title'] == 'revisar fuzzy match'
+
+
+@patch('modules.tasks.TasksModule.list')
+def test_tasks_list_defaults_state_to_open(mock_list, db):
+    """tasks_list defaults state to 'open' when not given."""
+    mock_list.return_value = []
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    executor.execute("tasks_list", {})
+    mock_list.assert_called_once_with(project=None, state="open")
+
+
+def test_tasks_create_dispatches_with_known_projects(db, vault_dir):
+    """tasks_create validates project against PROJECTS.md-derived known_projects and creates."""
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config={'vault_docs_path': str(vault_dir)})
+    result = executor.execute("tasks_create", {"project": "sebastian", "title": "revisar fuzzy match"})
+    assert result['status'] == 'created'
+
+
+def test_tasks_create_rejects_unknown_project(db, vault_dir):
+    """tasks_create rejects a project not present in PROJECTS.md."""
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config={'vault_docs_path': str(vault_dir)})
+    result = executor.execute("tasks_create", {"project": "proyecto-inventado-xyz", "title": "tarea"})
+    assert result['status'] == 'unknown_project'
+
+
+@patch('modules.tasks.TasksModule.complete')
+def test_tasks_complete_dispatches(mock_complete, db):
+    """tasks_complete calls TasksModule.complete with task_id."""
+    mock_complete.return_value = {'status': 'completed', 'task_id': 5}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999')
+    result = executor.execute("tasks_complete", {"task_id": 5})
+    mock_complete.assert_called_once_with(5)
+    assert result['status'] == 'completed'
+
+
+# ── Consult docs ──────────────────────────────────────────────────────────────
+
+def test_consult_docs_dispatches(db, vault_dir):
+    """consult_docs resolves via ConsultDocsModule using config's vault_docs_path."""
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config={'vault_docs_path': str(vault_dir)})
+    result = executor.execute("consult_docs", {"project": "glasspannel", "query": "puerto"})
+    assert result['status'] == 'found'
+    assert any('8420' in r['content'] for r in result['results'])

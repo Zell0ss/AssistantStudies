@@ -10,6 +10,8 @@
 #   - notes id 1017 and 1018
 #   - inventory item "Actimel" (qty 2)
 #   - calendar event "teatro" dated tomorrow, with one QR ticket attached
+#   - project_tasks (NOT user-scoped, shared with glasspannel): one open task in
+#     project "saxhero", plus task id 9001 (also "saxhero") for golden #19 to complete
 #
 # NOTE on golden #8/#9 vs the original ADR table: calendar_get_tickets requires event_id
 # (its own tool description says "usa calendar_search_events primero") so the real expected
@@ -100,3 +102,33 @@
   mode: none
   expected: []
   validates: "El bug histórico: sin fecha/hora en el prompt esto degeneraba en \"Son las 00:00 horas, señor\". Ahora el planner ya recibe la fecha de hoy — validar que responde sin tools (la hora exacta la resuelve Alfred con el datetime del synthesis prompt, no con una tool)"
+
+- id: 15
+  phrase: "que tareas tengo abiertas en saxhero"
+  mode: exact
+  expected: [tasks_list]
+  validates: "Sprint 2: tasks_list filtrado por proyecto, estado abierto por defecto"
+
+- id: 16
+  phrase: "apuntame una tarea en sebastian: revisar fuzzy match"
+  mode: exact
+  expected: [tasks_create]
+  validates: "Sprint 2: tasks_create. 'sebastian' debe validar contra PROJECTS.md (sección 'Sebastian 2.0 — ...') vía known_projects"
+
+- id: 17
+  phrase: "en que estado esta el proyecto agora?"
+  mode: exact
+  expected: [consult_docs]
+  validates: "Sprint 2: consult_docs resolviendo la sección '## agora' de PROJECTS.md"
+
+- id: 18
+  phrase: "que puerto usa glasspannel?"
+  mode: exact
+  expected: [consult_docs]
+  validates: "Sprint 2: consult_docs — la sección de glasspannel no dice \"puerto\" literal (dice URL http://seb01:3000), valida que el planner llama a la tool igualmente y deja que Alfred infiera del contenido devuelto"
+
+- id: 19
+  phrase: "marca como hecha la tarea 9001"
+  mode: exact
+  expected: [tasks_complete]
+  validates: "Sprint 2: tasks_complete con id sembrado explícito (fixture golden #19, project 'saxhero')"

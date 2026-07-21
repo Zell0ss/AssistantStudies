@@ -14,14 +14,23 @@ from modules.weather import WeatherModule
 from modules.inventory import InventoryModule
 from modules.item_list import ItemListModule
 from modules.notes import NotesModule
+from modules.tasks import TasksModule
+from modules.consult_docs import ConsultDocsModule
+from modules.project_registry import known_project_slugs
+from utils.config import get_config
 
 
 class ToolExecutor:
     """Executes tool calls by dispatching to the appropriate module method."""
 
-    def __init__(self, db, user_id: str):
+    def __init__(self, db, user_id: str, config: dict = None):
         self._db = db
         self._user_id = user_id
+        self._config = config
+
+    def _vault_docs_path(self):
+        config = self._config if self._config is not None else get_config()
+        return config['vault_docs_path']
 
     def execute(self, tool_name: str, tool_input: dict):
         """
@@ -68,6 +77,12 @@ class ToolExecutor:
             "notes_add_tag":             self._notes_add_tag,
             "notes_remove_tag":          self._notes_remove_tag,
             "notes_delete":              self._notes_delete,
+            # Tasks
+            "tasks_list":                self._tasks_list,
+            "tasks_create":              self._tasks_create,
+            "tasks_complete":            self._tasks_complete,
+            # Docs
+            "consult_docs":              self._consult_docs,
         }
 
         handler = dispatch.get(tool_name)
@@ -245,3 +260,29 @@ class ToolExecutor:
         module = NotesModule(self._db, self._user_id)
         deleted = module.delete(inputs['note_id'])
         return {'status': 'deleted'} if deleted else {'status': 'not_found'}
+
+    # ── Tasks ─────────────────────────────────────────────────────────────────
+
+    def _tasks_list(self, inputs: dict):
+        module = TasksModule(self._db, self._user_id)
+        return module.list(project=inputs.get('project'), state=inputs.get('state', 'open'))
+
+    def _tasks_create(self, inputs: dict):
+        module = TasksModule(self._db, self._user_id)
+        known_projects = known_project_slugs(self._vault_docs_path())
+        return module.create(
+            project=inputs['project'],
+            title=inputs['title'],
+            priority=inputs.get('priority', 'normal'),
+            known_projects=known_projects,
+        )
+
+    def _tasks_complete(self, inputs: dict):
+        module = TasksModule(self._db, self._user_id)
+        return module.complete(inputs['task_id'])
+
+    # ── Docs ──────────────────────────────────────────────────────────────────
+
+    def _consult_docs(self, inputs: dict):
+        module = ConsultDocsModule(self._vault_docs_path())
+        return module.consult(inputs['project'], inputs['query'])

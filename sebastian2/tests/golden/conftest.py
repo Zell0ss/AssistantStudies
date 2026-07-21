@@ -85,8 +85,9 @@ def test_db():
 @pytest.fixture(scope="session")
 def golden_fixtures(test_db):
     """Seed deterministic fixtures for golden_test_user. Session-scoped: seeded once,
-    goldens run in file order (1..14) and don't depend on each other's side effects
-    except #3, which deletes notes 1017/1018 — nothing later depends on those existing."""
+    goldens run in file order (1..19) and don't depend on each other's side effects
+    except #3 (deletes notes 1017/1018) and #19 (completes task 9001) — nothing later
+    depends on those existing/being open."""
     from modules.calendar import CalendarModule
     from modules.inventory import InventoryModule
 
@@ -102,6 +103,8 @@ def golden_fixtures(test_db):
         (user_id,),
     )
     cur.execute("DELETE FROM lists WHERE user_id = %s", (user_id,))
+    # project_tasks is NOT user-scoped (shared with glasspannel) — isolated by project name instead.
+    cur.execute("DELETE FROM project_tasks WHERE project = %s", ("saxhero",))
     db.commit()
 
     # Notes 1017 / 1018 — explicit IDs required by golden #3.
@@ -125,6 +128,17 @@ def golden_fixtures(test_db):
     added = cal.add_event(title="teatro", event_date=tomorrow, event_time="20:00")
     event_id = added["event_id"]
     cal.add_ticket(event_id, {"type": "QR_CODE", "value": "GOLDEN-TEST-TICKET-001"})
+
+    # Tasks: one open task in "saxhero" (golden #15) + one with a fixed id to complete (golden #19).
+    cur.execute(
+        "INSERT INTO project_tasks (project, title, priority) VALUES (%s, %s, %s)",
+        ("saxhero", "Practicar escalas (golden harness fixture)", "normal"),
+    )
+    cur.execute(
+        "INSERT INTO project_tasks (id, project, title, priority) VALUES (%s, %s, %s, %s)",
+        (9001, "saxhero", "Tarea a completar (golden harness fixture)", "normal"),
+    )
+    db.commit()
 
     return {
         "user_id": user_id,

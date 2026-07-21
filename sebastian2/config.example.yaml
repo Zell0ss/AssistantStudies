@@ -27,3 +27,6 @@ logfolder: "/data/AssistantStudies/sebastian2/logs"
 # Sprites
 sprites_path: "sprites/images"
 sprite_mapping: "sprites/mapping.yaml"
+
+# Obsidian vault (consult_docs, tasks_create validation)
+vault_docs_path: "/path/to/vault/30-projects"
