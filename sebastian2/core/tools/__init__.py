@@ -7,6 +7,7 @@ from .notes_tools import NOTES_TOOLS
 from .clarification_tools import CLARIFICATION_TOOLS
 from .tasks_tools import TASKS_TOOLS
 from .docs_tools import DOCS_TOOLS
+from .memory_tools import MEMORY_TOOLS
 
 ALL_TOOLS = (
     CALENDAR_TOOLS +
@@ -16,5 +17,6 @@ ALL_TOOLS = (
     NOTES_TOOLS +
     CLARIFICATION_TOOLS +
     TASKS_TOOLS +
-    DOCS_TOOLS
+    DOCS_TOOLS +
+    MEMORY_TOOLS
 )

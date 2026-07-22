@@ -86,10 +86,10 @@ Si el contexto incluye datos de herramientas, úsalos para dar una respuesta pre
 class Orchestrator:
     """Handles any user message by orchestrating module tools via Haiku + Alfred synthesis."""
 
-    def __init__(self, db, user_id: str):
+    def __init__(self, db, user_id: str, config: dict = None):
         self._db = db
         self._user_id = user_id
-        config = get_config()
+        config = config if config is not None else get_config()
         self._client = Anthropic(api_key=config['anthropic_apikey'], timeout=60.0)
         self._executor = ToolExecutor(db, user_id, config=config)
         self._repo = PendingPlanRepository(db)

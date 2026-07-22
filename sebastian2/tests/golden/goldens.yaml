@@ -12,6 +12,8 @@
 #   - calendar event "teatro" dated tomorrow, with one QR ticket attached
 #   - project_tasks (NOT user-scoped, shared with glasspannel): one open task in
 #     project "saxhero", plus task id 9001 (also "saxhero") for golden #19 to complete
+#   - sebastian_memory_test (Qdrant, isolated collection): 3 seeded memories including
+#     "Mi cuñado Paco es alérgico a los frutos secos" (golden #21 must find it)
 #
 # NOTE on golden #8/#9 vs the original ADR table: calendar_get_tickets requires event_id
 # (its own tool description says "usa calendar_search_events primero") so the real expected
@@ -132,3 +134,21 @@
   mode: exact
   expected: [tasks_complete]
   validates: "Sprint 2: tasks_complete con id sembrado explícito (fixture golden #19, project 'saxhero')"
+
+- id: 20
+  phrase: "recuerda que mi cuñado Paco es alérgico a los frutos secos"
+  mode: exact
+  expected: [mark_as_memorable]
+  validates: "Sprint 3: mark_as_memorable — hecho personal duradero, escribe un punto real en sebastian_memory_test"
+
+- id: 21
+  phrase: "que te dije de la alergia de paco?"
+  mode: exact
+  expected: [search_memory]
+  validates: "Sprint 3: search_memory encuentra la memoria sembrada en conftest.py (misma frase que golden #20, contenido pre-existente vía fixture)"
+
+- id: 22
+  phrase: "apunta leche a la compra"
+  mode: exact
+  expected: [list_add_item]
+  validates: "Sprint 3: frontera operativo vs memoria — 'apunta' aquí es la lista de la compra, NO debe disparar mark_as_memorable"

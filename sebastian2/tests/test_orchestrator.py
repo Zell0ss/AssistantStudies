@@ -93,6 +93,17 @@ def _make_tool_use_response(tool_name, tool_id, tool_input):
 
 
 @patch('core.orchestrator.Anthropic')
+@patch('core.orchestrator.ToolExecutor')
+def test_accepts_config_override_and_passes_to_tool_executor(mock_tool_executor_cls, mock_anthropic_cls, db):
+    """Orchestrator accepts an optional config override, passed through to ToolExecutor
+    (needed by the golden harness to point memory tools at an isolated Qdrant collection)."""
+    from core.orchestrator import Orchestrator
+    fake_config = {'anthropic_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'}
+    Orchestrator(db, '99999', config=fake_config)
+    mock_tool_executor_cls.assert_called_once_with(db, '99999', config=fake_config)
+
+
+@patch('core.orchestrator.Anthropic')
 def test_simple_no_tools_returns_synthesis(mock_anthropic_cls, db):
     """When Haiku returns text without tool_use, Alfred synthesizes the response."""
     mock_client = MagicMock()

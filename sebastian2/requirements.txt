@@ -8,6 +8,10 @@ dbutils==3.0.3
 
 # LLM
 anthropic==0.79.0
+openai==2.46.0
+
+# Memory (Sprint 3: Qdrant vector store + OpenAI embeddings)
+qdrant-client==1.18.0
 
 # Config & Utils
 pyyaml==6.0.1

@@ -5,6 +5,11 @@ deletes notes) and must NEVER touch sebastian_db (production). The `test_db`
 fixture asserts the connected schema is exactly TEST_DB_NAME before yielding a
 connection to anything — if that assertion fails, the whole session aborts
 immediately. This is a hard assert, not a naming convention.
+
+Same guardrail extends to memory (Sprint 3): golden #20 writes a real point via
+mark_as_memorable, so `memory_config` refuses to run unless the isolated
+TEST_MEMORY_COLLECTION collection actually exists in Qdrant, and never resolves
+to the real 'sebastian_memory' collection.
 """
 from datetime import date, timedelta
 
@@ -14,6 +19,7 @@ import pytest
 from utils.config import get_config
 
 TEST_DB_NAME = "sebastian_test"
+TEST_MEMORY_COLLECTION = "sebastian_memory_test"
 GOLDEN_USER_ID = "golden_test_user"
 
 
@@ -148,14 +154,77 @@ def golden_fixtures(test_db):
     }
 
 
+@pytest.fixture(scope="session")
+def memory_config():
+    """Config dict pointing memory tools at the ISOLATED sebastian_memory_test collection.
+    Hard-aborts if that collection isn't reachable — golden #20 writes a real point via
+    mark_as_memorable, and this guardrail exists to keep that off 'sebastian_memory'."""
+    from qdrant_client import QdrantClient
+
+    if TEST_MEMORY_COLLECTION == "sebastian_memory":
+        pytest.exit(
+            "REFUSING TO RUN GOLDEN HARNESS: TEST_MEMORY_COLLECTION must not equal the "
+            "real 'sebastian_memory' collection name.",
+            returncode=1,
+        )
+
+    base_config = dict(get_config())
+    qdrant_url = base_config.get("qdrant_url", "http://localhost:6333")
+    client = QdrantClient(url=qdrant_url)
+    try:
+        client.get_collection(TEST_MEMORY_COLLECTION)
+    except Exception:
+        pytest.exit(
+            f"REFUSING TO RUN GOLDEN HARNESS: Qdrant collection '{TEST_MEMORY_COLLECTION}' "
+            "not found (create it before running — see SPRINT3-MEMORIA.md Phase 3). This "
+            "guardrail exists because golden #20 writes real points and must never silently "
+            "fall back to the real 'sebastian_memory' collection.",
+            returncode=1,
+        )
+
+    base_config["memory_collection"] = TEST_MEMORY_COLLECTION
+    return base_config
+
+
+@pytest.fixture(scope="session")
+def memory_fixtures(memory_config):
+    """Seed deterministic memories in the isolated test collection. Session-scoped: wipes
+    and recreates sebastian_memory_test at the start of each session for determinism."""
+    from qdrant_client import QdrantClient
+    from qdrant_client.models import Distance, VectorParams
+
+    from modules.memory import MemoryModule
+
+    qdrant_url = memory_config.get("qdrant_url", "http://localhost:6333")
+    client = QdrantClient(url=qdrant_url)
+    client.delete_collection(TEST_MEMORY_COLLECTION)
+    client.create_collection(
+        TEST_MEMORY_COLLECTION,
+        vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
+        on_disk_payload=True,
+    )
+
+    mem = MemoryModule(
+        collection_name=TEST_MEMORY_COLLECTION,
+        openai_api_key=memory_config["openai_apikey"],
+        qdrant_url=qdrant_url,
+    )
+    mem.store("Mi cuñado Paco es alérgico a los frutos secos", tags=["familia", "salud"])
+    mem.store("A mi señor le gusta el vino tinto de Ribera del Duero", tags=["preferencias"])
+    mem.store("El cumpleaños de Rebe es en marzo", tags=["familia", "fechas"])
+
+    return {"memory_collection": TEST_MEMORY_COLLECTION}
+
+
 @pytest.fixture
-def orchestrator_runner(test_db, golden_fixtures):
+def orchestrator_runner(test_db, golden_fixtures, memory_config, memory_fixtures):
     """Returns a callable run(phrase) -> (tool_call_sequence, response_dict).
 
     Records the tool-call sequence by wrapping ToolExecutor.execute (real dispatch
-    still runs — side effects land in sebastian_test) and Orchestrator._ask_user
-    (the only path reached when request_clarification is chosen, since the
-    Orchestrator intercepts that tool before it ever reaches ToolExecutor).
+    still runs — side effects land in sebastian_test / sebastian_memory_test) and
+    Orchestrator._ask_user (the only path reached when request_clarification is
+    chosen, since the Orchestrator intercepts that tool before it ever reaches
+    ToolExecutor).
     """
     from unittest.mock import patch
 
@@ -177,7 +246,7 @@ def orchestrator_runner(test_db, golden_fixtures):
 
         with patch.object(ToolExecutor, "execute", recording_execute), \
              patch.object(Orchestrator, "_ask_user", recording_ask_user):
-            orch = Orchestrator(test_db, golden_fixtures["user_id"])
+            orch = Orchestrator(test_db, golden_fixtures["user_id"], config=memory_config)
             response = orch.handle(phrase)
 
         return calls, response
