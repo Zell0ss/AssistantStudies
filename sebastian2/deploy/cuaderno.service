@@ -1,0 +1,19 @@
+[Unit]
+Description=El cuaderno - un despertar de Claude en seb01 (Sprint 4)
+After=network.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/data/AssistantStudies/sebastian2
+ExecStart=/data/AssistantStudies/sebastian2/.venv/bin/python3 -m scripts.cuaderno.despertar
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cuaderno
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+# Security
+NoNewPrivileges=true

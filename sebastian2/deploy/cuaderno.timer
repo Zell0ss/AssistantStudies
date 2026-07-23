@@ -1,0 +1,10 @@
+[Unit]
+Description=Despertares periódicos de El cuaderno (Sprint 4) - lun/mié/sáb por la tarde, con jitter
+
+[Timer]
+OnCalendar=Mon,Wed,Sat 16:00
+RandomizedDelaySec=14400
+Persistent=false
+
+[Install]
+WantedBy=timers.target
