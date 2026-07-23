@@ -4,7 +4,16 @@ import pytest
 import sqlite3
 from unittest.mock import MagicMock, patch
 from tests.test_item_list_module import MySQLCompatibleConnection
-from core.orchestrator import _messages_to_json, _messages_from_json
+from core.orchestrator import _messages_to_json, _messages_from_json, _planner_system, _ALFRED_SYSTEM
+from core.tools import build_capabilities_digest
+
+
+def test_planner_system_includes_capabilities_digest():
+    assert build_capabilities_digest() in _planner_system()
+
+
+def test_alfred_system_includes_capabilities_digest():
+    assert build_capabilities_digest() in _ALFRED_SYSTEM
 
 
 def test_messages_roundtrip_plain_string():

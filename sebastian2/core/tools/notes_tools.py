@@ -1,5 +1,10 @@
 """Notes tool definitions for Orchestrator."""
 
+FAMILY_SUMMARY = (
+    "Notas: puedo guardar notas de texto libre, etiquetarlas y recuperarlas después buscando "
+    "por contenido."
+)
+
 NOTES_TOOLS = [
     {
         "name": "notes_search",

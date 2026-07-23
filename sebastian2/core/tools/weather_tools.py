@@ -1,5 +1,10 @@
 """Weather tool definitions for Orchestrator."""
 
+FAMILY_SUMMARY = (
+    "Tiempo: puedo darte el tiempo actual o la previsión de varios días para tu ubicación "
+    "guardada o cualquier ciudad que me digas."
+)
+
 WEATHER_TOOLS = [
     {
         "name": "weather_get",

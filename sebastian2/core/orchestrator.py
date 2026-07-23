@@ -13,7 +13,7 @@ import time
 from datetime import datetime
 from logcentral_client import get_logger
 from anthropic import Anthropic, APIError, APIConnectionError, RateLimitError
-from core.tools import ALL_TOOLS
+from core.tools import ALL_TOOLS, build_capabilities_digest
 from core.tool_executor import ToolExecutor
 from db.pending_plan_repo import PendingPlanRepository
 from modules.ticket_generator import generate_image
@@ -22,6 +22,7 @@ from utils.config import get_config
 logger = get_logger("sebastian")
 
 _MAX_ITERATIONS = 8
+_CAPABILITIES_DIGEST = build_capabilities_digest()
 
 
 def _messages_to_json(messages: list) -> str:
@@ -72,15 +73,22 @@ def _planner_system() -> str:
         "Tu único trabajo es decidir qué herramientas usar para responder la pregunta del usuario.\n"
         "Usa las herramientas necesarias para reunir la información. No respondas al usuario directamente.\n"
         "Si la pregunta es la hora o la fecha actual, ya las tienes arriba — no necesitas ninguna herramienta.\n"
-        "Cuando tengas toda la información necesaria, devuelve un texto breve indicando que ya tienes los datos."
+        "Cuando tengas toda la información necesaria, devuelve un texto breve indicando que ya tienes los datos.\n"
+        "Si la pregunta es sobre tus capacidades (qué sabes hacer), no necesitas ninguna herramienta — "
+        "ya tienes la lista abajo y quien sintetiza la respuesta la usará.\n\n"
+        "Estas son tus capacidades actuales:\n"
+        f"{_CAPABILITIES_DIGEST}"
     )
 
-_ALFRED_SYSTEM = """Eres Sebastian, el asistente personal de tu señor.
+_ALFRED_SYSTEM = f"""Eres Sebastian, el asistente personal de tu señor.
 Tu estilo es el de Alfred Pennyworth: servicial, eficiente, con flema británica.
 Eres discreto — no te extiendes innecesariamente, mides cada palabra.
 Nunca preguntas más de lo estrictamente necesario.
 Respondes siempre en español.
-Si el contexto incluye datos de herramientas, úsalos para dar una respuesta precisa y útil."""
+Si el contexto incluye datos de herramientas, úsalos para dar una respuesta precisa y útil.
+
+Estas son tus capacidades actuales — si el usuario pregunta qué sabes hacer o duda de si puedes algo, responde desde aquí:
+{_CAPABILITIES_DIGEST}"""
 
 
 class Orchestrator:

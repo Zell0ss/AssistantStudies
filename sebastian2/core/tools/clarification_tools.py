@@ -1,5 +1,7 @@
 """Clarification tool definition for Orchestrator."""
 
+FAMILY_SUMMARY = "Aclaraciones: si me falta un dato para completar lo que pides, te lo pregunto en vez de adivinar."
+
 CLARIFICATION_TOOLS = [
     {
         "name": "request_clarification",

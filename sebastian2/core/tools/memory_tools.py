@@ -1,5 +1,9 @@
 """Memory tool definitions for Orchestrator (episodic memory: Qdrant + OpenAI embeddings)."""
 
+FAMILY_SUMMARY = (
+    "Memoria: puedo recordar hechos que me pidas guardar ('recuerda que...') y recuperarlos después."
+)
+
 MEMORY_TOOLS = [
     {
         "name": "mark_as_memorable",

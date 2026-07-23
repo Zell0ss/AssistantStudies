@@ -1,5 +1,7 @@
 """Inventory tool definitions for Orchestrator."""
 
+FAMILY_SUMMARY = "Inventario: puedo llevar la cuenta de lo que tienes en casa (despensa, bodega, etc.)."
+
 INVENTORY_TOOLS = [
     {
         "name": "inventory_list",

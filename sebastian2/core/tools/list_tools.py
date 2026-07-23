@@ -1,5 +1,7 @@
 """Generic list tool definitions for Orchestrator (shopping, packing, any list)."""
 
+FAMILY_SUMMARY = "Listas: puedo gestionar listas de la compra, de equipaje o cualquier otra lista de tareas sueltas."
+
 LIST_TOOLS = [
     {
         "name": "list_items",

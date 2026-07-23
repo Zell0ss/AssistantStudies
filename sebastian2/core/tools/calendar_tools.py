@@ -1,5 +1,10 @@
 """Calendar tool definitions for Orchestrator."""
 
+FAMILY_SUMMARY = (
+    "Calendario: puedo apuntar, consultar y borrar citas y eventos, incluidos los recurrentes, "
+    "y te recuerdo la agenda cada mañana."
+)
+
 CALENDAR_TOOLS = [
     {
         "name": "calendar_search_events",

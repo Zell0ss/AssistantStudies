@@ -152,3 +152,9 @@
   mode: exact
   expected: [list_add_item]
   validates: "Sprint 3: frontera operativo vs memoria — 'apunta' aquí es la lista de la compra, NO debe disparar mark_as_memorable"
+
+- id: 23
+  phrase: "que puedes hacer?"
+  mode: none
+  expected: []
+  validates: "Sprint 3b: pregunta de capacidades no dispara ninguna tool — el planner ya sabe (via digest inyectado) que no hace falta herramienta; Alfred responde desde el digest en _ALFRED_SYSTEM"

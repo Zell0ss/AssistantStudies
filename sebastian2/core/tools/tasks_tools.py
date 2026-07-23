@@ -1,5 +1,7 @@
 """Task tool definitions for Orchestrator (project_tasks, shared with glasspannel)."""
 
+FAMILY_SUMMARY = "Tareas: puedo crear, listar y completar tareas asociadas a tus proyectos."
+
 TASKS_TOOLS = [
     {
         "name": "tasks_list",

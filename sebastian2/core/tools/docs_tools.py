@@ -1,5 +1,7 @@
 """Consult_docs tool definition for Orchestrator (read-only vault lookups)."""
 
+FAMILY_SUMMARY = "Documentación: puedo consultar la documentación de tus proyectos guardada en el vault de Obsidian."
+
 DOCS_TOOLS = [
     {
         "name": "consult_docs",
