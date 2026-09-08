@@ -6,6 +6,7 @@ and returns raw data (the 'data' field from module responses, or the
 direct return value for list modules).
 """
 from datetime import date
+from pathlib import Path
 from logcentral_client import get_logger
 
 logger = get_logger("sebastian")
@@ -18,7 +19,10 @@ from modules.tasks import TasksModule
 from modules.consult_docs import ConsultDocsModule
 from modules.memory import MemoryModule
 from modules.project_registry import known_project_slugs
+from modules.youtube_transcript import extraer, SinSubtitulos, YtDlpDesactualizado, YtDlpError
 from utils.config import get_config
+
+_YOUTUBE_WORKDIR_DEFECTO = "/data/ytb-video-extracts"
 
 
 class ToolExecutor:
@@ -95,6 +99,8 @@ class ToolExecutor:
             # Memory
             "mark_as_memorable":         self._mark_as_memorable,
             "search_memory":             self._search_memory,
+            # YouTube
+            "youtube_transcript":        self._youtube_transcript,
         }
 
         handler = dispatch.get(tool_name)
@@ -308,3 +314,39 @@ class ToolExecutor:
     def _search_memory(self, inputs: dict):
         module = self._memory_module()
         return module.search(query=inputs['query'], k=inputs.get('k', 5))
+
+    # ── YouTube ───────────────────────────────────────────────────────────────
+
+    def _youtube_transcript(self, inputs: dict):
+        config = self._config if self._config is not None else get_config()
+        workdir = Path(config.get('youtube_workdir', _YOUTUBE_WORKDIR_DEFECTO))
+        clippings = Path(config['vault_docs_path']).parent / 'Clippings'
+
+        try:
+            resultado = extraer(inputs['url'], inputs['idioma'], workdir, clippings)
+        except SinSubtitulos as e:
+            return (
+                f"No hay subtítulos en ese idioma. Idiomas disponibles: "
+                f"{', '.join(e.disponibles) or 'ninguno'}."
+            )
+        except YtDlpDesactualizado:
+            return "yt-dlp está desactualizado; Josem tiene que ejecutar `sudo -n yt-dlp -U` en seb01."
+        except YtDlpError as e:
+            return f"Error al extraer la transcripción: {e}"
+
+        if 'ambos' in resultado:
+            partes = [self._format_youtube_resultado(r) for r in resultado['ambos'].values()]
+            for lang, mensaje in (resultado.get('errores') or {}).items():
+                partes.append(f"{lang}: {mensaje}")
+            return "\n".join(partes)
+
+        return self._format_youtube_resultado(resultado)
+
+    def _format_youtube_resultado(self, resultado: dict) -> str:
+        ruta_relativa = f"Clippings/{Path(resultado['ruta_md']).name}"
+        palabras_redondeadas = round(resultado['palabras'] / 100) * 100
+        palabras_fmt = f"{palabras_redondeadas:,}".replace(",", ".")
+        return (
+            f"Guardada: {resultado['titulo']} · {resultado['idioma']} ({resultado['subtitulos']}) "
+            f"· {ruta_relativa} · ~{palabras_fmt} palabras"
+        )

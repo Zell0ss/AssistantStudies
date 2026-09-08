@@ -8,6 +8,7 @@ from .clarification_tools import CLARIFICATION_TOOLS, FAMILY_SUMMARY as CLARIFIC
 from .tasks_tools import TASKS_TOOLS, FAMILY_SUMMARY as TASKS_SUMMARY
 from .docs_tools import DOCS_TOOLS, FAMILY_SUMMARY as DOCS_SUMMARY
 from .memory_tools import MEMORY_TOOLS, FAMILY_SUMMARY as MEMORY_SUMMARY
+from .youtube_tools import YOUTUBE_TOOLS, FAMILY_SUMMARY as YOUTUBE_SUMMARY
 
 ALL_TOOLS = (
     CALENDAR_TOOLS +
@@ -18,7 +19,8 @@ ALL_TOOLS = (
     CLARIFICATION_TOOLS +
     TASKS_TOOLS +
     DOCS_TOOLS +
-    MEMORY_TOOLS
+    MEMORY_TOOLS +
+    YOUTUBE_TOOLS
 )
 
 # Each entry pairs a family's tool list with its human-curated summary line.
@@ -34,6 +36,7 @@ _TOOL_FAMILIES = [
     (TASKS_TOOLS, TASKS_SUMMARY),
     (DOCS_TOOLS, DOCS_SUMMARY),
     (MEMORY_TOOLS, MEMORY_SUMMARY),
+    (YOUTUBE_TOOLS, YOUTUBE_SUMMARY),
 ]
 
 
