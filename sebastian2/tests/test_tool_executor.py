@@ -1,6 +1,7 @@
 """Tests for ToolExecutor — tool name → module method dispatch."""
 import pytest
 import sqlite3
+from pathlib import Path
 from unittest.mock import patch
 from tests.test_item_list_module import MySQLCompatibleConnection
 
@@ -452,6 +453,135 @@ def test_search_memory_defaults_k_to_5(mock_search, db):
     executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake'})
     executor.execute("search_memory", {"query": "algo"})
     mock_search.assert_called_once_with(query="algo", k=5)
+
+
+# ── YouTube ───────────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def youtube_config(tmp_path):
+    vault = tmp_path / "vault" / "30-projects"
+    vault.mkdir(parents=True)
+    return {
+        'vault_docs_path': str(vault),
+        'youtube_workdir': str(tmp_path / "ytb"),
+    }
+
+
+@patch('core.tool_executor.extraer')
+def test_youtube_transcript_dispatches_success(mock_extraer, db, youtube_config):
+    """youtube_transcript llama a extraer() y devuelve texto preformateado con la ruta relativa."""
+    mock_extraer.return_value = {
+        'titulo': 'Un vídeo', 'idioma': 'es', 'subtitulos': 'manual',
+        'ruta_md': '/data/library/mi-wiki/docs/Obsidian/Clippings/un-video.md',
+        'palabras': 3200, 'id': 'abc123',
+    }
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=youtube_config)
+    result = executor.execute(
+        "youtube_transcript", {"url": "https://www.youtube.com/watch?v=abc123", "idioma": "es"}
+    )
+    assert isinstance(result, str)
+    assert "Un vídeo" in result
+    assert "Clippings/un-video.md" in result
+    assert "~3.200" in result
+    call_args = mock_extraer.call_args
+    assert call_args[0][0] == "https://www.youtube.com/watch?v=abc123"
+    assert call_args[0][1] == "es"
+
+
+@patch('core.tool_executor.extraer')
+def test_youtube_transcript_deriva_clippings_de_vault_docs_path(mock_extraer, db, youtube_config):
+    """clippings = <padre de vault_docs_path>/Clippings."""
+    mock_extraer.return_value = {
+        'titulo': 't', 'idioma': 'es', 'subtitulos': 'manual', 'ruta_md': 'x.md', 'palabras': 1, 'id': 'x',
+    }
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=youtube_config)
+    executor.execute("youtube_transcript", {"url": "u", "idioma": "es"})
+    clippings_arg = mock_extraer.call_args[0][3]
+    assert str(clippings_arg) == str(Path(youtube_config['vault_docs_path']).parent / "Clippings")
+
+
+@patch('core.tool_executor.extraer')
+def test_youtube_transcript_usa_workdir_configurado(mock_extraer, db, youtube_config):
+    """El workdir viene de config['youtube_workdir'] cuando está presente."""
+    mock_extraer.return_value = {
+        'titulo': 't', 'idioma': 'es', 'subtitulos': 'manual', 'ruta_md': 'x.md', 'palabras': 1, 'id': 'x',
+    }
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=youtube_config)
+    executor.execute("youtube_transcript", {"url": "u", "idioma": "es"})
+    workdir_arg = mock_extraer.call_args[0][2]
+    assert str(workdir_arg) == youtube_config['youtube_workdir']
+
+
+@patch('core.tool_executor.extraer')
+def test_youtube_transcript_default_workdir_cuando_no_configurado(mock_extraer, db, tmp_path):
+    """Sin youtube_workdir en config, usa /data/ytb-video-extracts por defecto."""
+    vault = tmp_path / "30-projects"
+    vault.mkdir()
+    mock_extraer.return_value = {
+        'titulo': 't', 'idioma': 'es', 'subtitulos': 'manual', 'ruta_md': 'x.md', 'palabras': 1, 'id': 'x',
+    }
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config={'vault_docs_path': str(vault)})
+    executor.execute("youtube_transcript", {"url": "u", "idioma": "es"})
+    workdir_arg = mock_extraer.call_args[0][2]
+    assert str(workdir_arg) == '/data/ytb-video-extracts'
+
+
+@patch('core.tool_executor.extraer')
+def test_youtube_transcript_sin_subtitulos_mensaje_legible(mock_extraer, db, youtube_config):
+    """SinSubtitulos se traduce a texto con los idiomas disponibles."""
+    from modules.youtube_transcript import SinSubtitulos
+    mock_extraer.side_effect = SinSubtitulos(disponibles=['en', 'fr'])
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=youtube_config)
+    result = executor.execute("youtube_transcript", {"url": "u", "idioma": "es"})
+    assert isinstance(result, str)
+    assert "en" in result and "fr" in result
+
+
+@patch('core.tool_executor.extraer')
+def test_youtube_transcript_429_mensaje_sudo(mock_extraer, db, youtube_config):
+    """YtDlpDesactualizado se traduce al mensaje que Alfred puede transmitir a Josem."""
+    from modules.youtube_transcript import YtDlpDesactualizado
+    mock_extraer.side_effect = YtDlpDesactualizado()
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=youtube_config)
+    result = executor.execute("youtube_transcript", {"url": "u", "idioma": "es"})
+    assert "sudo -n yt-dlp -U" in result
+
+
+@patch('core.tool_executor.extraer')
+def test_youtube_transcript_otro_error_mensaje_legible(mock_extraer, db, youtube_config):
+    """YtDlpError se traduce a texto legible, sin propagar la excepción."""
+    from modules.youtube_transcript import YtDlpError
+    mock_extraer.side_effect = YtDlpError("boom")
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=youtube_config)
+    result = executor.execute("youtube_transcript", {"url": "u", "idioma": "es"})
+    assert isinstance(result, str)
+    assert "boom" in result
+
+
+@patch('core.tool_executor.extraer')
+def test_youtube_transcript_ambos_combina_resultados(mock_extraer, db, youtube_config):
+    """idioma='ambos' combina el texto de ambos idiomas en la respuesta."""
+    mock_extraer.return_value = {
+        'ambos': {
+            'es': {'titulo': 't', 'idioma': 'es', 'subtitulos': 'manual',
+                   'ruta_md': '/vault/Clippings/t-es.md', 'palabras': 100, 'id': 'x'},
+            'en': {'titulo': 't', 'idioma': 'en', 'subtitulos': 'manual',
+                   'ruta_md': '/vault/Clippings/t-en.md', 'palabras': 120, 'id': 'x'},
+        },
+        'errores': {},
+    }
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=youtube_config)
+    result = executor.execute("youtube_transcript", {"url": "u", "idioma": "ambos"})
+    assert "t-es.md" in result
+    assert "t-en.md" in result
 
 
 def test_memory_module_uses_configured_collection_name(db):

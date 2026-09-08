@@ -8,6 +8,7 @@ from core.tools import ALL_TOOLS
 TOOL_FAMILY_MODULES = [
     "calendar_tools", "weather_tools", "inventory_tools", "list_tools",
     "notes_tools", "clarification_tools", "tasks_tools", "docs_tools", "memory_tools",
+    "youtube_tools",
 ]
 
 
