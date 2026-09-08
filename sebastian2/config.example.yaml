@@ -30,3 +30,6 @@ sprite_mapping: "sprites/mapping.yaml"
 
 # Obsidian vault (consult_docs, tasks_create validation)
 vault_docs_path: "/path/to/vault/30-projects"
+
+# YouTube transcript tool: directorio de trabajo para la tríada cruda (.vtt/.txt/.url)
+youtube_workdir: "/data/ytb-video-extracts"
