@@ -102,6 +102,24 @@ def despertar(client, qdrant_client, bot, notebook_path, vault_path, chat_id,
     }
 
 
+def _resolve_chat_id(config: dict) -> int:
+    """Resuelve el chat_id de Josem para los mensajes <telegram> del cuaderno.
+
+    Usa config['cuaderno_chat_id'] si está presente. Si no, cae a
+    authorized_ids[0] por compatibilidad — pero eso es frágil: con más de un
+    authorized_id, el índice 0 no tiene por qué ser Josem (bug real: el
+    cuaderno llevaba desde el primer despertar mandando sus mensajes a un
+    chat que no era el suyo). Se avisa por log cuando se usa el fallback.
+    """
+    if "cuaderno_chat_id" in config:
+        return config["cuaderno_chat_id"]
+    logger.warning(
+        "cuaderno_chat_id no está en config.yaml — usando authorized_ids[0] como "
+        "fallback, puede no ser el chat correcto."
+    )
+    return config["authorized_ids"][0]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Un despertar del cuaderno.")
     parser.add_argument("--dry-run", action="store_true", help="No appendea ni envía Telegram, solo imprime.")
@@ -113,7 +131,7 @@ def main() -> None:
     bot = telebot.TeleBot(config["telegram_apikey"])
     notebook_path = Path(config["vault_docs_path"]) / "claude" / "cuaderno.md"
     vault_path = Path(config["vault_docs_path"]).parent
-    chat_id = config["authorized_ids"][0]
+    chat_id = _resolve_chat_id(config)
 
     result = despertar(
         client=client, qdrant_client=qdrant_client, bot=bot,

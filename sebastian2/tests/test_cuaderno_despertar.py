@@ -3,7 +3,7 @@
 mocked — real network calls only happen in the supervised manual run (FASE 4)."""
 from unittest.mock import MagicMock
 
-from scripts.cuaderno.despertar import despertar, _build_seeds_block
+from scripts.cuaderno.despertar import despertar, _build_seeds_block, _resolve_chat_id
 
 
 def _fake_client(response_text: str) -> MagicMock:
@@ -116,3 +116,21 @@ class TestDespertar:
         )
 
         assert "Primer despertar." in notebook.read_text()
+
+
+class TestResolveChatId:
+    # Regression: despertar.py usaba authorized_ids[0] como chat_id — con más de
+    # un authorized_id en config.yaml, el cuaderno llevaba desde el primer
+    # despertar mandando sus mensajes <telegram> a un chat que no era el de Josem.
+
+    def test_usa_cuaderno_chat_id_si_esta_en_config(self):
+        config = {"cuaderno_chat_id": 815566372, "authorized_ids": [111, 222, 815566372]}
+        assert _resolve_chat_id(config) == 815566372
+
+    def test_cae_a_authorized_ids_0_si_no_esta_configurado(self):
+        config = {"authorized_ids": [111, 222, 815566372]}
+        assert _resolve_chat_id(config) == 111
+
+    def test_cuaderno_chat_id_tiene_prioridad_aunque_no_sea_el_primero(self):
+        config = {"cuaderno_chat_id": 815566372, "authorized_ids": [815566372, 111]}
+        assert _resolve_chat_id(config) == 815566372
