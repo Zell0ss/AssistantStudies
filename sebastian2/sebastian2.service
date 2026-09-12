@@ -16,6 +16,7 @@ SyslogIdentifier=sebastian2
 
 # Environment
 Environment="PYTHONUNBUFFERED=1"
+Environment="PATH=/data/AssistantStudies/sebastian2/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
 
 # Security
 NoNewPrivileges=true

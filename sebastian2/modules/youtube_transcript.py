@@ -21,6 +21,7 @@ from logcentral_client import get_logger
 logger = get_logger("sebastian")
 
 YTDLP = "yt-dlp"
+IMPERSONATE = ["--impersonate", "chrome"]
 
 _URL_RE = re.compile(r"https?://[^\s]+")
 _YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com"}
@@ -146,7 +147,8 @@ def _idiomas_disponibles(info: dict) -> list[str]:
 
 
 def _run_yt_dlp(ejecutar, args):
-    proc = ejecutar(args, capture_output=True, text=True)
+    """`args` es [YTDLP, ...]; se inyecta --impersonate chrome tras el binario."""
+    proc = ejecutar([args[0], *IMPERSONATE, *args[1:]], capture_output=True, text=True)
     if proc.returncode != 0:
         if "429" in (proc.stderr or ""):
             raise YtDlpDesactualizado()
