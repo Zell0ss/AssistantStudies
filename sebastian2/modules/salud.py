@@ -33,8 +33,11 @@ class SaludModule:
             # H2-revision.md (anexo a H2): el detail de un 422/503 es una frase ya pensada
             # para el usuario ("Las fases leídas no cuadran con el total dormido.",
             # "No he podido leerlo ahora; prueba en un rato.") — se reenvía tal cual.
+            # status_code viaja en el resultado porque H4-revision.md §1.1 distingue un 422
+            # (ya sabemos que es sueño: el detail es seguro) de un 503/fallo de red (no se
+            # sabe qué era la foto — el llamador no debe hablar de sueño a ciegas).
             detail = data.get("detail") if isinstance(data, dict) else None
-            return {"tipo": "error", "resumen": detail or _MENSAJE_SIN_RESPUESTA}
+            return {"tipo": "error", "status_code": response.status_code, "resumen": detail or _MENSAJE_SIN_RESPUESTA}
         return data
 
     def registrar_texto(self, mensaje: str) -> str:
@@ -55,9 +58,10 @@ class SaludModule:
     def registrar_captura(self, imagen_bytes: bytes, filename: str, content_type: str) -> dict:
         """Manda una imagen a /api/ingesta/captura. Devuelve el JSON tal cual lo da Tristras
         ({"tipo": "sueno", "registro": ..., "resumen": ...} | {"tipo": "desconocida"} |
-        {"tipo": "error", "resumen": ...} en fallos de red o de la API) — quien llama decide
-        qué decir según `tipo` (D40: "desconocida" usa la respuesta de siempre, no un texto
-        de Tristras)."""
+        {"tipo": "error", "status_code": int | None, "resumen": ...} en fallos de red o de la
+        API, status_code=None si fue de red) — quien llama decide qué decir según `tipo` y
+        `status_code` (D40: "desconocida" usa la respuesta de siempre; H4-revision.md §1.1:
+        un 422 ya sabe que era sueño, un 503 o fallo de red no)."""
         try:
             response = requests.post(
                 f"{self._base_url}/api/ingesta/captura",
@@ -67,5 +71,5 @@ class SaludModule:
             )
         except requests.RequestException as exc:
             logger.warning(f"Tristras no respondió a /api/ingesta/captura: {type(exc).__name__}")
-            return {"tipo": "error", "resumen": _MENSAJE_SIN_RESPUESTA}
+            return {"tipo": "error", "status_code": None, "resumen": _MENSAJE_SIN_RESPUESTA}
         return self._parse(response)

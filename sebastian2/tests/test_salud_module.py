@@ -99,4 +99,33 @@ class TestRegistrarCaptura:
         resultado = modulo.registrar_captura(b"\xff\xd8\xff", "foto.jpg", "image/jpeg")
 
         assert resultado["tipo"] == "error"
+        assert resultado["status_code"] is None
         assert "boom" not in resultado["resumen"]
+
+    @patch("modules.salud.requests.post")
+    def test_error_422_conserva_el_status_code(self, mock_post):
+        """H4-revision.md §1.1: el llamador necesita el status_code para distinguir un 422
+        (ya sabe que era sueño) de un 503/fallo de red (no lo sabe)."""
+        mock_post.return_value = _mock_response(422, {"detail": "Las fases leídas no cuadran con el total dormido."})
+        modulo = SaludModule(BASE_URL, TOKEN)
+
+        resultado = modulo.registrar_captura(b"\xff\xd8\xff", "foto.jpg", "image/jpeg")
+
+        assert resultado == {
+            "tipo": "error",
+            "status_code": 422,
+            "resumen": "Las fases leídas no cuadran con el total dormido.",
+        }
+
+    @patch("modules.salud.requests.post")
+    def test_error_503_conserva_el_status_code(self, mock_post):
+        mock_post.return_value = _mock_response(503, {"detail": "No he podido leerlo ahora; prueba en un rato."})
+        modulo = SaludModule(BASE_URL, TOKEN)
+
+        resultado = modulo.registrar_captura(b"\xff\xd8\xff", "foto.jpg", "image/jpeg")
+
+        assert resultado == {
+            "tipo": "error",
+            "status_code": 503,
+            "resumen": "No he podido leerlo ahora; prueba en un rato.",
+        }
