@@ -158,3 +158,41 @@
   mode: none
   expected: []
   validates: "Sprint 3b: pregunta de capacidades no dispara ninguna tool — el planner ya sabe (via digest inyectado) que no hace falta herramienta; Alfred responde desde el digest en _ALFRED_SYSTEM"
+
+- id: 24
+  phrase: "he dormido 6 horas, fatal"
+  mode: exact
+  expected: [salud]
+  validates: "Sprint H4 (D3, D39-D42): caso base de la tool salud"
+
+- id: 25
+  phrase: "anoche dormí fatal, me desperté dos veces"
+  mode: exact
+  expected: [salud]
+  validates: "Sprint H4: sueño contado con detalle (despertares), sigue siendo una sola llamada a salud"
+
+- id: 26
+  phrase: "esta noche he dormido genial, como un tronco"
+  mode: exact
+  expected: [salud]
+  validates: "Sprint H4: sueño positivo, sin cifras — salud también para el lado bueno, no solo quejas"
+
+- id: 27
+  phrase: "dormí 7 horas y media, bastante bien"
+  mode: exact
+  expected: [salud]
+  validates: "Sprint H4: horas con fracción en texto ('y media')"
+
+- id: 28
+  phrase: "recuérdame acostarme pronto"
+  mode: any_of
+  expected:
+    - []
+    - [notes_create]
+  validates: "Sprint H4, negativa: NO es un registro de sueño, es un recordatorio futuro. No hay tool de recordatorios todavía, así que vale sin tool o como nota — lo único que falla el test es que llame a salud"
+
+- id: 29
+  phrase: "apunta melatonina en la compra"
+  mode: exact
+  expected: [list_add_item]
+  validates: "Sprint H4, negativa: frontera salud vs lista de la compra — 'apunta' + un suplemento para dormir no debe disparar salud (descripción de la tool, estrecha a propósito)"
