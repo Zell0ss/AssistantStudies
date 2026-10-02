@@ -38,3 +38,7 @@ vault_docs_path: "/path/to/vault/30-projects"
 
 # YouTube transcript tool: directorio de trabajo para la tríada cruda (.vtt/.txt/.url)
 youtube_workdir: "/data/ytb-video-extracts"
+
+# Tristras — ingesta de salud, tool `salud` y fotos sin QR (D3, D39-D42, fase 2)
+tristras_url: "http://127.0.0.1:8003"
+tristras_token: "your_tristras_ingesta_token_here"

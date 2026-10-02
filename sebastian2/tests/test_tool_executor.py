@@ -584,6 +584,45 @@ def test_youtube_transcript_ambos_combina_resultados(mock_extraer, db, youtube_c
     assert "t-en.md" in result
 
 
+SALUD_CONFIG = {'tristras_url': 'http://127.0.0.1:8003', 'tristras_token': 'tok'}
+
+
+@patch('modules.salud.SaludModule.registrar_texto')
+def test_salud_dispatches(mock_registrar, db):
+    """salud calls SaludModule.registrar_texto with the raw mensaje."""
+    mock_registrar.return_value = "Anoche: 6 h 45 min. Apuntado."
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=SALUD_CONFIG)
+    result = executor.execute("salud", {"mensaje": "he dormido 6 horas 45, fatal"})
+    mock_registrar.assert_called_once_with("he dormido 6 horas 45, fatal")
+    assert result == "Anoche: 6 h 45 min. Apuntado."
+
+
+def test_salud_module_uses_configured_tristras_url_and_token(db):
+    """ToolExecutor passes config['tristras_url']/['tristras_token'] through to SaludModule."""
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=SALUD_CONFIG)
+    with patch('modules.salud.SaludModule.__init__', return_value=None) as mock_init:
+        with patch('modules.salud.SaludModule.registrar_texto', return_value="ok"):
+            executor.execute("salud", {"mensaje": "algo"})
+    mock_init.assert_called_once_with(base_url='http://127.0.0.1:8003', token='tok')
+
+
+@patch('modules.salud.SaludModule.registrar_texto')
+@patch('core.tool_executor.logger')
+def test_salud_no_registra_el_mensaje_en_debug(mock_logger, mock_registrar, db):
+    """D39-D42: nunca el texto del usuario ni el resumen en los logs, ni en debug."""
+    mock_registrar.return_value = "Anoche: 6 h 45 min, me desperté con dolor de cabeza. Apuntado."
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config=SALUD_CONFIG)
+    executor.execute("salud", {"mensaje": "dormí fatal, dolor de cabeza al despertar"})
+
+    lineas_logueadas = [call.args[0] for call in mock_logger.debug.call_args_list]
+    assert not any("dolor de cabeza" in linea for linea in lineas_logueadas)
+    assert not any("dormí fatal" in linea for linea in lineas_logueadas)
+    assert any("salud" in linea for linea in lineas_logueadas)  # el nombre de la tool sí se registra
+
+
 def test_memory_module_uses_configured_collection_name(db):
     """ToolExecutor passes config['memory_collection'] through to MemoryModule (test isolation)."""
     from core.tool_executor import ToolExecutor

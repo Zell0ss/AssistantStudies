@@ -71,6 +71,20 @@ def _format_date(d) -> str:
     return f"{d.day} de {_MONTHS_ES[d.month - 1]}"
 
 
+def _intentar_salud(image_bytes: bytes) -> Optional[str]:
+    """D40: clasifica la foto con Tristras. Devuelve el resumen solo si reconoce sueño —
+    "desconocida" y los fallos de Tristras caen en la respuesta de siempre del llamador."""
+    from modules.salud import SaludModule
+    from utils.config import get_config
+
+    config = get_config()
+    modulo = SaludModule(base_url=config['tristras_url'], token=config['tristras_token'])
+    resultado = modulo.registrar_captura(image_bytes, "captura.jpg", "image/jpeg")
+    if resultado.get("tipo") == "sueno":
+        return resultado.get("resumen")
+    return None
+
+
 def handle_media(message, bot):
     """
     Handle an incoming photo or document message.
@@ -102,6 +116,13 @@ def handle_media(message, bot):
     tickets = decode_image(image_bytes)
 
     if not tickets:
+        # D40: sin QR, la foto va a Tristras (sueño; comida en fase 3). "desconocida" o un
+        # fallo de Tristras caen en la respuesta de siempre — nunca un texto de salud para
+        # una foto que podría no tener nada que ver.
+        resumen_sueno = _intentar_salud(image_bytes)
+        if resumen_sueno:
+            bot.reply_to(message, resumen_sueno)
+            return
         bot.reply_to(
             message,
             "No pude leer ningún código en esa imagen.\n"

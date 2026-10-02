@@ -20,9 +20,14 @@ from modules.consult_docs import ConsultDocsModule
 from modules.memory import MemoryModule
 from modules.project_registry import known_project_slugs
 from modules.youtube_transcript import extraer, SinSubtitulos, YtDlpDesactualizado, YtDlpError
+from modules.salud import SaludModule
 from utils.config import get_config
 
 _YOUTUBE_WORKDIR_DEFECTO = "/data/ytb-video-extracts"
+
+# D39-D42: nada de datos de salud en los logs, en ningún nivel. La tool `salud` se excluye
+# del logging genérico de abajo (inputs + resultado) y solo deja nombre + estado.
+_TOOLS_SIN_LOG_DE_CONTENIDO = {"salud"}
 
 
 class ToolExecutor:
@@ -45,6 +50,13 @@ class ToolExecutor:
             qdrant_url=config.get('qdrant_url', 'http://localhost:6333'),
         )
 
+    def _salud_module(self):
+        config = self._config if self._config is not None else get_config()
+        return SaludModule(
+            base_url=config['tristras_url'],
+            token=config['tristras_token'],
+        )
+
     def execute(self, tool_name: str, tool_input: dict):
         """
         Execute a named tool with the given inputs.
@@ -52,7 +64,10 @@ class ToolExecutor:
         Returns raw data suitable for inclusion in a tool_result block.
         Raises ValueError for unknown tool names.
         """
-        logger.debug(f"Executing tool: {tool_name} inputs={tool_input}")
+        if tool_name in _TOOLS_SIN_LOG_DE_CONTENIDO:
+            logger.debug(f"Executing tool: {tool_name}")
+        else:
+            logger.debug(f"Executing tool: {tool_name} inputs={tool_input}")
 
         dispatch = {
             # Calendar
@@ -101,6 +116,8 @@ class ToolExecutor:
             "search_memory":             self._search_memory,
             # YouTube
             "youtube_transcript":        self._youtube_transcript,
+            # Salud (D3, D39-D42): Tristras es dueño de los datos, Sebastian solo el canal
+            "salud":                     self._salud,
         }
 
         handler = dispatch.get(tool_name)
@@ -108,7 +125,10 @@ class ToolExecutor:
             raise ValueError(f"Unknown tool: {tool_name}")
 
         result = handler(tool_input)
-        logger.debug(f"Tool {tool_name} result: {str(result)[:200]}")
+        if tool_name in _TOOLS_SIN_LOG_DE_CONTENIDO:
+            logger.debug(f"Tool {tool_name} result: ok")
+        else:
+            logger.debug(f"Tool {tool_name} result: {str(result)[:200]}")
         return result
 
     # ── Calendar ──────────────────────────────────────────────────────────────
@@ -341,6 +361,12 @@ class ToolExecutor:
             return "\n".join(partes)
 
         return self._format_youtube_resultado(resultado)
+
+    # ── Salud ─────────────────────────────────────────────────────────────────
+
+    def _salud(self, inputs: dict):
+        module = self._salud_module()
+        return module.registrar_texto(inputs['mensaje'])
 
     def _format_youtube_resultado(self, resultado: dict) -> str:
         ruta_relativa = f"Clippings/{Path(resultado['ruta_md']).name}"

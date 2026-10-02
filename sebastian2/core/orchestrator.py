@@ -14,7 +14,7 @@ from datetime import datetime
 from logcentral_client import get_logger
 from anthropic import Anthropic, APIError, APIConnectionError, RateLimitError
 from core.tools import ALL_TOOLS, build_capabilities_digest
-from core.tool_executor import ToolExecutor
+from core.tool_executor import ToolExecutor, _TOOLS_SIN_LOG_DE_CONTENIDO
 from db.pending_plan_repo import PendingPlanRepository
 from modules.ticket_generator import generate_image
 from utils.config import get_config
@@ -57,6 +57,22 @@ def _summarize_tool_result(raw) -> str:
     if isinstance(raw, (int, float, bool)) or raw is None:
         return f"value={raw}"
     return str(type(raw).__name__)
+
+
+def _log_tool_execution(tool_name: str, tool_input: dict, raw, latency_ms: float, result_content: str) -> None:
+    """INFO summary + DEBUG full payload for a completed tool call — except `salud`
+    (D39-D42: nunca el texto del usuario ni lo leído por el modelo en los logs, en ningún
+    nivel; solo el nombre de la tool y que terminó bien)."""
+    if tool_name in _TOOLS_SIN_LOG_DE_CONTENIDO:
+        logger.bind(tool=tool_name, latency_ms=latency_ms).info(f"Tool {tool_name} → ok ({latency_ms}ms)")
+        return
+    logger.bind(tool=tool_name, latency_ms=latency_ms).info(
+        f"Tool {tool_name} → {_summarize_tool_result(raw)} ({latency_ms}ms)"
+    )
+    logger.debug(
+        f"Tool {tool_name} | input={json.dumps(tool_input, ensure_ascii=False)} | "
+        f"full_result={result_content[:2000]}"
+    )
 
 
 def _now_str() -> str:
@@ -213,23 +229,20 @@ class Orchestrator:
                     latency_ms = round((time.perf_counter() - t0) * 1000, 1)
                     result_content = json.dumps(raw, default=str, ensure_ascii=False)
                     tool_results_summary.append({"tool": block.name, "input": block.input, "result": raw})
-                    logger.bind(tool=block.name, latency_ms=latency_ms).info(
-                        f"Tool {block.name} → {_summarize_tool_result(raw)} ({latency_ms}ms)"
-                    )
-                    logger.debug(
-                        f"Tool {block.name} | input={json.dumps(block.input, ensure_ascii=False)} | "
-                        f"full_result={result_content[:2000]}"
-                    )
+                    _log_tool_execution(block.name, block.input, raw, latency_ms, result_content)
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
                         "content": result_content
                     })
                 except Exception:
-                    logger.exception(
-                        f"Tool {block.name} failed | user={self._user_id} | "
-                        f"input={json.dumps(block.input, ensure_ascii=False)}"
-                    )
+                    if block.name in _TOOLS_SIN_LOG_DE_CONTENIDO:
+                        logger.exception(f"Tool {block.name} failed | user={self._user_id}")
+                    else:
+                        logger.exception(
+                            f"Tool {block.name} failed | user={self._user_id} | "
+                            f"input={json.dumps(block.input, ensure_ascii=False)}"
+                        )
                     had_error = True
                     break
 
@@ -343,23 +356,20 @@ class Orchestrator:
                         "input": block.input,
                         "result": raw
                     })
-                    logger.bind(tool=block.name, latency_ms=latency_ms).info(
-                        f"Tool {block.name} → {_summarize_tool_result(raw)} ({latency_ms}ms)"
-                    )
-                    logger.debug(
-                        f"Tool {block.name} | input={json.dumps(block.input, ensure_ascii=False)} | "
-                        f"full_result={result_content[:2000]}"
-                    )
+                    _log_tool_execution(block.name, block.input, raw, latency_ms, result_content)
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
                         "content": result_content
                     })
                 except Exception:
-                    logger.exception(
-                        f"Tool {block.name} failed | user={self._user_id} | "
-                        f"input={json.dumps(block.input, ensure_ascii=False)}"
-                    )
+                    if block.name in _TOOLS_SIN_LOG_DE_CONTENIDO:
+                        logger.exception(f"Tool {block.name} failed | user={self._user_id}")
+                    else:
+                        logger.exception(
+                            f"Tool {block.name} failed | user={self._user_id} | "
+                            f"input={json.dumps(block.input, ensure_ascii=False)}"
+                        )
                     had_error = True
                     # On tool error, break out of the loop immediately
                     # so synthesis can handle graceful degradation
