@@ -16,5 +16,12 @@ def test_logcentral_log_dir_de_tests_no_es_el_del_repo():
 
 
 def test_logar_no_crea_logs_en_el_repo():
+    """En producción `logs/sebastian.log` ya existe (el bot real escribe ahí): el criterio no
+    es que no exista, sino que loguear en el test no lo toque."""
+    log_real = REPO_ROOT / "logs" / "sebastian.log"
+    contenido_antes = log_real.read_bytes() if log_real.exists() else None
+
     get_logger("sebastian").bind(module=__name__).info("prueba H6-encargo #1")
-    assert not (REPO_ROOT / "logs").exists()
+
+    contenido_despues = log_real.read_bytes() if log_real.exists() else None
+    assert contenido_antes == contenido_despues
