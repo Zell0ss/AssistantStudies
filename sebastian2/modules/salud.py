@@ -37,6 +37,11 @@ class SaludModule:
             # (ya sabemos que es sueño: el detail es seguro) de un 503/fallo de red (no se
             # sabe qué era la foto — el llamador no debe hablar de sueño a ciegas).
             detail = data.get("detail") if isinstance(data, dict) else None
+            # H6-encargo.md #3: un 422 de validación de FastAPI (no de Tristras) trae `detail`
+            # como lista, no como frase — eso no se reenvía tal cual (a Telegram, o a quien
+            # llame). Solo un str no vacío es una frase pensada para el usuario.
+            if not isinstance(detail, str):
+                detail = None
             return {"tipo": "error", "status_code": response.status_code, "resumen": detail or _MENSAJE_SIN_RESPUESTA}
         return data
 

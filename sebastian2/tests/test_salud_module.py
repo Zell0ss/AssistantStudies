@@ -55,6 +55,17 @@ class TestRegistrarTexto:
         assert modulo.registrar_texto("dormí bien") == "No he podido leerlo ahora; prueba en un rato."
 
     @patch("modules.salud.requests.post")
+    def test_error_con_detail_no_str_no_llega_a_telegram(self, mock_post):
+        """H6-encargo.md #3: un 422 de validación de FastAPI (no de Tristras) trae `detail`
+        como lista de errores, no como frase — no se reenvía tal cual."""
+        mock_post.return_value = _mock_response(422, {"detail": [{"loc": ["body"], "msg": "field required"}]})
+        modulo = SaludModule(BASE_URL, TOKEN)
+
+        resultado = modulo.registrar_texto("dormí fatal")
+
+        assert resultado == "No he podido apuntar tu sueño ahora mismo; pruébalo en un rato."
+
+    @patch("modules.salud.requests.post")
     def test_sin_conexion_da_aviso_claro_sin_traza(self, mock_post):
         import requests
         mock_post.side_effect = requests.ConnectionError("boom")
@@ -128,4 +139,19 @@ class TestRegistrarCaptura:
             "tipo": "error",
             "status_code": 503,
             "resumen": "No he podido leerlo ahora; prueba en un rato.",
+        }
+
+    @patch("modules.salud.requests.post")
+    def test_error_422_con_detail_no_str_no_llega_a_telegram(self, mock_post):
+        """H6-encargo.md #3: mismo caso que en registrar_texto, pero por el camino de la
+        captura — _intentar_salud en ticket_handler.py reenvía este resumen tal cual en un 422."""
+        mock_post.return_value = _mock_response(422, {"detail": [{"loc": ["body"], "msg": "field required"}]})
+        modulo = SaludModule(BASE_URL, TOKEN)
+
+        resultado = modulo.registrar_captura(b"\xff\xd8\xff", "foto.jpg", "image/jpeg")
+
+        assert resultado == {
+            "tipo": "error",
+            "status_code": 422,
+            "resumen": "No he podido apuntar tu sueño ahora mismo; pruébalo en un rato.",
         }
