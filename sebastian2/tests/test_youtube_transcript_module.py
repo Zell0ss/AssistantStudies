@@ -223,6 +223,51 @@ def test_elegir_pista_acepta_variante_regional():
     assert elegir_pista(info, "es") == ("es-419", "manual")
 
 
+def test_elegir_pista_auto_prefiere_orig_sobre_autotraducida():
+    """`en` en automatic_captions puede ser una auto-traducción (429); `en-orig` es el original."""
+    from modules.youtube_transcript import elegir_pista
+    info = {
+        "subtitles": {},
+        "automatic_captions": {"en": [{"ext": "vtt"}], "en-orig": [{"ext": "vtt"}]},
+    }
+    assert elegir_pista(info, "en") == ("en-orig", "auto")
+
+
+def test_elegir_pista_manual_gana_a_orig_auto():
+    from modules.youtube_transcript import elegir_pista
+    info = {
+        "subtitles": {"en": [{"ext": "vtt"}]},
+        "automatic_captions": {"en": [{"ext": "vtt"}], "en-orig": [{"ext": "vtt"}]},
+    }
+    assert elegir_pista(info, "en") == ("en", "manual")
+
+
+def test_elegir_pista_original_usa_orig_auto():
+    from modules.youtube_transcript import elegir_pista
+    info = {
+        "language": "en",
+        "subtitles": {},
+        "automatic_captions": {"es": [{"ext": "vtt"}], "en": [{"ext": "vtt"}], "en-orig": [{"ext": "vtt"}]},
+    }
+    assert elegir_pista(info, "original") == ("en-orig", "auto")
+
+
+def test_elegir_pista_original_prefiere_manual_en_idioma_del_video():
+    from modules.youtube_transcript import elegir_pista
+    info = {
+        "language": "es",
+        "subtitles": {"en": [{"ext": "vtt"}], "es": [{"ext": "vtt"}]},
+        "automatic_captions": {"es-orig": [{"ext": "vtt"}]},
+    }
+    assert elegir_pista(info, "original") == ("es", "manual")
+
+
+def test_elegir_pista_original_none_sin_pistas_originales():
+    from modules.youtube_transcript import elegir_pista
+    info = {"subtitles": {}, "automatic_captions": {"en": [{"ext": "vtt"}]}}
+    assert elegir_pista(info, "original") is None
+
+
 def test_elegir_pista_none_si_no_existe_idioma():
     from modules.youtube_transcript import elegir_pista
     info = {

@@ -131,9 +131,26 @@ def frontmatter(titulo: str, url: str, fecha: str, idioma: str, origen: str) -> 
 
 
 def elegir_pista(info: dict, idioma: str) -> tuple[str, str] | None:
-    """(idioma_real, 'manual'|'auto') preferiendo subtitles sobre automatic_captions."""
+    """(idioma_real, 'manual'|'auto') preferiendo subtitles sobre automatic_captions.
+
+    `idioma='original'`: la pista en el idioma hablado del vídeo (`info['language']`
+    para manuales, `*-orig` para automáticas); nunca una auto-traducción.
+    """
+    if idioma == "original":
+        habla = info.get("language")
+        manuales = info.get("subtitles") or {}
+        if habla and habla in manuales:
+            return habla, "manual"
+        for lang in info.get("automatic_captions") or {}:
+            if lang.endswith("-orig"):
+                return lang, "auto"
+        return None
     for origen, campo in (("manual", "subtitles"), ("auto", "automatic_captions")):
         pistas = info.get(campo) or {}
+        # `<idioma>` a secas en automatic_captions puede ser una auto-traducción, que
+        # YouTube limita con 429 (yt-dlp #13831); `<idioma>-orig` es el original.
+        if origen == "auto" and f"{idioma}-orig" in pistas:
+            return f"{idioma}-orig", origen
         if idioma in pistas:
             return idioma, origen
         for lang in pistas:

@@ -343,7 +343,7 @@ class ToolExecutor:
         clippings = Path(config['vault_docs_path']).parent / 'Clippings'
 
         try:
-            resultado = extraer(inputs['url'], inputs['idioma'], workdir, clippings)
+            resultado = extraer(inputs['url'], inputs.get('idioma') or 'original', workdir, clippings)
         except SinSubtitulos as e:
             return (
                 f"No hay subtítulos en ese idioma. Idiomas disponibles: "
