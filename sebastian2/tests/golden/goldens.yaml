@@ -73,7 +73,8 @@
   expected:
     - [calendar_search_events]
     - [calendar_search_events, calendar_get_tickets]
-  validates: "Ambigua a propósito: lectura del evento vs lectura del ticket. Ambas aceptadas, se registra cuál elige"
+    - [calendar_list_events]
+  validates: "Ambigua a propósito: lectura del evento vs lectura del ticket. Ambas aceptadas, se registra cuál elige. calendar_list_events (listar las citas de mañana) aceptada en la fase 3 (H3-revision §2.2): con la tool `salud` en el planner, el planner la elige a veces (4 de 15 con la descripción corta, 6 de 15 con la larga, 1 de 15 sin `salud` ampliada)"
 
 - id: 10
   phrase: "Elimina de inventario actimeles"
