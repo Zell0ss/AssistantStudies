@@ -196,3 +196,94 @@
   mode: exact
   expected: [list_add_item]
   validates: "Sprint H4, negativa: frontera salud vs lista de la compra — 'apunta' + un suplemento para dormir no debe disparar salud (descripción de la tool, estrecha a propósito)"
+
+# --- Fase 3 (Tristras H3, D46-D51): comidas, picoteos, hambre y saciedad por la misma tool `salud` ---
+# Escritos ANTES que el código (norma del harness). #40-42: `expected` provisional, se rellena con lo
+# que el planner hace de verdad (como #2 y #28); lo único que falla esas tres es llamar a `salud`.
+
+- id: 30
+  phrase: "he comido lentejas con chorizo"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 H3 (D46): caso base de comida"
+
+- id: 31
+  phrase: "me he tomado un puñado de galletas"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 H3: picoteo entre horas, sigue siendo salud"
+
+- id: 32
+  phrase: "de cena ensalada y una tortilla"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 H3: comida sin verbo ('de cena ...'), estilo telegráfico real"
+
+- id: 33
+  phrase: "desayuno: café con leche y una tostada con tomate"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 H3: comida con forma de etiqueta ('desayuno: ...')"
+
+- id: 34
+  phrase: "ayer cené pizza con la familia"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 H3: comida de un día pasado (D51), con compañía; sigue siendo una sola llamada a salud"
+
+- id: 35
+  phrase: "he comido lentejas y estoy lleno"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 H3 (D47): comida y saciedad en un mensaje = UNA llamada a salud (Tristras separa los tipos)"
+
+- id: 36
+  phrase: "tengo un hambre que me muero"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 H3 (D49): hambre intensa"
+
+- id: 37
+  phrase: "estoy lleno"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 H3 (D49): saciedad; sin llamar a memoria ni a notas (nada de salud en la memoria episódica)"
+
+- id: 38
+  phrase: "ya no tengo hambre, estoy satisfecho"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 H3 (D49): saciedad con negación de hambre"
+
+- id: 39
+  phrase: "apunta tomates en la compra"
+  mode: exact
+  expected: [list_add_item]
+  validates: "Fase 3 H3, negativa: un alimento en la lista de la compra no es una comida (frontera como #29)"
+
+- id: 40
+  phrase: "recuérdame comer a las 2"
+  mode: any_of
+  expected:
+    - []
+  validates: "Fase 3 H3, negativa: recordatorio futuro, no una comida. Alternativas aceptadas = lo observado en el paso B; lo único que falla es llamar a salud"
+
+- id: 41
+  phrase: "busca una receta de lentejas"
+  mode: any_of
+  expected:
+    - []
+  validates: "Fase 3 H3, negativa: pide una receta, no apunta una comida. Alternativas = lo observado en B; falla si llama a salud"
+
+- id: 42
+  phrase: "¿qué tiempo hace?"
+  mode: any_of
+  expected:
+    - []
+  validates: "Fase 3 H3, negativa: tiempo, sin relación con salud. Alternativas = lo observado en B; falla si llama a salud"
+
+- id: 43
+  phrase: "tengo hambre, apunta galletas en la compra"
+  mode: multiset
+  expected: [salud, list_add_item]
+  validates: "Fase 3 H3, frontera: una sensación y una lista en la misma frase, cada una a su tool"
