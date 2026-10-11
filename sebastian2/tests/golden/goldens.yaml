@@ -290,3 +290,45 @@
   mode: multiset
   expected: [salud, list_add_item]
   validates: "Fase 3 H3, frontera: una sensación y una lista en la misma frase, cada una a su tool"
+
+# --- Fase 3, H3-revision §2.1: goldens que NO aparecen en la descripción de la tool `salud` ---
+# Positivas dichas de otra forma (jerga, telegráfico, sin verbo de comer) y negativas cercanas.
+# #48-49: `expected` provisional, se rellena con lo observado (como #40-42).
+
+- id: 44
+  phrase: "me he zampado un bocata de jamón"
+  mode: exact
+  expected: [salud]
+  validates: "H3-revision §2.1: comida con jerga ('zampar', 'bocata'), sin 'he comido'"
+
+- id: 45
+  phrase: "llevo todo el día sin comer, tengo un agujero"
+  mode: exact
+  expected: [salud]
+  validates: "H3-revision §2.1: hambre dicha por metáfora y por ausencia de comida"
+
+- id: 46
+  phrase: "para merendar un par de mandarinas"
+  mode: exact
+  expected: [salud]
+  validates: "H3-revision §2.1: picoteo telegráfico, sin verbo"
+
+- id: 47
+  phrase: "uf, he comido demasiado"
+  mode: exact
+  expected: [salud]
+  validates: "H3-revision §2.1: saciedad dicha como exceso, no como 'estoy lleno'"
+
+- id: 48
+  phrase: "compra yogures"
+  mode: any_of
+  expected:
+    - []
+  validates: "H3-revision §2.1, negativa cercana: un alimento en imperativo (mandato de compra), no una comida. Aceptado: lo observado; falla si llama a salud"
+
+- id: 49
+  phrase: "¿qué ceno hoy?"
+  mode: any_of
+  expected:
+    - []
+  validates: "H3-revision §2.1, negativa cercana: pide una idea de cena, no cuenta lo que ha comido. Aceptado: lo observado; falla si llama a salud"
