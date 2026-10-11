@@ -323,12 +323,13 @@
   phrase: "compra yogures"
   mode: any_of
   expected:
+    - [request_clarification]
     - []
-  validates: "H3-revision §2.1, negativa cercana: un alimento en imperativo (mandato de compra), no una comida. Aceptado: lo observado; falla si llama a salud"
+  validates: "H3-revision §2.1, negativa cercana: un alimento en imperativo (mandato de compra), no una comida. Aceptado: lo observado en la línea base (pide aclaración) o nada; falla si llama a salud"
 
 - id: 49
   phrase: "¿qué ceno hoy?"
   mode: any_of
   expected:
     - []
-  validates: "H3-revision §2.1, negativa cercana: pide una idea de cena, no cuenta lo que ha comido. Aceptado: lo observado; falla si llama a salud"
+  validates: "H3-revision §2.1, negativa cercana: pide una idea de cena, no cuenta lo que ha comido. Aceptado: lo observado en la línea base (ninguna tool); falla si llama a salud"
