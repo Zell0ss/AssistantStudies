@@ -71,16 +71,16 @@ def _format_date(d) -> str:
     return f"{d.day} de {_MONTHS_ES[d.month - 1]}"
 
 
-_MENSAJE_FOTO_NO_CLARA = "No he podido mirar bien esa foto ahora. Si era del sueño, prueba en un rato."
+_MENSAJE_FOTO_NO_CLARA = "No he podido mirar bien esa foto ahora. Si era de tu sueño o de tu comida, prueba en un rato."
 
 
 def _intentar_salud(image_bytes: bytes) -> Optional[str]:
     """D40: clasifica la foto con Tristras.
 
-    - "sueno" -> el resumen.
+    - "sueno" o "comida" (D46, fase 3) -> el resumen.
     - error con status_code 422 -> el detail tal cual: Tristras ya clasificó la foto como
       sueño antes de rechazarla (fases que no cuadran, fecha rara), así que es seguro hablar
-      de sueño (H4-revision.md §1.1).
+      de sueño o de comida (H4-revision.md §1.1).
     - cualquier otro error (503, fallo de red, token/URL mal puestos, 4xx antes de clasificar)
       -> frase neutra: no se sabe si la foto era del sueño, así que no se menciona.
     - "desconocida" -> None, el llamador usa su respuesta de siempre.
@@ -99,7 +99,7 @@ def _intentar_salud(image_bytes: bytes) -> Optional[str]:
     modulo = SaludModule(base_url=base_url, token=token)
     resultado = modulo.registrar_captura(image_bytes, "captura.jpg", "image/jpeg")
     tipo = resultado.get("tipo")
-    if tipo == "sueno":
+    if tipo in ("sueno", "comida"):
         return resultado.get("resumen")
     if tipo == "error":
         if resultado.get("status_code") == 422:
@@ -139,12 +139,12 @@ def handle_media(message, bot):
     tickets = decode_image(image_bytes)
 
     if not tickets:
-        # D40: sin QR, la foto va a Tristras (sueño; comida en fase 3). "desconocida" o un
+        # D40, D46: sin QR, la foto va a Tristras (sueño o comida). "desconocida" o un
         # fallo de Tristras caen en la respuesta de siempre — nunca un texto de salud para
         # una foto que podría no tener nada que ver.
-        resumen_sueno = _intentar_salud(image_bytes)
-        if resumen_sueno:
-            bot.reply_to(message, resumen_sueno)
+        resumen_salud = _intentar_salud(image_bytes)
+        if resumen_salud:
+            bot.reply_to(message, resumen_salud)
             return
         bot.reply_to(
             message,
