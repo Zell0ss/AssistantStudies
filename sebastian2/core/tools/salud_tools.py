@@ -10,20 +10,12 @@ SALUD_TOOLS = [
     {
         "name": "salud",
         "description": (
-            "Registra lo que el usuario cuenta de su día a día de salud: cómo ha dormido (horas, "
-            "despertares, cómo ha ido la noche), lo que ha comido o picoteado (desayuno, comida, "
-            "cena, un puñado de galletas) y si tiene hambre o está lleno o satisfecho. "
-            "Úsala SOLO cuando el usuario cuenta algo que ya ha pasado o que siente ahora (p. ej. "
-            "'he dormido 6 horas, fatal', 'he comido lentejas con chorizo', 'de cena ensalada y "
-            "una tortilla', 'tengo un hambre que me muero', 'estoy lleno'). Un mismo mensaje con "
-            "varias cosas de salud (p. ej. comida y saciedad) es UNA sola llamada, con el texto entero. "
-            "Si además pide otra cosa (p. ej. 'tengo hambre, apunta galletas en la compra'), llama "
-            "también a la otra tool: salud para lo que cuenta y la otra para lo que pide. "
-            "NO la uses para recordatorios ('recuérdame acostarme pronto', 'recuérdame comer a "
-            "las 2'), ni para la lista de la compra ('apunta melatonina en la compra', 'apunta "
-            "tomates en la compra'), ni para recetas, menús o consejos de nutrición ('busca una "
-            "receta de lentejas') — esas van a otras tools. Lo que cuente de sueño, comidas o "
-            "hambre ya lo guarda esta tool: no lo repitas en notas ni en la memoria."
+            "Registra lo que el usuario cuenta de su salud diaria: cómo ha dormido, lo que ha comido "
+            "o picoteado, y si tiene hambre o está lleno; aunque lo diga con jerga o telegráfico. "
+            "Solo si lo cuenta como algo que ya pasó o que siente ahora. Varias cosas de salud en un "
+            "mensaje son UNA llamada, con el texto entero; si además pide otra cosa, llama también a "
+            "esa tool. NO es para recordatorios, listas de la compra, recetas ni menús. Esta tool ya "
+            "lo guarda: no lo repitas en notas ni en la memoria."
         ),
         "input_schema": {
             "type": "object",
