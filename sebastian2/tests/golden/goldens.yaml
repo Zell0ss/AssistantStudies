@@ -265,22 +265,25 @@
   phrase: "recuérdame comer a las 2"
   mode: any_of
   expected:
+    - [calendar_add_event]
     - []
-  validates: "Fase 3 H3, negativa: recordatorio futuro, no una comida. Alternativas aceptadas = lo observado en el paso B; lo único que falla es llamar a salud"
+  validates: "Fase 3 H3, negativa: recordatorio futuro, no una comida. Aceptado: lo que el planner hizo en el paso B (calendar_add_event) o nada; lo único que falla es llamar a salud"
 
 - id: 41
   phrase: "busca una receta de lentejas"
   mode: any_of
   expected:
+    - [notes_search]
     - []
-  validates: "Fase 3 H3, negativa: pide una receta, no apunta una comida. Alternativas = lo observado en B; falla si llama a salud"
+  validates: "Fase 3 H3, negativa: pide una receta, no apunta una comida. Aceptado: lo observado en B (notes_search) o nada; falla si llama a salud"
 
 - id: 42
   phrase: "¿qué tiempo hace?"
   mode: any_of
   expected:
-    - []
-  validates: "Fase 3 H3, negativa: tiempo, sin relación con salud. Alternativas = lo observado en B; falla si llama a salud"
+    - [weather_get]
+    - [request_clarification]
+  validates: "Fase 3 H3, negativa: tiempo, sin relación con salud. Aceptado: lo observado en B (weather_get) o pedir aclaración (sin ciudad); falla si llama a salud"
 
 - id: 43
   phrase: "tengo hambre, apunta galletas en la compra"
