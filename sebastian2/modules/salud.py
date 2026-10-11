@@ -1,6 +1,7 @@
 # modules/salud.py
 """
-Salud module — cliente de la tool `salud` hacia la API de ingesta de Tristras (D39-D42).
+Salud module — cliente de la tool `salud` hacia la API de ingesta de Tristras (D39-D42, D46: sueño,
+comidas, picoteos, hambre y saciedad).
 
 Sin DB ni estado por usuario: un solo proxy HTTP. El texto del mensaje y lo que lee el
 modelo nunca se guardan en Sebastian — D3/D39 dicen que el conocimiento de salud y sus
@@ -12,7 +13,7 @@ from logcentral_client import get_logger
 logger = get_logger("sebastian")
 
 _TIMEOUT_S = 30
-_MENSAJE_SIN_RESPUESTA = "No he podido apuntar tu sueño ahora mismo; pruébalo en un rato."
+_MENSAJE_SIN_RESPUESTA = "No he podido apuntar eso ahora mismo; pruébalo en un rato."
 
 
 class SaludModule:
@@ -40,9 +41,14 @@ class SaludModule:
             # H6-encargo.md #3: un 422 de validación de FastAPI (no de Tristras) trae `detail`
             # como lista, no como frase — eso no se reenvía tal cual (a Telegram, o a quien
             # llame). Solo un str no vacío es una frase pensada para el usuario.
+            status_code = response.status_code
             if not isinstance(detail, str):
                 detail = None
-            return {"tipo": "error", "status_code": response.status_code, "resumen": detail or _MENSAJE_SIN_RESPUESTA}
+                # Fase 3 (H6-revision.md §2): sin frase de Tristras no se sabe si llegó a clasificar
+                # la foto, así que el 422 no cuenta como tal (`status_code=None`, igual que un fallo
+                # de red) y `_intentar_salud` cae en su mensaje neutro.
+                status_code = None
+            return {"tipo": "error", "status_code": status_code, "resumen": detail or _MENSAJE_SIN_RESPUESTA}
         return data
 
     def registrar_texto(self, mensaje: str) -> str:

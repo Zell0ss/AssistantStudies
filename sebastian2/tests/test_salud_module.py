@@ -63,7 +63,7 @@ class TestRegistrarTexto:
 
         resultado = modulo.registrar_texto("dormí fatal")
 
-        assert resultado == "No he podido apuntar tu sueño ahora mismo; pruébalo en un rato."
+        assert resultado == "No he podido apuntar eso ahora mismo; pruébalo en un rato."
 
     @patch("modules.salud.requests.post")
     def test_sin_conexion_da_aviso_claro_sin_traza(self, mock_post):
@@ -74,7 +74,7 @@ class TestRegistrarTexto:
         resultado = modulo.registrar_texto("dormí bien")
 
         assert "boom" not in resultado  # nunca la traza cruda
-        assert resultado == "No he podido apuntar tu sueño ahora mismo; pruébalo en un rato."
+        assert resultado == "No he podido apuntar eso ahora mismo; pruébalo en un rato."
 
 
 class TestRegistrarCaptura:
@@ -150,8 +150,10 @@ class TestRegistrarCaptura:
 
         resultado = modulo.registrar_captura(b"\xff\xd8\xff", "foto.jpg", "image/jpeg")
 
+        # Fase 3 (H6-revision.md §2): sin frase de Tristras no hay garantía de que clasificara la
+        # foto, así que no se conserva el 422 (`_intentar_salud` solo habla de lo que sabe con un 422).
         assert resultado == {
             "tipo": "error",
-            "status_code": 422,
-            "resumen": "No he podido apuntar tu sueño ahora mismo; pruébalo en un rato.",
+            "status_code": None,
+            "resumen": "No he podido apuntar eso ahora mismo; pruébalo en un rato.",
         }
