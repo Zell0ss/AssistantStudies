@@ -2,11 +2,15 @@
 # Sebastian 2.0 Database Verification
 # Checks that all tables were created correctly
 
-echo "Verifying Sebastian 2.0 database schema..."
+# Uso: bash db/verify_database.sh [bd]   (por defecto sebastian_db; solo lee: SHOW/DESCRIBE)
+# Fase 1 (D19): la BD se elige con el argumento, p. ej. sebastian_dev o sebastian_test.
+DB="${1:-sebastian_db}"
+
+echo "Verifying Sebastian 2.0 database schema in $DB..."
 echo "You will be prompted for the sebastian_user password."
 echo ""
 
-mysql -u sebastian_user -p sebastian_db -e "
+mysql -u sebastian_user -p "$DB" -e "
 SHOW TABLES;
 SELECT 'Checking inventory table...' as '';
 DESCRIBE inventory;

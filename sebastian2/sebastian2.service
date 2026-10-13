@@ -16,6 +16,10 @@ SyslogIdentifier=sebastian2
 
 # Environment
 Environment="PYTHONUNBUFFERED=1"
+# D19/D20: producción fija aquí su BD y su colección; el config.yaml es de desarrollo.
+# Environment= (nunca EnvironmentFile=, que lo pisaría).
+Environment="SEBASTIAN_DB_NAME=sebastian_db"
+Environment="SEBASTIAN_MEMORY_COLLECTION=sebastian_memory"
 Environment="PATH=/data/AssistantStudies/sebastian2/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
 
 # Security

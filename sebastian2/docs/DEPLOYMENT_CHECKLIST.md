@@ -2,6 +2,27 @@
 
 ---
 
+# 🔀 Fase 1 (2026-10): producción y desarrollo separados — LEER PRIMERO
+
+Desde la fase 1 (D19, D20, D25) la BD y la colección de Qdrant que usa cada proceso las fijan las
+**unidades systemd** con `Environment=SEBASTIAN_DB_NAME=…` y `Environment=SEBASTIAN_MEMORY_COLLECTION=…`
+(producción: `sebastian_db` / `sebastian_memory`). El `config.yaml` del directorio de producción
+apunta a **desarrollo** (`sebastian_dev` / `sebastian_memory_dev`). Los pasos de despliegue de esa
+fase están en `deploy/PASOS-CON-SUDO.md`, con `deploy/comprobar_fase1.sh` (solo lectura) para
+verificarlos.
+
+Qué significa para los despliegues de más abajo (que son históricos):
+
+- Los comandos con `sebastian_db` son de **producción a propósito**: las migraciones ya **no llevan
+  `USE`**, así que la BD la elige el nombre que pones en la línea de comandos. Las ejecuta Josem.
+- Para crear o rehacer una BD de **test o desarrollo**: `bash db/setup_db.sh sebastian_test|sebastian_dev`
+  (rechaza `sebastian_db`). `db/run_migration.sh` y `db/setup_test_db.sh` ya no existen.
+- Si el bot cae al arrancar con `KeyError: 'memory_collection'`, faltan las variables en la unidad
+  (ver `deploy/PASOS-CON-SUDO.md`, paso 4): es la protección de D20, no un fallo del código.
+- Los tests (`pytest`) fijan `sebastian_test` por su cuenta y abortan si la conexión apunta a otra BD.
+
+---
+
 # 🚀 Deployment 4: Orchestrator + Pending Plans (2026-03-02)
 
 **Version**: Sebastian 2.0 — Orchestrator (Haiku+Sonnet) + Pending Plans

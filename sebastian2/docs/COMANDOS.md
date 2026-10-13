@@ -361,6 +361,7 @@ id, user_id, content, tags, created_at, updated_at
 Ejecuta este comando para ver tus listas:
 ```bash
 mysql -u root sebastian_db -e "SELECT name, list_type FROM lists WHERE user_id='TU_USER_ID'"
+# (sebastian_db = producción, la que fijan las unidades systemd; en desarrollo, sebastian_dev)
 ```
 
 O pregúntale a Sebastian:
