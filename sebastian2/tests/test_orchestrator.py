@@ -607,3 +607,33 @@ def test_log_no_lleva_contenido_del_historial(mock_anthropic_cls, mock_logger, d
     assert mock_logger.info.called or mock_logger.bind.called
     todo_el_log = str(mock_logger.mock_calls)
     assert "ZZ-SECRETO" not in todo_el_log  # …pero nunca al log
+
+
+@patch('core.orchestrator.Anthropic')
+def test_historial_descarta_intercambio_con_lado_vacio(mock_anthropic_cls, db):
+    # H2-revision R5: la API rechaza contenido vacío; un intercambio roto no debe envenenar los turnos.
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")]
+    _sembrar(db, [("hola", ""), ("u2", "a2")])
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("mensaje actual")
+
+    planner = mock_client.messages.create.call_args_list[0]
+    assert planner.kwargs['messages'] == [
+        {"role": "user", "content": "u2"}, {"role": "assistant", "content": "a2"},
+        {"role": "user", "content": "mensaje actual"},
+    ]
+
+
+@patch('core.orchestrator.Anthropic')
+def test_no_guarda_respuesta_vacia(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("hola")
+
+    assert _filas_conversations(db) == []
