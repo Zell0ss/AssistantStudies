@@ -54,6 +54,10 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
     passed_count = sum(1 for r in GOLDEN_RESULTS if r["passed"])
     total = len(GOLDEN_RESULTS)
+    from tests.golden.uso import USO
+    terminalreporter.write_sep("=", "USO DE LA API (medido por Orchestrator._track_usage)")
+    for linea in USO.tabla():
+        terminalreporter.write_line(linea)
     terminalreporter.write_sep(
         "=", f"RESUMEN: {passed_count}/{total} PASS",
         green=(passed_count == total), red=(passed_count != total), bold=True,
@@ -230,11 +234,13 @@ def orchestrator_runner(test_db, golden_fixtures, memory_config, memory_fixtures
 
     from core.orchestrator import Orchestrator
     from core.tool_executor import ToolExecutor
+    from tests.golden.uso import USO
 
     def _run(phrase: str):
         calls = []
         original_execute = ToolExecutor.execute
         original_ask_user = Orchestrator._ask_user
+        original_track_usage = Orchestrator._track_usage
 
         def recording_execute(self, tool_name, tool_input):
             calls.append(tool_name)
@@ -244,8 +250,13 @@ def orchestrator_runner(test_db, golden_fixtures, memory_config, memory_fixtures
             calls.append("request_clarification")
             return original_ask_user(self, question)
 
+        def midiendo_uso(self, response, model):
+            USO.registrar(response, model)
+            return original_track_usage(self, response, model)
+
         with patch.object(ToolExecutor, "execute", recording_execute), \
-             patch.object(Orchestrator, "_ask_user", recording_ask_user):
+             patch.object(Orchestrator, "_ask_user", recording_ask_user), \
+             patch.object(Orchestrator, "_track_usage", midiendo_uso):
             orch = Orchestrator(test_db, golden_fixtures["user_id"], config=memory_config)
             response = orch.handle(phrase)
 
