@@ -6,6 +6,11 @@
 #   any_of    - `expected` is a list of list[str] alternatives; the recorded sequence must equal exactly one of them.
 #   none      - no tools expected at all (also fails if request_clarification is called).
 #
+# historia (opcional): lista de {user, bot}. El runner la siembra en `conversations` de
+# sebastian_test (created_at de hace pocos minutos, en orden) antes de llamar a handle(), para
+# probar que el historial entre turnos (D21) se usa. Sin este campo, el golden arranca sin
+# historial: una fixture autouse borra `conversations` del usuario de golden antes de cada uno.
+#
 # Fixtures assumed present (seeded by tests/golden/conftest.py, user_id = golden_test_user):
 #   - notes id 1017 and 1018
 #   - inventory item "Actimel" (qty 2)
@@ -334,3 +339,31 @@
   expected:
     - []
   validates: "H3-revision §2.1, negativa cercana: pide una idea de cena, no cuenta lo que ha comido. Aceptado: lo observado en la línea base (ninguna tool); falla si llama a salud"
+
+- id: 50
+  phrase: "¿y mañana?"
+  historia:
+    - {user: "¿Qué tengo hoy en el calendario?", bot: "Hoy no tiene nada anotado, señor."}
+  mode: any_of
+  expected:
+    - [calendar_list_events]
+    - [calendar_search_events]
+  validates: "Fase 1 H2 (D21): «¿y mañana?» solo se entiende con el turno anterior (calendario)"
+
+- id: 51
+  phrase: "¿y en Gijón?"
+  historia:
+    - {user: "¿Qué tiempo hace en Madrid?", bot: "En Madrid, 21 °C y despejado."}
+  mode: any_of
+  expected:
+    - [weather_get]
+    - [weather_forecast]
+  validates: "Fase 1 H2 (D21): cambio de ciudad sin repetir la intención (tiempo)"
+
+- id: 52
+  phrase: "apunta leche a la compra"
+  historia:
+    - {user: "¿Qué tiempo hace en Madrid?", bot: "En Madrid, 21 °C y despejado."}
+  mode: exact
+  expected: [list_add_item]
+  validates: "Fase 1 H2 (D21), negativa: el historial no arrastra la tool del turno anterior (tiempo)"

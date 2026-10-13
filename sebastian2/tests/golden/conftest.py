@@ -11,7 +11,7 @@ mark_as_memorable, so `memory_config` refuses to run unless the isolated
 TEST_MEMORY_COLLECTION collection actually exists in Qdrant, and never resolves
 to the real 'sebastian_memory' collection.
 """
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import pymysql
 import pytest
@@ -220,6 +220,33 @@ def memory_fixtures(memory_config):
     return {"memory_collection": TEST_MEMORY_COLLECTION}
 
 
+@pytest.fixture(autouse=True)
+def _historial_limpio(request, test_db):
+    """H2 (D21): el orquestador guarda cada turno en `conversations`. Sin esto, cada golden vería
+    el historial del anterior. Solo actúa en los goldens (marca `golden`)."""
+    if request.node.get_closest_marker("golden") is None:
+        yield
+        return
+    cur = test_db.cursor()
+    cur.execute("DELETE FROM conversations WHERE user_id = %s", (GOLDEN_USER_ID,))
+    test_db.commit()
+    yield
+
+
+def sembrar_historia(db, user_id: str, historia: list) -> None:
+    """Inserta la `historia` de un golden en `conversations`, en orden, con created_at de hace
+    pocos minutos (el último intercambio, hace 1 min)."""
+    ahora = datetime.now()
+    cur = db.cursor()
+    for i, par in enumerate(historia):
+        hace = timedelta(minutes=len(historia) - i)
+        cur.execute(
+            "INSERT INTO conversations (user_id, user_msg, bot_reply, created_at) VALUES (%s, %s, %s, %s)",
+            (user_id, par["user"], par["bot"], (ahora - hace).strftime("%Y-%m-%d %H:%M:%S")),
+        )
+    db.commit()
+
+
 @pytest.fixture
 def orchestrator_runner(test_db, golden_fixtures, memory_config, memory_fixtures):
     """Returns a callable run(phrase) -> (tool_call_sequence, response_dict).
@@ -236,7 +263,9 @@ def orchestrator_runner(test_db, golden_fixtures, memory_config, memory_fixtures
     from core.tool_executor import ToolExecutor
     from tests.golden.uso import USO
 
-    def _run(phrase: str):
+    def _run(phrase: str, historia: list | None = None):
+        if historia:
+            sembrar_historia(test_db, golden_fixtures["user_id"], historia)
         calls = []
         original_execute = ToolExecutor.execute
         original_ask_user = Orchestrator._ask_user
