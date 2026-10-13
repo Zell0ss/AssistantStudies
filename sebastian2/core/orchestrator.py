@@ -15,6 +15,7 @@ from logcentral_client import get_logger
 from anthropic import Anthropic, APIError, APIConnectionError, RateLimitError
 from core.tools import ALL_TOOLS, build_capabilities_digest
 from core.tool_executor import ToolExecutor, _TOOLS_SIN_LOG_DE_CONTENIDO
+from db.conversation_repo import ConversationRepository
 from db.pending_plan_repo import PendingPlanRepository
 from modules.ticket_generator import generate_image
 from utils.config import get_config
@@ -117,6 +118,10 @@ class Orchestrator:
         self._client = Anthropic(api_key=config['anthropic_apikey'], timeout=60.0)
         self._executor = ToolExecutor(db, user_id, config=config)
         self._repo = PendingPlanRepository(db)
+        self._conversations = ConversationRepository(db)
+        historial_cfg = config.get("historial", {})
+        self._historial_limite = historial_cfg.get("intercambios", 6)
+        self._historial_ventana_min = historial_cfg.get("ventana_min", 120)
         self._turn_usage = {"tokens_in": 0, "tokens_out": 0, "models": set()}
 
     def _track_usage(self, response, model: str) -> None:
@@ -126,6 +131,42 @@ class Orchestrator:
         if usage is not None:
             self._turn_usage["tokens_in"] += getattr(usage, "input_tokens", 0) or 0
             self._turn_usage["tokens_out"] += getattr(usage, "output_tokens", 0) or 0
+
+    def _cargar_historial(self) -> list:
+        """Mensajes user/assistant de los últimos intercambios (D21). Si falla, vacío (D22).
+
+        Al log no va el contenido del historial (puede ser de salud), solo cuántos intercambios."""
+        try:
+            pares = self._conversations.recientes(
+                self._user_id, limite=self._historial_limite, ventana_min=self._historial_ventana_min
+            )
+        except Exception as e:
+            logger.warning(
+                f"No se pudo leer el historial | user={self._user_id} | error={type(e).__name__}"
+            )
+            return []
+        mensajes = []
+        usados = 0
+        for par in pares:
+            # La API rechaza contenido vacío; un intercambio con un lado vacío no aporta contexto.
+            if not (par["user_msg"] or "").strip() or not (par["bot_reply"] or "").strip():
+                continue
+            mensajes.append({"role": "user", "content": par["user_msg"]})
+            mensajes.append({"role": "assistant", "content": par["bot_reply"]})
+            usados += 1
+        logger.info(f"Historial cargado | user={self._user_id} | intercambios={usados}")
+        return mensajes
+
+    def _guardar_intercambio(self, user_message: str, texto: str) -> None:
+        """Guarda el turno para los siguientes (D21). Si falla, la respuesta sale igual (D22)."""
+        if not (texto or "").strip():
+            return
+        try:
+            self._conversations.guardar(self._user_id, user_message, texto)
+        except Exception as e:
+            logger.warning(
+                f"No se pudo guardar el intercambio | user={self._user_id} | error={type(e).__name__}"
+            )
 
     def _log_turn_end(self, turn_start: float, iterations: int, outcome: str) -> None:
         """Emit the single end-of-turn INFO line: iterations, models, tokens, total latency."""
@@ -270,7 +311,7 @@ class Orchestrator:
         """
         truncated = user_message[:200]
         try:
-            return self._handle_inner(user_message)
+            result = self._handle_inner(user_message)
         except APIConnectionError:
             logger.bind(user_id=self._user_id).exception(
                 f"Anthropic API connection error | user={self._user_id} | message={truncated!r}"
@@ -289,6 +330,9 @@ class Orchestrator:
             if "credit balance" in str(e).lower() or "too low" in str(e).lower():
                 return {"text": "El servicio no está disponible temporalmente (créditos agotados). Por favor, contacte al administrador.", "images": []}
             return {"text": "Error en el servicio de IA. Por favor, inténtelo más tarde.", "images": []}
+        # Solo los turnos que terminan sin error de API entran en el historial (D21, D22).
+        self._guardar_intercambio(user_message, result["text"])
+        return result
 
     def _handle_inner(self, user_message: str) -> dict:
         """Core message handling logic (API errors propagate to handle())."""
@@ -309,7 +353,8 @@ class Orchestrator:
                 # Fall through to normal handling
         # ───────────────────────────────────────────────────────────────────────────
 
-        messages = [{"role": "user", "content": user_message}]
+        historial = self._cargar_historial()
+        messages = historial + [{"role": "user", "content": user_message}]
         tool_results_summary = []
 
         for iteration in range(_MAX_ITERATIONS):
@@ -382,7 +427,7 @@ class Orchestrator:
             messages.append({"role": "assistant", "content": response.content})
             messages.append({"role": "user", "content": tool_results})
 
-        text = self._synthesize(user_message, tool_results_summary)
+        text = self._synthesize(user_message, tool_results_summary, historial)
         images = self._collect_images(tool_results_summary)
         self._log_turn_end(turn_start, iterations_used, "completed")
         return {"text": text, "images": images}
@@ -401,7 +446,7 @@ class Orchestrator:
                         logger.warning(f"Failed to generate ticket image: {e}")
         return images
 
-    def _synthesize(self, user_message: str, tool_results: list) -> str:
+    def _synthesize(self, user_message: str, tool_results: list, historial: list | None = None) -> str:
         """Call Sonnet to synthesize a Spanish Alfred-style response."""
         if tool_results:
             context_lines = []
@@ -424,7 +469,7 @@ class Orchestrator:
             model="claude-sonnet-4-6",
             max_tokens=400,
             system=_ALFRED_SYSTEM,
-            messages=[{"role": "user", "content": synthesis_prompt}]
+            messages=(historial or []) + [{"role": "user", "content": synthesis_prompt}]
         )
         self._track_usage(response, "claude-sonnet-4-6")
         return response.content[0].text.strip()

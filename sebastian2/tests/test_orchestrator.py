@@ -56,6 +56,13 @@ def db():
         );
         INSERT INTO user_settings VALUES
             ('99999','default','Madrid',40.4168,-3.7038,'ES');
+        CREATE TABLE IF NOT EXISTS conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            user_msg TEXT NOT NULL,
+            bot_reply TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
         CREATE TABLE IF NOT EXISTS pending_plans (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL UNIQUE,
@@ -425,3 +432,178 @@ def test_request_clarification_saves_plan_and_asks_user(mock_repo_cls, mock_anth
     assert isinstance(result, dict)
     assert len(result["text"]) > 0
     assert result["images"] == []
+
+
+# ── Fase 1 H2: historial entre turnos (D21–D24) ──────────────────────────────────────────────
+
+def _sembrar(db, pares, user_id='99999'):
+    from db.conversation_repo import ConversationRepository
+    repo = ConversationRepository(db)
+    for u, b in pares:
+        repo.guardar(user_id, u, b)
+
+
+def _filas_conversations(db, user_id='99999'):
+    cur = db.cursor()
+    cur.execute("SELECT user_msg, bot_reply FROM conversations WHERE user_id = %s ORDER BY id", (user_id,))
+    return [(f['user_msg'], f['bot_reply']) for f in cur.fetchall()]
+
+
+_HISTORIAL_DOS = [("u1", "a1"), ("u2", "a2")]
+_MENSAJES_DOS = [
+    {"role": "user", "content": "u1"}, {"role": "assistant", "content": "a1"},
+    {"role": "user", "content": "u2"}, {"role": "assistant", "content": "a2"},
+]
+
+
+@patch('core.orchestrator.Anthropic')
+def test_planner_recibe_historial_antes_del_mensaje(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")]
+    _sembrar(db, _HISTORIAL_DOS)
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("mensaje actual")
+
+    planner = mock_client.messages.create.call_args_list[0]
+    assert planner.kwargs['messages'] == _MENSAJES_DOS + [{"role": "user", "content": "mensaje actual"}]
+
+
+@patch('core.orchestrator.Anthropic')
+def test_sintesis_recibe_historial(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")]
+    _sembrar(db, _HISTORIAL_DOS)
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("mensaje actual")
+
+    mensajes = mock_client.messages.create.call_args_list[1].kwargs['messages']
+    assert mensajes[:4] == _MENSAJES_DOS
+    assert mensajes[-1]["role"] == "user"
+    assert "mensaje actual" in mensajes[-1]["content"]
+    assert len(mensajes) == 5
+
+
+@patch('core.orchestrator.Anthropic')
+def test_handle_guarda_intercambio(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("Buenas, señor.")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("hola")
+
+    assert _filas_conversations(db) == [("hola", "Buenas, señor.")]
+
+
+@patch('core.orchestrator.Anthropic')
+def test_handle_guarda_pregunta_de_aclaracion(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [
+        _make_tool_use_response('request_clarification', 't1', {'question': '¿Qué ciudad?'}),
+        _make_text_response("¿De qué ciudad, señor?"),
+    ]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("¿qué tiempo hace?")
+
+    assert _filas_conversations(db) == [("¿qué tiempo hace?", "¿De qué ciudad, señor?")]
+
+
+@patch('core.orchestrator.Anthropic')
+def test_error_de_api_no_se_guarda(mock_anthropic_cls, db):
+    from anthropic import APIConnectionError
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = APIConnectionError(request=MagicMock())
+
+    from core.orchestrator import Orchestrator
+    result = Orchestrator(db, '99999').handle("hola")
+
+    assert "no puedo conectar" in result["text"]
+    assert _filas_conversations(db) == []
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_fallo_al_leer_historial_no_rompe_turno(mock_anthropic_cls, mock_logger, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok, señor")]
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    orch._conversations.recientes = MagicMock(side_effect=RuntimeError("bd caída"))
+    result = orch.handle("hola")
+
+    assert result["text"] == "ok, señor"
+    planner = mock_client.messages.create.call_args_list[0]
+    assert planner.kwargs['messages'] == [{"role": "user", "content": "hola"}]
+    assert mock_logger.warning.called
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_fallo_al_guardar_no_rompe_turno(mock_anthropic_cls, mock_logger, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok, señor")]
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    orch._conversations.guardar = MagicMock(side_effect=RuntimeError("bd caída"))
+    result = orch.handle("hola")
+
+    assert result["text"] == "ok, señor"
+    assert mock_logger.warning.called
+
+
+@patch('core.orchestrator.Anthropic')
+def test_resume_plan_sin_historial(mock_anthropic_cls, db):
+    from db.pending_plan_repo import PendingPlanRepository
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    _sembrar(db, _HISTORIAL_DOS)
+    guardados = [
+        {"role": "user", "content": "¿qué tiempo hace?"},
+        {"role": "assistant", "content": [{"type": "tool_use", "id": "rc1", "name": "request_clarification",
+                                           "input": {"question": "¿Qué ciudad?"}}]},
+    ]
+    PendingPlanRepository(db).save('99999', "¿qué tiempo hace?", _messages_to_json(guardados), "¿Qué ciudad?")
+    mock_client.messages.create.side_effect = [
+        _make_text_response("S"),            # _is_plan_reply
+        _make_text_response("listo"),        # planner
+        _make_text_response("Madrid, señor."),  # síntesis
+    ]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("Madrid")
+
+    planner = mock_client.messages.create.call_args_list[1]
+    mensajes = planner.kwargs['messages']
+    assert mensajes[0] == guardados[0]
+    assert len(mensajes) == 3
+    assert mensajes[2]['content'][0]['type'] == 'tool_result'
+    assert not any(m.get('content') in ("u1", "a1", "u2", "a2") for m in mensajes)
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_log_no_lleva_contenido_del_historial(mock_anthropic_cls, mock_logger, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")]
+    _sembrar(db, [("ZZ-SECRETO pregunta", "ZZ-SECRETO respuesta")])
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("hola")
+
+    mock_client.messages.create.call_args_list[0]  # el historial sí viaja a la API…
+    assert "ZZ-SECRETO" in str(mock_client.messages.create.call_args_list[0])
+    assert mock_logger.info.called or mock_logger.bind.called
+    todo_el_log = str(mock_logger.mock_calls)
+    assert "ZZ-SECRETO" not in todo_el_log  # …pero nunca al log

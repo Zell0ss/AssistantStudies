@@ -6,7 +6,7 @@ Fires every morning and sends today's agenda to authorized users.
 from apscheduler.schedulers.background import BackgroundScheduler
 from db.connection import get_connection, close_connection
 from modules.calendar import CalendarModule
-from modules.chat import ChatModule
+from db.conversation_repo import ConversationRepository
 from logcentral_client import get_logger
 
 logger = get_logger("sebastian")
@@ -50,10 +50,10 @@ def _send_daily_reminder(bot, user_ids: list):
 
 
 def _cleanup_conversations():
-    """Delete chat history from previous days."""
+    """Delete chat history older than 7 days (D23)."""
     conn = get_connection()
     try:
-        ChatModule.cleanup_old_conversations(conn)
+        ConversationRepository(conn).limpiar(dias=7)
     except Exception as e:
         logger.error(f"Error cleaning up conversations: {e}")
     finally:
