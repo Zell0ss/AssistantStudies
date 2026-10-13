@@ -1,0 +1,128 @@
+FF.                                                                      [100%]
+=================================== FAILURES ===================================
+____________________________ test_golden[golden_50] ____________________________
+
+golden = {'expected': [['calendar_list_events'], ['calendar_search_events']], 'historia': [{'bot': 'Hoy no tiene nada anotado, señor.', 'user': '¿Qué tengo hoy en el calendario?'}], 'id': 50, 'mode': 'any_of', ...}
+orchestrator_runner = <function orchestrator_runner.<locals>._run at 0x7fbcdd847f60>
+
+    @pytest.mark.golden
+    @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
+    def test_golden(golden, orchestrator_runner):
+        actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"))
+        passed = _matches(actual, golden["mode"], golden["expected"])
+        response_text = response.get("text", "") if isinstance(response, dict) else str(response)
+    
+        GOLDEN_RESULTS.append({
+            "id": golden["id"],
+            "phrase": golden["phrase"],
+            "mode": golden["mode"],
+            "expected": _fmt_expected(golden["mode"], golden["expected"]),
+            "actual": _fmt_sequence(actual),
+            "passed": passed,
+            "validates": golden.get("validates", ""),
+            "response_text": response_text,
+        })
+    
+>       assert passed, (
+            f"Golden #{golden['id']} ({golden['mode']}) — "
+            f"esperado {golden['expected']!r}, real {actual!r}. "
+            f"Respuesta de Alfred: {response_text!r}"
+        )
+E       AssertionError: Golden #50 (any_of) — esperado [['calendar_list_events'], ['calendar_search_events']], real []. Respuesta de Alfred: 'Necesitaré un poco más de contexto, señor. ¿«Mañana» en qué sentido? ¿La agenda, el tiempo, ambos?'
+E       assert False
+
+tests/golden/test_goldens.py:64: AssertionError
+---------------------------- Captured stderr setup -----------------------------
+2026-10-13 23:50:38.929 | INFO     | utils.config:load_config:40 - Configuration loaded from config.yaml
+[32m23:50:38[0m | [1mINFO    [0m | [36msebastian[0m — Configuration loaded from config.yaml
+2026-10-13 23:50:38.933 | INFO     | db.connection:init_pool:37 - Database connection pool initialized
+[32m23:50:38[0m | [1mINFO    [0m | [36msebastian[0m — Database connection pool initialized
+2026-10-13 23:50:38.934 | DEBUG    | db.connection:get_connection:46 - Database connection acquired from pool
+2026-10-13 23:50:38.934 | DEBUG    | db.connection:close_connection:55 - Database connection closed
+2026-10-13 23:50:38.943 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-13 23:50:38.945 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-13 23:50:38.946 | INFO     | modules.calendar:add_event:76 - Added event 'teatro' for user golden_test_user
+[32m23:50:38[0m | [1mINFO    [0m | [36msebastian[0m — Added event 'teatro' for user golden_test_user
+2026-10-13 23:50:38.948 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-13 23:50:38.948 | INFO     | modules.calendar:add_ticket:433 - Added ticket type=QR_CODE to event 481
+[32m23:50:38[0m | [1mINFO    [0m | [36msebastian[0m — Added ticket type=QR_CODE to event 481
+2026-10-13 23:50:40.285 | INFO     | modules.memory:store:66 - Stored memory 3423606b-4ba8-4aeb-a67d-d9d0666d96da: Mi cuñado Paco es alérgico a los frutos secos
+[32m23:50:40[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 3423606b-4ba8-4aeb-a67d-d9d0666d96da: Mi cuñado Paco es alérgico a los frutos secos
+2026-10-13 23:50:40.655 | INFO     | modules.memory:store:66 - Stored memory 1670ca87-de30-4ea8-aa58-5735852355ea: A mi señor le gusta el vino tinto de Ribera del Duero
+[32m23:50:40[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 1670ca87-de30-4ea8-aa58-5735852355ea: A mi señor le gusta el vino tinto de Ribera del Duero
+2026-10-13 23:50:40.853 | INFO     | modules.memory:store:66 - Stored memory d2733c7b-cbb7-4365-a522-b828aa1665e1: El cumpleaños de Rebe es en marzo
+[32m23:50:40[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory d2733c7b-cbb7-4365-a522-b828aa1665e1: El cumpleaños de Rebe es en marzo
+----------------------------- Captured stderr call -----------------------------
+2026-10-13 23:50:40.903 | INFO     | core.orchestrator:_handle_inner:297 - Turn start | user=golden_test_user | message='¿y mañana?'
+[32m23:50:40[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='¿y mañana?'
+2026-10-13 23:50:44.695 | INFO     | core.orchestrator:_log_turn_end:143 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8306 | tokens_out=154 | latency_ms=3792.5
+[32m23:50:44[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8306 | tokens_out=154 | latency_ms=3792.5
+____________________________ test_golden[golden_51] ____________________________
+
+golden = {'expected': [['weather_get'], ['weather_forecast']], 'historia': [{'bot': 'En Madrid, 21 °C y despejado.', 'user': '¿Qué tiempo hace en Madrid?'}], 'id': 51, 'mode': 'any_of', ...}
+orchestrator_runner = <function orchestrator_runner.<locals>._run at 0x7fbcef8137e0>
+
+    @pytest.mark.golden
+    @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
+    def test_golden(golden, orchestrator_runner):
+        actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"))
+        passed = _matches(actual, golden["mode"], golden["expected"])
+        response_text = response.get("text", "") if isinstance(response, dict) else str(response)
+    
+        GOLDEN_RESULTS.append({
+            "id": golden["id"],
+            "phrase": golden["phrase"],
+            "mode": golden["mode"],
+            "expected": _fmt_expected(golden["mode"], golden["expected"]),
+            "actual": _fmt_sequence(actual),
+            "passed": passed,
+            "validates": golden.get("validates", ""),
+            "response_text": response_text,
+        })
+    
+>       assert passed, (
+            f"Golden #{golden['id']} ({golden['mode']}) — "
+            f"esperado {golden['expected']!r}, real {actual!r}. "
+            f"Respuesta de Alfred: {response_text!r}"
+        )
+E       AssertionError: Golden #51 (any_of) — esperado [['weather_get'], ['weather_forecast']], real []. Respuesta de Alfred: 'Necesitaré un momento más de contexto, señor. ¿El tiempo en Gijón, quizás? ¿O tenía en mente algo distinto?'
+E       assert False
+
+tests/golden/test_goldens.py:64: AssertionError
+----------------------------- Captured stderr call -----------------------------
+2026-10-13 23:50:44.880 | INFO     | core.orchestrator:_handle_inner:297 - Turn start | user=golden_test_user | message='¿y en Gijón?'
+[32m23:50:44[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='¿y en Gijón?'
+2026-10-13 23:50:48.508 | INFO     | core.orchestrator:_log_turn_end:143 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8310 | tokens_out=149 | latency_ms=3627.4
+[32m23:50:48[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8310 | tokens_out=149 | latency_ms=3627.4
+=========================== GOLDEN REGRESSION REPORT ===========================
+
+#50 [FAIL] mode=any_of
+  Frase:     ¿y mañana?
+  Esperado:  calendar_list_events  O  calendar_search_events
+  Real:      (ninguna)
+  Valida:    Fase 1 H2 (D21): «¿y mañana?» solo se entiende con el turno anterior (calendario)
+  Alfred:    Necesitaré un poco más de contexto, señor. ¿«Mañana» en qué sentido? ¿La agenda, el tiempo, ambos?
+
+#51 [FAIL] mode=any_of
+  Frase:     ¿y en Gijón?
+  Esperado:  weather_get  O  weather_forecast
+  Real:      (ninguna)
+  Valida:    Fase 1 H2 (D21): cambio de ciudad sin repetir la intención (tiempo)
+  Alfred:    Necesitaré un momento más de contexto, señor. ¿El tiempo en Gijón, quizás? ¿O tenía en mente algo distinto?
+
+#52 [PASS] mode=exact
+  Frase:     apunta leche a la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Fase 1 H2 (D21), negativa: el historial no arrastra la tool del turno anterior (tiempo)
+  Alfred:    Hecho. Leche apuntada en la lista de la compra.
+============= USO DE LA API (medido por Orchestrator._track_usage) =============
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001                31064             311    0.0326
+claude-sonnet-4-6                         1792             112    0.0071
+TOTAL                                                             0.0397
+============================== RESUMEN: 1/3 PASS ===============================
+=========================== short test summary info ============================
+FAILED tests/golden/test_goldens.py::test_golden[golden_50] - AssertionError:...
+FAILED tests/golden/test_goldens.py::test_golden[golden_51] - AssertionError:...
+2 failed, 1 passed, 442 deselected in 15.40s
