@@ -6,7 +6,7 @@ orquestador.
 **Rama:** `fase-1`, en el worktree `/data/AssistantStudies-fase1`, sacada de `main` = `b96e5e0`.
 **Decisiones:** `30-projects/sebastian/ADR-MEMORIA.md` (D19–D25). Se citan en el código, en la
 costura que gobiernan.
-**Estado:** pendiente de aprobación de Josem. **No se toca código hasta su «adelante».**
+**Estado:** aprobado por Josem el 2026-10-13, junto con el gasto (ver «Para el programador»).
 
 ## 0. Antes de empezar
 
@@ -238,3 +238,18 @@ la fase.
 - Retirar `sebastian_memory` (D18, fase 2).
 - Quitar el worktree `AssistantStudies-comidas`: es de la fase 3 de tristras, y lo cierra Josem
   desde allí.
+
+## Para el programador
+
+Responde a: — (primer mensaje de la fase)
+
+- **Plan aprobado** por Josem el 2026-10-13, en la ventana del arquitecto.
+- **Gasto autorizado:** hasta **2 $** de API de Anthropic para las pasadas de goldens de la fase
+  (como mucho tres pasadas completas), autorizado por Josem el 2026-10-13 en la ventana del
+  arquitecto. Cópialo tal cual en el «Gasto» de cada informe, con lo gastado por modelo.
+- **Fuera de alcance:** cualquier cosa de pictohistorias. Se lleva desde su repo.
+
+Orden:
+1. §0: copiar la config al worktree, y hacer la línea base de `pytest` y la de goldens **[API]**.
+2. H1 completo, con sus pruebas T1.1–T1.7 y la validación rompiendo el guardarraíl.
+3. **Para** en H1 con `docs/fase1/H1-informe.md`. No sigas con H2 sin mi revisión.
