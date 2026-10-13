@@ -5,7 +5,7 @@ Database connection management with connection pooling.
 import pymysql
 from dbutils.pooled_db import PooledDB
 from logcentral_client import get_logger
-import yaml
+from utils.config import get_config
 
 logger = get_logger("sebastian")
 
@@ -13,10 +13,8 @@ _pool = None
 _connection = None
 
 def load_config():
-    """Load database config from config.yaml"""
-    with open('config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
-    return config['mariadb']
+    """Database config: config.yaml + overrides del entorno (D19), vía el cargador único."""
+    return get_config()['mariadb']
 
 def init_pool():
     """Initialize connection pool (singleton pattern)"""

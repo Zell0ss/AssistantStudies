@@ -1,9 +1,9 @@
 # tests/test_cuaderno_despertar.py
 """Orchestration for a single despertar. Anthropic/Qdrant/Telegram are injected and
 mocked — real network calls only happen in the supervised manual run (FASE 4)."""
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-from scripts.cuaderno.despertar import despertar, _build_seeds_block, _resolve_chat_id
+from scripts.cuaderno.despertar import despertar, main, _build_seeds_block, _resolve_chat_id
 
 
 def _fake_client(response_text: str) -> MagicMock:
@@ -28,6 +28,7 @@ class TestDespertar:
         despertar(
             client=client, qdrant_client=_fake_qdrant_no_memories(), bot=MagicMock(),
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
+            memory_collection="sebastian_memory_test",
         )
 
         content = notebook.read_text()
@@ -44,6 +45,7 @@ class TestDespertar:
         despertar(
             client=client, qdrant_client=_fake_qdrant_no_memories(), bot=bot,
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
+            memory_collection="sebastian_memory_test",
         )
 
         bot.send_message.assert_not_called()
@@ -57,6 +59,7 @@ class TestDespertar:
         despertar(
             client=client, qdrant_client=_fake_qdrant_no_memories(), bot=bot,
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
+            memory_collection="sebastian_memory_test",
         )
 
         bot.send_message.assert_called_once()
@@ -72,7 +75,8 @@ class TestDespertar:
 
         despertar(
             client=client, qdrant_client=_fake_qdrant_no_memories(), bot=bot,
-            notebook_path=notebook, vault_path=tmp_path, chat_id=123, dry_run=True,
+            notebook_path=notebook, vault_path=tmp_path, chat_id=123,
+            memory_collection="sebastian_memory_test", dry_run=True,
         )
 
         assert notebook.read_text() == "Contenido original."
@@ -85,7 +89,8 @@ class TestDespertar:
 
         result = despertar(
             client=client, qdrant_client=_fake_qdrant_no_memories(), bot=MagicMock(),
-            notebook_path=notebook, vault_path=tmp_path, chat_id=123, dry_run=True,
+            notebook_path=notebook, vault_path=tmp_path, chat_id=123,
+            memory_collection="sebastian_memory_test", dry_run=True,
         )
 
         assert result["spoke"] is True
@@ -113,6 +118,7 @@ class TestDespertar:
         despertar(
             client=client, qdrant_client=_fake_qdrant_no_memories(), bot=MagicMock(),
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
+            memory_collection="sebastian_memory_test",
         )
 
         assert "Primer despertar." in notebook.read_text()
@@ -134,3 +140,21 @@ class TestResolveChatId:
     def test_cuaderno_chat_id_tiene_prioridad_aunque_no_sea_el_primero(self):
         config = {"cuaderno_chat_id": 815566372, "authorized_ids": [815566372, 111]}
         assert _resolve_chat_id(config) == 815566372
+
+
+def test_cuaderno_lee_coleccion_de_config(tmp_path):
+    # D20: el cuaderno pide las semillas a la colección de la config, no a una constante.
+    config = {
+        "memory_collection": "coleccion_x", "anthropic_apikey": "k", "telegram_apikey": "t",
+        "vault_docs_path": str(tmp_path / "docs"), "cuaderno_chat_id": 1,
+    }
+    qdrant = _fake_qdrant_no_memories()
+    with patch("scripts.cuaderno.despertar.get_config", return_value=config), \
+         patch("scripts.cuaderno.despertar.Anthropic", return_value=_fake_client("Hoy, nada.")), \
+         patch("scripts.cuaderno.despertar.QdrantClient", return_value=qdrant), \
+         patch("scripts.cuaderno.despertar.telebot.TeleBot"), \
+         patch("sys.argv", ["despertar", "--dry-run"]):
+        main()
+
+    colecciones = {c.kwargs.get("collection_name") for c in qdrant.scroll.call_args_list}
+    assert colecciones == {"coleccion_x"}

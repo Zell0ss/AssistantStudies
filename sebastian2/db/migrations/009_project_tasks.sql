@@ -4,7 +4,6 @@
 -- Mirrored here (idempotent) so sebastian2's migration history documents the
 -- schema it depends on; running this against sebastian_db is a no-op since
 -- the table already exists there.
-USE sebastian_db;
 CREATE TABLE IF NOT EXISTS project_tasks (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     title      VARCHAR(255) NOT NULL,

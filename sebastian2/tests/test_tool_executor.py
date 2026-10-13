@@ -418,7 +418,7 @@ def test_mark_as_memorable_dispatches(mock_store, db):
     """mark_as_memorable calls MemoryModule.store with content and tags."""
     mock_store.return_value = {'success': True, 'result': 'Guardado en memoria.', 'data': {'id': 'abc123'}}
     from core.tool_executor import ToolExecutor
-    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake'})
+    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'})
     result = executor.execute("mark_as_memorable", {"content": "Paco es alérgico a los frutos secos", "tags": ["familia"]})
     mock_store.assert_called_once_with(content="Paco es alérgico a los frutos secos", tags=["familia"])
     assert result['success'] is True
@@ -429,7 +429,7 @@ def test_mark_as_memorable_defaults_tags_to_none(mock_store, db):
     """mark_as_memorable passes tags=None when not given (MemoryModule.store defaults it)."""
     mock_store.return_value = {'success': True, 'result': '', 'data': {'id': 'abc123'}}
     from core.tool_executor import ToolExecutor
-    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake'})
+    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'})
     executor.execute("mark_as_memorable", {"content": "algo"})
     mock_store.assert_called_once_with(content="algo", tags=None)
 
@@ -439,7 +439,7 @@ def test_search_memory_dispatches(mock_search, db):
     """search_memory calls MemoryModule.search with query and k."""
     mock_search.return_value = {'success': True, 'result': '1 resultado(s).', 'data': {'matches': [{'content': 'x'}]}}
     from core.tool_executor import ToolExecutor
-    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake'})
+    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'})
     result = executor.execute("search_memory", {"query": "alergia de paco", "k": 3})
     mock_search.assert_called_once_with(query="alergia de paco", k=3)
     assert result['data']['matches'][0]['content'] == 'x'
@@ -450,7 +450,7 @@ def test_search_memory_defaults_k_to_5(mock_search, db):
     """search_memory defaults k to 5 when not given."""
     mock_search.return_value = {'success': True, 'result': '', 'data': {'matches': []}}
     from core.tool_executor import ToolExecutor
-    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake'})
+    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'})
     executor.execute("search_memory", {"query": "algo"})
     mock_search.assert_called_once_with(query="algo", k=5)
 

@@ -29,6 +29,10 @@ def main():
         # Load configuration
         config = get_config()
         logger.info("Configuration loaded successfully")
+        logger.info(
+            f"Escribiendo en BD={config['mariadb']['database']} | "
+            f"memory_collection={config['memory_collection']}"
+        )
 
         # Validate required config fields
         required_fields = ['telegram_apikey', 'authorized_users', 'authorized_ids']

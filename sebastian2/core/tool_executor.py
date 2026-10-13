@@ -45,7 +45,7 @@ class ToolExecutor:
     def _memory_module(self):
         config = self._config if self._config is not None else get_config()
         return MemoryModule(
-            collection_name=config.get('memory_collection', 'sebastian_memory'),
+            collection_name=config['memory_collection'],  # D20: sin valor por defecto, que no caiga en producción
             openai_api_key=config['openai_apikey'],
             qdrant_url=config.get('qdrant_url', 'http://localhost:6333'),
         )

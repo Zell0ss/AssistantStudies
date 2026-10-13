@@ -27,7 +27,6 @@ _MAX_NOTEBOOK_CHARS = 20000
 _HEAD_CHARS = 2000
 _TAIL_CHARS = 15000
 _TELEGRAM_MARKER = "🌱 — "
-_MEMORY_COLLECTION = "sebastian_memory"
 
 _SYSTEM_PROMPT = """Eres una instancia de Claude corriendo en seb01, el servidor personal de Josem.
 No eres Sebastian (el mayordomo que vive en este mismo servidor): no tienes
@@ -61,7 +60,7 @@ def _build_seeds_block(vault_path, qdrant_client, memory_collection: str) -> str
 
 
 def despertar(client, qdrant_client, bot, notebook_path, vault_path, chat_id,
-              memory_collection: str = _MEMORY_COLLECTION, dry_run: bool = False) -> dict:
+              memory_collection: str, dry_run: bool = False) -> dict:
     notebook_path = Path(notebook_path)
     notebook_text = notebook_path.read_text(encoding="utf-8") if notebook_path.exists() else ""
     prompt_notebook = truncate_notebook(notebook_text, _MAX_NOTEBOOK_CHARS, _HEAD_CHARS, _TAIL_CHARS)
@@ -132,11 +131,13 @@ def main() -> None:
     notebook_path = Path(config["vault_docs_path"]) / "claude" / "cuaderno.md"
     vault_path = Path(config["vault_docs_path"]).parent
     chat_id = _resolve_chat_id(config)
+    memory_collection = config["memory_collection"]  # D20: sin valor por defecto
+    logger.info(f"Cuaderno despierta | memory_collection={memory_collection}")
 
     result = despertar(
         client=client, qdrant_client=qdrant_client, bot=bot,
         notebook_path=notebook_path, vault_path=vault_path, chat_id=chat_id,
-        dry_run=args.dry_run,
+        memory_collection=memory_collection, dry_run=args.dry_run,
     )
 
     print(f"spoke={result['spoke']}")
