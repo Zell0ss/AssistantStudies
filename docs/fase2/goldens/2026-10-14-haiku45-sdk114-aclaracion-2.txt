@@ -1,0 +1,101 @@
+2026-10-14 22:17:01.614 | INFO     | utils.config:load_config:40 - Configuration loaded from config.yaml
+[32m22:17:01[0m | [1mINFO    [0m | [36msebastian[0m — Configuration loaded from config.yaml
+2026-10-14 22:17:01.619 | INFO     | db.connection:init_pool:37 - Database connection pool initialized
+[32m22:17:01[0m | [1mINFO    [0m | [36msebastian[0m — Database connection pool initialized
+2026-10-14 22:17:01.619 | DEBUG    | db.connection:get_connection:46 - Database connection acquired from pool
+2026-10-14 22:17:01.620 | DEBUG    | db.connection:close_connection:55 - Database connection closed
+2026-10-14 22:17:01.675 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 22:17:01.677 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 22:17:01.677 | INFO     | modules.calendar:add_event:76 - Added event 'teatro' for user golden_test_user
+[32m22:17:01[0m | [1mINFO    [0m | [36msebastian[0m — Added event 'teatro' for user golden_test_user
+2026-10-14 22:17:01.680 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 22:17:01.680 | INFO     | modules.calendar:add_ticket:433 - Added ticket type=QR_CODE to event 1257
+[32m22:17:01[0m | [1mINFO    [0m | [36msebastian[0m — Added ticket type=QR_CODE to event 1257
+2026-10-14 22:17:04.324 | INFO     | modules.memory:store:66 - Stored memory baf2c070-c907-45be-a485-f221568ed1ce: Mi cuñado Paco es alérgico a los frutos secos
+[32m22:17:04[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory baf2c070-c907-45be-a485-f221568ed1ce: Mi cuñado Paco es alérgico a los frutos secos
+2026-10-14 22:17:04.494 | INFO     | modules.memory:store:66 - Stored memory 8b3ef6d8-a6a0-4483-b0be-f6c0d296d7e6: A mi señor le gusta el vino tinto de Ribera del Duero
+[32m22:17:04[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 8b3ef6d8-a6a0-4483-b0be-f6c0d296d7e6: A mi señor le gusta el vino tinto de Ribera del Duero
+2026-10-14 22:17:04.656 | INFO     | modules.memory:store:66 - Stored memory 6709fc07-d70f-4339-91db-119d4cdbe021: El cumpleaños de Rebe es en marzo
+[32m22:17:04[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 6709fc07-d70f-4339-91db-119d4cdbe021: El cumpleaños de Rebe es en marzo
+2026-10-14 22:17:06.124 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='Apunta en el calendario una cita'
+[32m22:17:06[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Apunta en el calendario una cita'
+2026-10-14 22:17:06.125 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=0
+[32m22:17:06[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 22:17:10.037 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8570 | tokens_out=186 | latency_ms=3912.5
+[32m22:17:10[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8570 | tokens_out=186 | latency_ms=3912.5
+2026-10-14 22:17:10.090 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='Dime qué tiempo hará cuando vaya a pilates'
+[32m22:17:10[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Dime qué tiempo hará cuando vaya a pilates'
+2026-10-14 22:17:10.092 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=1
+[32m22:17:10[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=1
+2026-10-14 22:17:12.831 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8672 | tokens_out=78 | latency_ms=2741.2
+[32m22:17:12[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8672 | tokens_out=78 | latency_ms=2741.2
+2026-10-14 22:17:12.877 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='compra yogures'
+[32m22:17:12[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='compra yogures'
+2026-10-14 22:17:12.879 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=2
+[32m22:17:12[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=2
+2026-10-14 22:17:14.170 | DEBUG    | core.tool_executor:execute:70 - Executing tool: list_add_item inputs={'list_name': 'compra', 'item_name': 'yogures'}
+2026-10-14 22:17:14.174 | DEBUG    | core.tool_executor:execute:131 - Tool list_add_item result: {'status': 'added', 'message': 'Añadido yogures: 1 unidades'}
+2026-10-14 22:17:14.175 | INFO     | core.orchestrator:_log_tool_execution:81 - Tool list_add_item → status=added (4.1ms)
+[32m22:17:14[0m | [1mINFO    [0m | [36msebastian[0m — Tool list_add_item → status=added (4.1ms)
+2026-10-14 22:17:14.175 | DEBUG    | core.orchestrator:_log_tool_execution:84 - Tool list_add_item | input={"list_name": "compra", "item_name": "yogures"} | full_result={"status": "added", "message": "Añadido yogures: 1 unidades"}
+2026-10-14 22:17:16.231 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16923 | tokens_out=136 | latency_ms=3353.6
+[32m22:17:16[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16923 | tokens_out=136 | latency_ms=3353.6
+2026-10-14 22:17:16.274 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='Pon un recordatorio para llamar al médico'
+[32m22:17:16[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Pon un recordatorio para llamar al médico'
+2026-10-14 22:17:16.276 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=3
+[32m22:17:16[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=3
+2026-10-14 22:17:17.235 | DEBUG    | core.tool_executor:execute:70 - Executing tool: calendar_add_event inputs={'title': 'Llamar al médico'}
+2026-10-14 22:17:17.235 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 22:17:17.237 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 22:17:17.238 | INFO     | modules.calendar:add_event:76 - Added event 'Llamar al médico' for user golden_test_user
+[32m22:17:17[0m | [1mINFO    [0m | [36msebastian[0m — Added event 'Llamar al médico' for user golden_test_user
+2026-10-14 22:17:17.238 | DEBUG    | core.tool_executor:execute:131 - Tool calendar_add_event result: {'status': 'added', 'message': 'Evento añadido: Llamar al médico', 'event_id': 1258}
+2026-10-14 22:17:17.238 | INFO     | core.orchestrator:_log_tool_execution:81 - Tool calendar_add_event → status=added (2.9ms)
+[32m22:17:17[0m | [1mINFO    [0m | [36msebastian[0m — Tool calendar_add_event → status=added (2.9ms)
+2026-10-14 22:17:17.238 | DEBUG    | core.orchestrator:_log_tool_execution:84 - Tool calendar_add_event | input={"title": "Llamar al médico"} | full_result={"status": "added", "message": "Evento añadido: Llamar al médico", "event_id": 1258}
+2026-10-14 22:17:21.087 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=17003 | tokens_out=153 | latency_ms=4812.4
+[32m22:17:21[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=17003 | tokens_out=153 | latency_ms=4812.4
+
+[turno 1] 'Apunta en el calendario una cita' → tools=[] | Alfred: Con mucho gusto. ¿Me indica los detalles de la cita? Fecha, hora y motivo, al menos.
+
+[turno 1] 'Dime qué tiempo hará cuando vaya a pilates' → tools=[] | Alfred: No tengo anotado cuándo es su clase de pilates ni cuál es su ubicación. ¿Podría indicarme la fecha, hora y lugar?
+
+[turno 1] 'compra yogures' → tools=['list_add_item'] | Alfred: Yogures apuntados en la lista de la compra, señor.
+
+[turno 1] 'Pon un recordatorio para llamar al médico' → tools=['calendar_add_event'] | Alfred: Anotado, señor. Tiene un recordatorio para llamar al médico. ¿Desea asignarle una fecha y hora concretas?
+F
+=================================== FAILURES ===================================
+______________________ test_aclaracion_y_reanudacion_real ______________________
+
+orchestrator_runner = <function orchestrator_runner.<locals>._run at 0x7f7231a61300>
+test_db = <pymysql.connections.Connection object at 0x7f7231a014c0>
+
+    @pytest.mark.golden
+    def test_aclaracion_y_reanudacion_real(orchestrator_runner, test_db):
+        cur = test_db.cursor()
+        cur.execute("DELETE FROM pending_plans WHERE user_id = %s", (GOLDEN_USER_ID,))
+        cur.execute("DELETE FROM events WHERE user_id = %s AND title LIKE %s", (GOLDEN_USER_ID, "%dentista%"))
+        test_db.commit()
+    
+        # Turno 1: tiene que pedir una aclaración y guardar el plan.
+        intentos = []
+        for frase, respuesta_a_dar in CANDIDATAS:
+            llamadas1, respuesta1 = orchestrator_runner(frase)
+            print(f"\n[turno 1] {frase!r} → tools={llamadas1} | Alfred: {respuesta1['text']}")
+            intentos.append((frase, llamadas1))
+            if "request_clarification" in llamadas1:
+                break
+        else:
+>           pytest.fail(f"ninguna frase provocó una aclaración: {intentos}")
+E           Failed: ninguna frase provocó una aclaración: [('Apunta en el calendario una cita', []), ('Dime qué tiempo hará cuando vaya a pilates', []), ('compra yogures', ['list_add_item']), ('Pon un recordatorio para llamar al médico', ['calendar_add_event'])]
+
+tests/golden/test_aclaracion.py:41: Failed
+============= USO DE LA API (medido por Orchestrator._track_usage) =============
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001                47796             416    0.0499
+claude-sonnet-4-6                         3372             137    0.0122
+TOTAL                                                             0.0620
+latencia por turno (misma medida que 'Turn end'): n=4 mediana=3.63s p90=4.54s min=2.7s max=4.8s
+=========================== short test summary info ============================
+FAILED tests/golden/test_aclaracion.py::test_aclaracion_y_reanudacion_real - ...
+1 failed in 19.74s

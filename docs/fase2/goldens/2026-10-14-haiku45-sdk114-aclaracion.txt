@@ -1,0 +1,87 @@
+2026-10-14 22:16:20.431 | INFO     | utils.config:load_config:40 - Configuration loaded from config.yaml
+[32m22:16:20[0m | [1mINFO    [0m | [36msebastian[0m — Configuration loaded from config.yaml
+2026-10-14 22:16:20.435 | INFO     | db.connection:init_pool:37 - Database connection pool initialized
+[32m22:16:20[0m | [1mINFO    [0m | [36msebastian[0m — Database connection pool initialized
+2026-10-14 22:16:20.436 | DEBUG    | db.connection:get_connection:46 - Database connection acquired from pool
+2026-10-14 22:16:20.436 | DEBUG    | db.connection:close_connection:55 - Database connection closed
+2026-10-14 22:16:20.487 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 22:16:20.489 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 22:16:20.489 | INFO     | modules.calendar:add_event:76 - Added event 'teatro' for user golden_test_user
+[32m22:16:20[0m | [1mINFO    [0m | [36msebastian[0m — Added event 'teatro' for user golden_test_user
+2026-10-14 22:16:20.493 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 22:16:20.493 | INFO     | modules.calendar:add_ticket:433 - Added ticket type=QR_CODE to event 1216
+[32m22:16:20[0m | [1mINFO    [0m | [36msebastian[0m — Added ticket type=QR_CODE to event 1216
+2026-10-14 22:16:22.870 | INFO     | modules.memory:store:66 - Stored memory bf1718b6-0956-43ea-8d07-bd1c37aca650: Mi cuñado Paco es alérgico a los frutos secos
+[32m22:16:22[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory bf1718b6-0956-43ea-8d07-bd1c37aca650: Mi cuñado Paco es alérgico a los frutos secos
+2026-10-14 22:16:23.052 | INFO     | modules.memory:store:66 - Stored memory f0309489-a88a-43d4-8897-b73c2222771b: A mi señor le gusta el vino tinto de Ribera del Duero
+[32m22:16:23[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory f0309489-a88a-43d4-8897-b73c2222771b: A mi señor le gusta el vino tinto de Ribera del Duero
+2026-10-14 22:16:23.293 | INFO     | modules.memory:store:66 - Stored memory 182e00a1-3c27-4df5-a142-bffddf3a951c: El cumpleaños de Rebe es en marzo
+[32m22:16:23[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 182e00a1-3c27-4df5-a142-bffddf3a951c: El cumpleaños de Rebe es en marzo
+2026-10-14 22:16:24.722 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='Apunta en el calendario una cita'
+[32m22:16:24[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Apunta en el calendario una cita'
+2026-10-14 22:16:24.724 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=0
+[32m22:16:24[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 22:16:28.905 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8570 | tokens_out=223 | latency_ms=4182.6
+[32m22:16:28[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8570 | tokens_out=223 | latency_ms=4182.6
+2026-10-14 22:16:28.951 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='Añade una cita al calendario'
+[32m22:16:28[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Añade una cita al calendario'
+2026-10-14 22:16:28.953 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=1
+[32m22:16:28[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=1
+2026-10-14 22:16:32.531 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8680 | tokens_out=174 | latency_ms=3580.4
+[32m22:16:32[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8680 | tokens_out=174 | latency_ms=3580.4
+2026-10-14 22:16:32.581 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='Quiero apuntar una cita'
+[32m22:16:32[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Quiero apuntar una cita'
+2026-10-14 22:16:32.583 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=2
+[32m22:16:32[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=2
+2026-10-14 22:16:35.816 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8770 | tokens_out=172 | latency_ms=3235.2
+[32m22:16:35[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8770 | tokens_out=172 | latency_ms=3235.2
+2026-10-14 22:16:35.861 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='Apúntame una cita con el dentista'
+[32m22:16:35[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Apúntame una cita con el dentista'
+2026-10-14 22:16:35.863 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=3
+[32m22:16:35[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=3
+2026-10-14 22:16:38.143 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8866 | tokens_out=61 | latency_ms=2281.9
+[32m22:16:38[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=8866 | tokens_out=61 | latency_ms=2281.9
+
+[turno 1] 'Apunta en el calendario una cita' → tools=[] | Alfred: Con mucho gusto. ¿Qué cita desea que apunte, señor? Necesito al menos la fecha, la hora y una breve descripción.
+
+[turno 1] 'Añade una cita al calendario' → tools=[] | Alfred: Por supuesto. ¿Podría indicarme el título o descripción de la cita, la fecha y la hora?
+
+[turno 1] 'Quiero apuntar una cita' → tools=[] | Alfred: Entendido. ¿Podría indicarme el título o descripción de la cita, la fecha y la hora?
+
+[turno 1] 'Apúntame una cita con el dentista' → tools=[] | Alfred: Casi listo, señor. ¿A qué fecha y hora es la cita con el dentista?
+F
+=================================== FAILURES ===================================
+______________________ test_aclaracion_y_reanudacion_real ______________________
+
+orchestrator_runner = <function orchestrator_runner.<locals>._run at 0x7f180f671620>
+test_db = <pymysql.connections.Connection object at 0x7f180f6266f0>
+
+    @pytest.mark.golden
+    def test_aclaracion_y_reanudacion_real(orchestrator_runner, test_db):
+        cur = test_db.cursor()
+        cur.execute("DELETE FROM pending_plans WHERE user_id = %s", (GOLDEN_USER_ID,))
+        cur.execute("DELETE FROM events WHERE user_id = %s AND title LIKE %s", (GOLDEN_USER_ID, "%dentista%"))
+        test_db.commit()
+    
+        # Turno 1: tiene que pedir una aclaración y guardar el plan.
+        intentos = []
+        for frase in CANDIDATAS:
+            llamadas1, respuesta1 = orchestrator_runner(frase)
+            print(f"\n[turno 1] {frase!r} → tools={llamadas1} | Alfred: {respuesta1['text']}")
+            intentos.append((frase, llamadas1))
+            if "request_clarification" in llamadas1:
+                break
+        else:
+>           pytest.fail(f"ninguna frase provocó una aclaración: {intentos}")
+E           Failed: ninguna frase provocó una aclaración: [('Apunta en el calendario una cita', []), ('Añade una cita al calendario', []), ('Quiero apuntar una cita', []), ('Apúntame una cita con el dentista', [])]
+
+tests/golden/test_aclaracion.py:42: Failed
+============= USO DE LA API (medido por Orchestrator._track_usage) =============
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001                31663             491    0.0341
+claude-sonnet-4-6                         3223             139    0.0118
+TOTAL                                                             0.0459
+latencia por turno (misma medida que 'Turn end'): n=4 mediana=3.41s p90=4.00s min=2.3s max=4.2s
+=========================== short test summary info ============================
+FAILED tests/golden/test_aclaracion.py::test_aclaracion_y_reanudacion_real - ...
+1 failed in 17.98s
