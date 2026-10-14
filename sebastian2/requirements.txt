@@ -1,40 +1,72 @@
-# Telegram
-pyTelegramBotAPI==4.14.0
-telegram-markdown-entities==0.1.1
-
-# Database
-PyMySQL==1.1.1
-dbutils==3.0.3
-
-# LLM
-anthropic==1.14.0
-openai==2.46.0
-
-# Memory (Sprint 3: Qdrant vector store + OpenAI embeddings)
-qdrant-client==1.18.0
-
-# Config & Utils
-pyyaml==6.0.1
-python-dotenv==1.2.2
-loguru==0.7.2
-
-# LogCentral
+# Freeze completo del .venv de Sebastian 2.0 (Python 3.12, anthropic 1.14.0), generado el 2026-10-14
+# (fase 2, H0, R5). Por qué: antes solo se fijaban las dependencias directas y 'pip' resolvía las demás
+# (unas 35) el día de instalar; con eso, requests 2.34 rompió requests-cache 1.2.1 y dejaba sin tiempo al
+# bot. Ahora el venv que se recree sale igual que este. Las versiones son las del venv de produccion que
+# habia (Python 3.11 + anthropic 0.79.0), salvo anthropic y lo que el SDK 1.14 trae de nuevo
+# (httpx2, httpcore2, opentelemetry-api, truststore).
+# Para regenerarlo: crear un venv, instalar lo que haga falta y 'pip freeze'; conservar la linea editable.
+# El primer elemento es el editable de LogCentral (ruta local, no la URL git que muestra 'pip freeze').
 -e /data/logcentral/packages/client/
 
-# Calendar
+annotated-types==0.7.0
+anthropic==1.14.0
+anyio==4.12.1
 APScheduler==3.10.4
-python-dateutil==2.9.0
-
-# Weather
-requests-cache==1.2.1
-# requests 2.34 rompe requests-cache 1.2.1 (NameError: RequestsCookieJar): modules/weather.py dejaba de
-# responder. Es la versión del .venv de producción actual. Detectado en la pasada de goldens de H0 (fase 2).
-requests==2.32.5
-
-# Tickets
-zxing-cpp==3.0.0
+attrs==25.4.0
+cattrs==26.1.0
+certifi==2026.1.4
+charset-normalizer==3.4.4
+DBUtils==3.0.3
+distro==1.9.0
+docstring_parser==0.17.0
+future==1.0.0
+grpcio==1.82.1
+h11==0.16.0
+h2==4.3.0
+hpack==4.2.0
+httpcore==1.0.9
+httpcore2==2.3.0
+httpx==0.28.1
+httpx2==2.3.0
+hyperframe==6.1.0
+idna==3.11
+iniconfig==2.3.0
+jiter==0.13.0
+loguru==0.7.2
 numpy==2.4.2
-pyzbar==0.1.9
-qrcode==8.0
-python-barcode==0.15.1
+openai==2.46.0
+opentelemetry-api==1.45.1
+packaging==26.0
 pdf417gen==0.2.0
+pillow==12.1.1
+platformdirs==4.9.2
+pluggy==1.6.0
+portalocker==3.2.0
+protobuf==7.35.1
+pydantic==2.12.5
+pydantic_core==2.41.5
+Pygments==2.19.2
+PyMySQL==1.1.1
+pyTelegramBotAPI==4.14.0
+pytest==9.0.2
+python-barcode==0.15.1
+python-dateutil==2.9.0
+python-dotenv==1.2.2
+pytz==2025.2
+PyYAML==6.0.1
+pyzbar==0.1.9
+qdrant-client==1.18.0
+qrcode==8.0
+requests==2.32.5
+requests-cache==1.2.1
+six==1.17.0
+sniffio==1.3.1
+telegram-markdown-entities==0.1.1
+tqdm==4.67.3
+truststore==0.10.5
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+tzlocal==5.3.1
+url-normalize==2.2.1
+urllib3==2.6.3
+zxing-cpp==3.0.0
