@@ -25,11 +25,11 @@ logger = get_logger("sebastian")
 _MAX_ITERATIONS = 8
 
 # D28 (tentativa): modelo del planner en un solo sitio. Haiku 5.5 piensa por defecto y el razonamiento
-# se cobra como salida y cuenta para max_tokens: de ahí el esfuerzo `low` y el margen de max_tokens
+# se cobra como salida y cuenta para max_tokens: de ahí el esfuerzo (`low` falló 4 goldens de forma estable; H0-revision R1 prueba `medium`) y el margen de max_tokens
 # (es un techo, no un gasto: solo se paga lo que se genera). Si se vuelve a Haiku 4.5, _PLANNER_EXTRA
 # tiene que quedar VACÍO ({}): `effort` da 400 en 4.5.
 _MODELO_PLANNER = "claude-haiku-5-5"
-_PLANNER_EXTRA = {"output_config": {"effort": "low"}}
+_PLANNER_EXTRA = {"output_config": {"effort": "medium"}}
 _PLANNER_MAX_TOKENS = 4096
 _PLAN_REPLY_MAX_TOKENS = 512  # SI/NO, pero con razonamiento previo que también cuenta
 _CAPABILITIES_DIGEST = build_capabilities_digest()
