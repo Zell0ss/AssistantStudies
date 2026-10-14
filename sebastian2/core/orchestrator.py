@@ -23,6 +23,15 @@ from utils.config import get_config
 logger = get_logger("sebastian")
 
 _MAX_ITERATIONS = 8
+
+# D28 (tentativa): modelo del planner en un solo sitio. Haiku 5.5 piensa por defecto y el razonamiento
+# se cobra como salida y cuenta para max_tokens: de ahí el esfuerzo `low` y el margen de max_tokens
+# (es un techo, no un gasto: solo se paga lo que se genera). Si se vuelve a Haiku 4.5, _PLANNER_EXTRA
+# tiene que quedar VACÍO ({}): `effort` da 400 en 4.5.
+_MODELO_PLANNER = "claude-haiku-5-5"
+_PLANNER_EXTRA = {"output_config": {"effort": "low"}}
+_PLANNER_MAX_TOKENS = 4096
+_PLAN_REPLY_MAX_TOKENS = 512  # SI/NO, pero con razonamiento previo que también cuenta
 _CAPABILITIES_DIGEST = build_capabilities_digest()
 
 
@@ -144,6 +153,30 @@ class Orchestrator:
             self._turn_usage["tokens_in"] += getattr(usage, "input_tokens", 0) or 0
             self._turn_usage["tokens_out"] += getattr(usage, "output_tokens", 0) or 0
 
+    def _llamar_planner(self, messages: list):
+        """Una llamada al planner (D28): modelo único, esfuerzo bajo, uso contabilizado y vigilado."""
+        response = self._client.messages.create(
+            model=_MODELO_PLANNER,
+            max_tokens=_PLANNER_MAX_TOKENS,
+            system=_planner_system(),
+            tools=ALL_TOOLS,
+            messages=messages,
+            **_PLANNER_EXTRA,
+        )
+        self._track_usage(response, _MODELO_PLANNER)
+        self._avisar_si_el_planner_no_decidio(response)
+        return response
+
+    def _avisar_si_el_planner_no_decidio(self, response) -> None:
+        """D28: un rechazo o un corte por max_tokens no deben ser silenciosos. Sin contenido del mensaje."""
+        if response.stop_reason == "refusal":
+            categoria = getattr(getattr(response, "stop_details", None), "category", None)
+            logger.warning(f"Planner rechazó la petición | user={self._user_id} | categoria={categoria}")
+        elif response.stop_reason == "max_tokens":
+            logger.warning(
+                f"Planner cortado por max_tokens ({_PLANNER_MAX_TOKENS}) antes de decidir | user={self._user_id}"
+            )
+
     def _cargar_historial(self) -> list:
         """Mensajes user/assistant de los últimos intercambios (D21). Si falla, vacío (D22).
 
@@ -200,19 +233,28 @@ class Orchestrator:
         )
 
     def _is_plan_reply(self, user_message: str, plan_question: str) -> bool:
-        """Ask Haiku whether the user message answers the pending plan question."""
+        """Ask the planner model whether the user message answers the pending plan question."""
         response = self._client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=10,
+            model=_MODELO_PLANNER,
+            max_tokens=_PLAN_REPLY_MAX_TOKENS,
             system="Responde solo 'SI' o 'NO', sin más texto.",
             messages=[{"role": "user", "content": (
                 f"Pregunta pendiente: '{plan_question}'.\n"
                 f"Mensaje del usuario: '{user_message}'.\n"
                 f"¿Es el mensaje una respuesta directa a la pregunta pendiente?"
-            )}]
+            )}],
+            **_PLANNER_EXTRA,
         )
-        self._track_usage(response, "claude-haiku-4-5-20251001")
-        return response.content[0].text.strip().upper().startswith('S')
+        self._track_usage(response, _MODELO_PLANNER)
+        # D28: la respuesta puede empezar por bloques `thinking`: se lee el primer bloque de tipo text.
+        texto = next((b.text for b in response.content if b.type == "text"), None)
+        if texto is None:
+            logger.warning(
+                f"_is_plan_reply sin bloque de texto (stop_reason={response.stop_reason}) | "
+                f"user={self._user_id}: se trata como NO"
+            )
+            return False
+        return texto.strip().upper().startswith('S')
 
     def _resume_plan(self, plan: dict, user_answer: str, turn_start: float) -> str:
         """Resume a pending plan by injecting the user's answer as a tool_result."""
@@ -243,18 +285,11 @@ class Orchestrator:
         tool_results_summary = []
         for iteration in range(_MAX_ITERATIONS):
             iterations_used = iteration + 1
-            response = self._client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=1024,
-                system=_planner_system(),
-                tools=ALL_TOOLS,
-                messages=messages
-            )
-            self._track_usage(response, "claude-haiku-4-5-20251001")
+            response = self._llamar_planner(messages)
 
             tool_blocks = [b for b in response.content if b.type == 'tool_use']
 
-            if response.stop_reason == 'end_turn' or not tool_blocks:
+            if response.stop_reason in ('end_turn', 'refusal') or not tool_blocks:
                 break
 
             # Check if Haiku needs yet another clarification
@@ -371,18 +406,11 @@ class Orchestrator:
 
         for iteration in range(_MAX_ITERATIONS):
             iterations_used = iteration + 1
-            response = self._client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=1024,
-                system=_planner_system(),
-                tools=ALL_TOOLS,
-                messages=messages
-            )
-            self._track_usage(response, "claude-haiku-4-5-20251001")
+            response = self._llamar_planner(messages)
 
             tool_blocks = [b for b in response.content if b.type == 'tool_use']
 
-            if response.stop_reason == 'end_turn' or not tool_blocks:
+            if response.stop_reason in ('end_turn', 'refusal') or not tool_blocks:
                 # Planner is done — move to synthesis
                 break
 

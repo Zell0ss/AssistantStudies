@@ -11,6 +11,7 @@ mark_as_memorable, so `config_de_goldens` refuses to run unless the isolated
 TEST_MEMORY_COLLECTION collection actually exists in Qdrant, and never resolves
 to the real 'sebastian_memory' collection.
 """
+import time
 from datetime import date, datetime, timedelta
 
 import pymysql
@@ -37,7 +38,12 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         from tests.golden.test_goldens import GOLDEN_RESULTS
     except ImportError:
         return
+    from tests.golden.uso import USO
     if not GOLDEN_RESULTS:
+        if USO.por_modelo:
+            terminalreporter.write_sep("=", "USO DE LA API (medido por Orchestrator._track_usage)")
+            for linea in USO.tabla():
+                terminalreporter.write_line(linea)
         return
 
     terminalreporter.write_sep("=", "GOLDEN REGRESSION REPORT")
@@ -55,7 +61,6 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
     passed_count = sum(1 for r in GOLDEN_RESULTS if r["passed"])
     total = len(GOLDEN_RESULTS)
-    from tests.golden.uso import USO
     terminalreporter.write_sep("=", "USO DE LA API (medido por Orchestrator._track_usage)")
     for linea in USO.tabla():
         terminalreporter.write_line(linea)
@@ -275,6 +280,7 @@ def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixt
         original_execute = ToolExecutor.execute
         original_ask_user = Orchestrator._ask_user
         original_track_usage = Orchestrator._track_usage
+        original_log_turn_end = Orchestrator._log_turn_end
 
         def recording_execute(self, tool_name, tool_input):
             calls.append(tool_name)
@@ -288,9 +294,15 @@ def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixt
             USO.registrar(response, model)
             return original_track_usage(self, response, model)
 
+        def midiendo_latencia(self, turn_start, iterations, outcome):
+            # Misma cuenta que la línea «Turn end» de producción (fase 2 H0, D28).
+            USO.registrar_latencia(round((time.perf_counter() - turn_start) * 1000, 1))
+            return original_log_turn_end(self, turn_start, iterations, outcome)
+
         with patch.object(ToolExecutor, "execute", recording_execute), \
              patch.object(Orchestrator, "_ask_user", recording_ask_user), \
-             patch.object(Orchestrator, "_track_usage", midiendo_uso):
+             patch.object(Orchestrator, "_track_usage", midiendo_uso), \
+             patch.object(Orchestrator, "_log_turn_end", midiendo_latencia):
             orch = Orchestrator(test_db, golden_fixtures["user_id"], config=config_de_goldens)
             response = orch.handle(phrase)
 
