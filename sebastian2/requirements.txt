@@ -7,7 +7,7 @@ PyMySQL==1.1.1
 dbutils==3.0.3
 
 # LLM
-anthropic==0.79.0
+anthropic==1.14.0
 openai==2.46.0
 
 # Memory (Sprint 3: Qdrant vector store + OpenAI embeddings)
