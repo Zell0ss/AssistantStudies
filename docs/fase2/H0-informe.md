@@ -192,3 +192,140 @@ solo descarta el merge de `fase-2`; la rama `fase-2` se queda.
 
 H0 completo. El plan de la fase 2 lo escribe el arquitecto después de revisar este informe; no sigo con
 nada de la fase 2.
+
+---
+
+## Anexo — esfuerzo medium
+
+Responde a: 877232c (H0-revision, «Para el programador»)
+
+### Hecho
+
+- **R1** (`29e0a58`): `_PLANNER_EXTRA = {"output_config": {"effort": "medium"}}`, commit propio. 417 tests.
+- **R2** [API]: una pasada completa (55 goldens + flujo de aclaración) con `medium`, sobre el `.venv` nuevo
+  (Python 3.12.14, anthropic 1.14.0). Salida: `docs/fase2/goldens/2026-10-14-haiku55-medium-completa.txt`
+  (`17e7727`). Autorizada por Josem el 2026-10-14, en esta ventana («sí»).
+- **R3**: el criterio no se cumple (tabla abajo), así que **el planner vuelve a `claude-haiku-4-5-20251001` con
+  `_PLANNER_EXTRA = {}`** (`99ac214`, dos líneas, un commit), y comprobación con `-k` en 4.5 (`911a6b5`).
+  T0.1, T0.3, T0.4 y T0.6 se quedan. No he tocado ningún golden.
+- **Hallazgo aparte, de entorno (`3d7b013`): `requests` 2.34.2 rompe `requests-cache` 1.2.1.** Ver abajo.
+
+### Criterio del §4 con `medium` (Haiku 5.5, Python 3.12 + anthropic 1.14)
+
+| Criterio | Resultado | ¿Cumple? |
+|---|---|---|
+| 1. Goldens 55/55 | **47/55.** Fallan #03, #04, #05, #24, #28, #48, #49 y #51. | **No** |
+| 2. Pasada completa < 0,5 $ | **0,2984 $** (Haiku 5.5: 0,1110 · Sonnet 4.6: 0,1874) | Sí |
+| 3. Mediana ≤ 6,37 s (+30 % sobre 4,90 s) | **4,16 s** (p90 5,44 s, n = 57), un 15 % **mejor** que la línea base | Sí |
+
+**Los 8 fallos, separados por causa** (salida completa en el fichero citado):
+
+*Causa 1 — entorno, no del modelo ni del esfuerzo (3 fallos):* **#04, #05 y #51** (el tiempo). Alfred contesta
+«el servicio meteorológico no responde» porque `modules/weather.py` falla con
+`Forecast fetch failed: name 'RequestsCookieJar' is not defined`. Es del `.venv` nuevo (ver «Hallazgo»).
+
+*Causa 2 — comportamiento del planner con `medium` (5 fallos):*
+- **#03** (esperado `notes_delete → notes_delete`): `notes_get → notes_get → notes_delete → notes_delete`. Mira
+  las notas antes de borrarlas. **Nuevo**: con `low` pasaba.
+- **#24** (esperado `salud`): `salud → salud`. Con Tristras neutralizado (D27) la tool devuelve el error de red y
+  el planner la **reintenta** una vez. **Nuevo**: con `low` pasaba.
+- **#28**: `request_clarification` (pregunta a qué hora). **Igual que con `low`** (falló también en las dos
+  ejecuciones de aquel día).
+- **#48**: `list_add_item`. **Igual que con `low`.**
+- **#49**: `inventory_list → calendar_list_events → notes_search`. **Igual que con `low`** (otras tools, mismo
+  problema: tres tools para una pregunta que no necesita ninguna).
+- El **#21 sí pasa** con `medium` (con `low` hacía `search_memory → notes_search`).
+
+**No repetí con `-k` los fallos de la causa 2**: #28, #48 y #49 llevan fallando estables en las tres pasadas de
+Haiku 5.5 (dos con `low`, esta con `medium`), así que repetirlos no puede cambiar el veredicto del criterio 1. #03 y
+#24 son nuevos con `medium` y los dejo sin repetir por la misma razón (gastarlo no cambia la decisión). Si el
+arquitecto prefiere tener esas dos repeticiones guardadas, son ≈ 0,03 $.
+
+**Conclusión:** con `medium` el criterio 1 sigue sin cumplirse; con las causas de entorno quitadas sigue en
+**5 fallos de comportamiento**. Por eso R3 manda volver a Haiku 4.5.
+
+### Hallazgo: `requests` 2.34.2 + `requests-cache` 1.2.1 (decisión que necesito)
+
+- **Qué pasó:** `requests-cache==1.2.1` está fijado en `requirements.txt`, pero `requests` no (llega como
+  dependencia transitiva). En el `.venv` nuevo `pip` resolvió `requests 2.34.2`; en el de producción hay
+  `2.32.5`. Con 2.34.2, `CachedSession` lanza `NameError: name 'RequestsCookieJar' is not defined`: **el tiempo
+  (`modules/weather.py`) dejaba de funcionar por completo.** Lo reproduje con una petición mínima a Open-Meteo en
+  el `.venv` nuevo (error) y en un venv de prueba con `requests==2.32.5` (200 OK).
+- **Por qué no lo vi antes:** los tests unitarios simulan Open-Meteo, y mi comprobación con `-k` de T0.9 no incluyó
+  ningún golden del tiempo. **De haberse desplegado el `.venv` con solo el cambio de `anthropic`, habría roto el
+  tiempo en producción.** Lo cazó la pasada completa.
+- **Qué hice:** fijé `requests==2.32.5` (la versión de producción) en `requirements.txt`, con un comentario, en
+  un commit propio (`3d7b013`), y lo instalé en el `.venv` nuevo. **Es más de lo que decía el §6** («solo la línea
+  de `anthropic`»), así que lo pongo como desviación y como decisión tuya.
+- **Comparación completa de los dos entornos** (`pip freeze`, excluyendo los editables): las dependencias
+  directas están iguales salvo `anthropic`, pero **~35 transitivas son distintas** (p. ej. `urllib3` 2.6.3 → 2.8.0,
+  `attrs`, `cattrs`, `pydantic` 2.12.5 → 2.14.1, `pydantic_core`, `pillow` 12.1.1 → 12.3.0, `url-normalize` 2.2.1 →
+  3.0.1, `anyio`, `jiter`, `certifi`…). `requests` es la única que he visto fallar, pero los goldens no ejercen
+  todo (por ejemplo, el escaneo de tickets con `pyzbar`/`zxing-cpp`/`Pillow`), así que **no sé** si otra sorpresa
+  espera. Mi recomendación: o bien (A) lo que ya hice, fijar solo `requests`; o bien (B) generar un fichero de
+  constraints con el `pip freeze` del venv de producción para todo lo que no sea `anthropic`, de modo que el
+  entorno nuevo sea idéntico salvo el SDK. B es más seguro para el despliegue y algo más rígido después. **Dime
+  cuál**; hasta entonces dejo A.
+
+### Comprobación con `-k` en Haiku 4.5 + anthropic 1.14 (R3)
+
+`docs/fase2/goldens/2026-10-14-haiku45-sdk114-k.txt`: **#03, #04, #05, #20, #21, #22, #23, #24 y #51 pasan.** El
+tiempo vuelve a responder (#04, #05, #51), con `requests` 2.32.5. Latencia por turno (n = 10): mediana 3,97 s,
+p90 5,35 s.
+
+**El flujo de aclaración y reanudación NO se puede provocar con Haiku 4.5.** Probé 4 frases en la primera
+ejecución («Apunta en el calendario una cita», «Añade una cita al calendario», «Quiero apuntar una cita»,
+«Apúntame una cita con el dentista») y otras 4 en la segunda («Dime qué tiempo hará cuando vaya a pilates»,
+«compra yogures», «Pon un recordatorio para llamar al médico» y la primera otra vez): **ocho intentos y
+Haiku 4.5 no llamó nunca a `request_clarification`**; o contesta por texto («¿Qué cita desea apuntar?», sin tool)
+o actúa (`list_add_item`, `calendar_add_event`). Es coherente con la descripción de la tool («último recurso»). Con
+Haiku 5.5 sí la llamaba (dos de dos). Consecuencias:
+- Con 4.5 no hay bloques `thinking` (4.5 no razona por defecto), así que el riesgo del `thinking` reenviado con
+  otro `system` no existe en la configuración que se desplegaría. El camino `_resume_plan` con 4.5 es el de
+  siempre, cubierto por los tests con mocks.
+- Dejé el test `tests/golden/test_aclaracion.py` con varias frases candidatas y, si ninguna provoca la aclaración,
+  **`pytest.skip` con el detalle de los intentos** (antes era un fallo). **Es un cambio mío hecho después de ver el
+  resultado**: lo declaro por si prefieres un fallo visible. Se revierte con un `git revert` de `911a6b5` (solo ese
+  fichero y las salidas).
+
+### Gasto
+
+Autorizado por Josem el 2026-10-14, en la ventana del programador («dale» y dos «sí»); tope del hito 1,2 $.
+
+| Paso [API] | Haiku 5.5 | Haiku 4.5 | Sonnet 4.6 | Total |
+|---|---|---|---|---|
+| Primera parte (informe de arriba: humo, completa `low`, repetición, SDK `-k`) | 0,1307 $ | — | 0,2697 $ | 0,4005 $ |
+| Pasada completa `medium` (R2) | 0,1110 $ | — | 0,1874 $ | 0,2984 $ |
+| `-k` en Haiku 4.5 (#03–05, #20–24, #51, aclaración) | — | 0,1504 $ | 0,0348 $ | 0,1852 $ |
+| Aclaración en 4.5, intento 1 (4 frases) | — | 0,0341 $ | 0,0118 $ | 0,0459 $ |
+| Aclaración en 4.5, intento 2 (4 frases) | — | 0,0499 $ | 0,0122 $ | 0,0620 $ |
+| **Total del hito** | **0,2417 $** | **0,2344 $** | **0,5159 $** | **0,9920 $** |
+
+Quedan ≈ 0,21 $ de los 1,2 $. No hay margen para otra pasada completa; si hace falta alguna, necesita autorización
+nueva.
+
+### Desviaciones
+
+1. `requests==2.32.5` fijado en `requirements.txt` (arriba): fuera del §6.
+2. `test_aclaracion.py`: varias frases candidatas y `skip` si ninguna provoca la aclaración.
+3. No repetí #03 y #24 con `-k` (arriba, con el motivo).
+4. El `-k` de Haiku 4.5 incluyó #03, #04, #05 y #51, que no estaban en T0.9: los añadí para comprobar el arreglo
+   de `requests` y los que fallaban nuevos con `medium`.
+
+### Decisiones que necesito
+
+1. **Entorno:** ¿opción A (solo `requests`, ya hecha) o B (constraints con el `pip freeze` de producción)? Ver arriba.
+2. **Aclaración con 4.5:** ¿`skip` o fallo visible? (Y, si te preocupa no ejercer `_resume_plan` de extremo a
+   extremo con 4.5, no veo otra frase que lo provoque; habría que decidir si basta con los tests con mocks.)
+3. **Los goldens #28, #48, #49 y #21 con Haiku 5.5:** como D28 no se adopta, ya no hay nada que decidir sobre
+   ellos en esta fase; los dejo como están.
+
+### Despliegue (actualizado)
+
+Los pasos y la vuelta atrás **no cambian** respecto a la sección «Despliegue» de arriba, con dos matices:
+`fase-2` ahora lleva el planner en **Haiku 4.5** (sin cambios de comportamiento respecto a producción hoy) y
+`requirements.txt` con `anthropic==1.14.0` **y** `requests==2.32.5`. Tras reiniciar, además de lo que ya había,
+conviene probar el tiempo por Telegram («¿qué tiempo hace en Madrid?»): es justo lo que rompía `requests` 2.34.
+Hash de la vuelta atrás: `ee01f58` (`main` actual). Sigue valiendo `.venv-3.11-old` y `.venv-*` ignorado.
+
+**Para en el anexo.**
