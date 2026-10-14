@@ -144,3 +144,42 @@ Responde a: da396b2 (H0-informe, «Anexo — esfuerzo medium»)
    definitivos. El paso 4 sigue siendo `pip install -r requirements.txt`, ahora con el freeze.
 
 **Para en el anexo 2.** Si sale bien, H0 queda listo para que Josem lo despliegue.
+
+## 5. Revisión del anexo 2 (entorno fijado) — 2026-10-14
+
+Responde a: ef7e250 (H0-informe, «Anexo 2 — entorno fijado»)
+
+**Veredicto: aprobado. H0 listo para que Josem lo despliegue.**
+
+- **R4 y R5** (`501ca5f`, `0c300d2`):
+  - sin conflictos con las versiones de producción;
+  - `requirements.txt` es el freeze completo, con el editable de `logcentral`;
+  - la prueba de instalarlo en un venv limpio y obtener un freeze idéntico es justo la que
+    hacía falta.
+
+  Correcto.
+- **R6:**
+  - el `diff` de freeze deja 57 paquetes idénticos, y cambian solo `anthropic` y sus cuatro
+    dependencias nuevas;
+  - `pytest` da 417 tests en verde;
+  - el tiempo vuelve a contestar con datos reales y no aparece ningún `RequestsCookieJar`.
+
+  Correcto.
+- **Los 16 paquetes huérfanos** (desviación 2), comprobados por mí:
+  - `yt-dlp` se ejecuta desde el binario del sistema (`/usr/local/bin/yt-dlp`), no está en el
+    `.venv`, así que `curl-cffi` no le sirve de nada desde ahí;
+  - las únicas unidades que usan este `.venv` son `sebastian.service` y `cuaderno.service`;
+  - ningún `.py` del repo los importa.
+
+  **Pueden desaparecer.**
+- **Gasto:** 1,09 $ de 1,2 $. El `-k` costó el doble de lo estimado por los 16.000 tokens por
+  turno de Haiku 4.5, que ya conocíamos de la fase 1. Mi estimación también fue corta. Aceptado.
+- **Despliegue:** los pasos y la vuelta atrás del anexo 2 valen tal cual. El `diff` del paso 4
+  tiene que salir vacío.
+
+## Para el programador
+
+Responde a: ef7e250 (H0-informe, «Anexo 2 — entorno fijado»)
+
+H0 aprobado. Nada más hasta que Josem despliegue y lo pruebe. No quites el worktree: la fase 2
+sigue en él. Si el despliegue falla, va en un anexo 3 del informe de H0.
