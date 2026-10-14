@@ -27,6 +27,9 @@ python-dateutil==2.9.0
 
 # Weather
 requests-cache==1.2.1
+# requests 2.34 rompe requests-cache 1.2.1 (NameError: RequestsCookieJar): modules/weather.py dejaba de
+# responder. Es la versión del .venv de producción actual. Detectado en la pasada de goldens de H0 (fase 2).
+requests==2.32.5
 
 # Tickets
 zxing-cpp==3.0.0
