@@ -653,3 +653,157 @@ def test_alfred_system_lleva_la_regla_d26():
     assert "D26" in _ALFRED_SYSTEM
     assert "no es una fuente" in _ALFRED_SYSTEM
     assert "no me consta" in _ALFRED_SYSTEM
+
+
+# ── Fase 2 H0: Haiku 5.5 como planner (D28) ──────────────────────────────────────────────────
+
+def _bloque(tipo, **campos):
+    b = MagicMock()
+    b.type = tipo
+    for k, v in campos.items():
+        setattr(b, k, v)
+    return b
+
+
+def _respuesta(bloques, stop_reason='end_turn', **extra):
+    r = MagicMock()
+    r.stop_reason = stop_reason
+    r.content = bloques
+    for k, v in extra.items():
+        setattr(r, k, v)
+    return r
+
+
+@patch('core.orchestrator.Anthropic')
+def test_planner_usa_modelo_unico(mock_anthropic_cls, db):
+    """D28: planner, _resume_plan y _is_plan_reply usan _MODELO_PLANNER (y su output_config)."""
+    from core.orchestrator import Orchestrator, _MODELO_PLANNER, _PLANNER_EXTRA
+    from db.pending_plan_repo import PendingPlanRepository
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+
+    # (a) turno normal: planner + síntesis
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")]
+    Orchestrator(db, '99999').handle("hola")
+    planner, sintesis = mock_client.messages.create.call_args_list
+    assert planner.kwargs['model'] == _MODELO_PLANNER
+    assert sintesis.kwargs['model'] == "claude-sonnet-4-6"
+
+    # (b) reanudación: _is_plan_reply + planner de _resume_plan + síntesis
+    mock_client.reset_mock()
+    guardados = [
+        {"role": "user", "content": "¿qué tiempo hace?"},
+        {"role": "assistant", "content": [{"type": "tool_use", "id": "rc1", "name": "request_clarification",
+                                           "input": {"question": "¿Qué ciudad?"}}]},
+    ]
+    PendingPlanRepository(db).save('99999', "¿qué tiempo hace?", _messages_to_json(guardados), "¿Qué ciudad?")
+    mock_client.messages.create.side_effect = [
+        _make_text_response("SI"), _make_text_response("listo"), _make_text_response("Madrid, señor."),
+    ]
+    Orchestrator(db, '99999').handle("Madrid")
+    es_respuesta, planner, sintesis = mock_client.messages.create.call_args_list
+    assert es_respuesta.kwargs['model'] == _MODELO_PLANNER
+    assert planner.kwargs['model'] == _MODELO_PLANNER
+    assert sintesis.kwargs['model'] == "claude-sonnet-4-6"
+    # Haiku 5.5 piensa por defecto: el esfuerzo bajo viaja en las tres llamadas del planner.
+    for llamada in (es_respuesta, planner):
+        for clave, valor in _PLANNER_EXTRA.items():
+            assert llamada.kwargs[clave] == valor
+
+
+@patch('core.orchestrator.Anthropic')
+@patch('core.tool_executor.ToolExecutor.execute')
+def test_respuesta_con_thinking_primero(mock_execute, mock_anthropic_cls, db):
+    """D28: [thinking, tool_use] → se ejecuta la tool y el siguiente `messages` lleva el thinking tal cual."""
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_execute.return_value = [{'event_id': 1}]
+    thinking = _bloque('thinking', thinking="", signature="firma-1")
+    uso = _bloque('tool_use', name='calendar_search_events', id='t1', input={'query': 'teatro'})
+    mock_client.messages.create.side_effect = [
+        _respuesta([thinking, uso], stop_reason='tool_use'),
+        _make_text_response("listo"),
+        _make_text_response("El teatro es mañana."),
+    ]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("¿cuándo es el teatro?")
+
+    mock_execute.assert_called_once_with('calendar_search_events', {'query': 'teatro'})
+    segundo = mock_client.messages.create.call_args_list[1].kwargs['messages']
+    assistant = segundo[-2]
+    assert assistant["role"] == "assistant"
+    assert assistant["content"][0] is thinking          # tal cual, sin tocar ni reordenar
+    assert assistant["content"] == [thinking, uso]
+    assert segundo[-1]["content"][0]["type"] == "tool_result"
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_is_plan_reply_con_thinking_primero(mock_anthropic_cls, mock_logger, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    thinking = _bloque('thinking', thinking="", signature="f")
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+
+    mock_client.messages.create.return_value = _respuesta([thinking, _bloque('text', text="SI")])
+    assert orch._is_plan_reply("Madrid", "¿Qué ciudad?") is True
+
+    mock_client.messages.create.return_value = _respuesta([thinking], stop_reason='max_tokens')
+    mock_logger.reset_mock()
+    assert orch._is_plan_reply("Madrid", "¿Qué ciudad?") is False
+    assert mock_logger.warning.called
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+@patch('core.tool_executor.ToolExecutor.execute')
+def test_refusal_del_planner(mock_execute, mock_anthropic_cls, mock_logger, db):
+    """D28: stop_reason=refusal → warning con la categoría (sin el mensaje), sin tools, y se sintetiza."""
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    rechazo = _respuesta([], stop_reason='refusal', stop_details=MagicMock(category='cyber'))
+    mock_client.messages.create.side_effect = [rechazo, _make_text_response("No me consta nada, señor.")]
+
+    from core.orchestrator import Orchestrator
+    result = Orchestrator(db, '99999').handle("ZZ-MENSAJE-SECRETO")
+
+    assert result["text"] == "No me consta nada, señor."
+    mock_execute.assert_not_called()
+    avisos = [str(c) for c in mock_logger.warning.call_args_list]
+    assert any("cyber" in a for a in avisos)
+    assert not any("ZZ-MENSAJE-SECRETO" in a for a in avisos)
+
+
+def test_pending_plan_conserva_thinking():
+    """T0.6: el ida y vuelta de pending_plans conserva `thinking` (aunque esté vacío) y su `signature`."""
+    from anthropic.types import ThinkingBlock
+    bloque_sdk = ThinkingBlock(thinking="", signature="firma-abc", type="thinking")
+    bloque_dict = {"type": "thinking", "thinking": "", "signature": "firma-def"}
+    messages = [
+        {"role": "user", "content": "hola"},
+        {"role": "assistant", "content": [bloque_sdk, bloque_dict]},
+    ]
+
+    ida_y_vuelta = _messages_from_json(_messages_to_json(messages))
+
+    a, b = ida_y_vuelta[1]["content"]
+    assert a == {"type": "thinking", "thinking": "", "signature": "firma-abc"}
+    assert b == bloque_dict
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_planner_cortado_por_max_tokens_deja_warning(mock_anthropic_cls, mock_logger, db):
+    """El razonamiento cuenta para max_tokens: un planner cortado antes de decidir no debe ser silencioso."""
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    cortado = _respuesta([_bloque('thinking', thinking="", signature="f")], stop_reason='max_tokens')
+    mock_client.messages.create.side_effect = [cortado, _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("hola")
+
+    assert any("max_tokens" in str(c) for c in mock_logger.warning.call_args_list)
