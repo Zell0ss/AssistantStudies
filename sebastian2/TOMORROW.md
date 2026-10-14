@@ -1,19 +1,18 @@
 # tomorrow.md — Sebastian 2.0 (programador)
 
-**Punto de parada (2026-10-14):** fase 1 completa en la rama `fase-1` (worktree
-`/data/AssistantStudies-fase1`), H1–H3 aprobados por el arquitecto (`ac9f04b`). Nada pendiente
-para el programador.
+**Fase 1 cerrada (2026-10-14).** Desplegada por Josem, comprobada por el arquitecto (`76fa3cb`):
+`comprobar_fase1.sh` todo OK y prueba por Telegram correcta. **No hay nada en curso.**
 
-**Siguiente paso:** lo hace Josem — `sebastian2/deploy/PASOS-CON-SUDO.md` §«Fase 1» (pasos 1–6),
-`deploy/comprobar_fase1.sh` y la prueba por Telegram («¿qué tiempo hace en Madrid?» → «¿y mañana?»).
-Hasta entonces, no quitar el worktree: si la prueba falla, se arregla ahí. Si falla, mirar primero
-`logcentral query --source sebastian --level error` y el warning «No se pudo leer el historial».
+El worktree `/data/AssistantStudies-fase1` se ha quitado; la rama `fase-1` se queda (el merge final
+de sus docs, si se quiere, lo hace Josem). La siguiente fase (memoria v1, fase 2 del ADR-MEMORIA)
+la abre el arquitecto con su plan.
 
-**Gotchas:**
-- Tests: `/data/AssistantStudies/sebastian2/.venv/bin/python -m pytest` desde `sebastian2/`
-  (401 verdes). Los goldens son [API]: `-m golden`, ≈ 0,94 $ la pasada completa (52).
-- Gasto de la fase: ≈ 1,9 $ de 2 $. **Sin margen para otra pasada completa sin nueva autorización.**
-- El `config.yaml` del worktree es una copia que apunta a `sebastian_test`; no tocar el de producción.
-- `limpiar(7)` borra de toda la tabla `conversations` (no por usuario).
+**Gotchas que siguen valiendo:**
+- Tests: `.venv/bin/python -m pytest` desde `sebastian2/` (401 verdes). Goldens [API]: `-m golden`,
+  ≈ 0,94 $ la pasada; el gasto de la fase 1 (≈ 1,9 $ de 2 $) ya está cerrado: cualquier gasto nuevo
+  necesita autorización nueva.
+- Para trabajar en una rama, `git worktree add` con su propio `config.yaml` copiado (apuntando a
+  `sebastian_test`/`sebastian_dev`), nunca el de producción.
+- D21 y D23 siguen `tentativa` (tamaño de la ventana del historial) hasta que el uso real lo confirme.
 
 **Bloqueos:** ninguno.
