@@ -329,3 +329,115 @@ conviene probar el tiempo por Telegram («¿qué tiempo hace en Madrid?»): es j
 Hash de la vuelta atrás: `ee01f58` (`main` actual). Sigue valiendo `.venv-3.11-old` y `.venv-*` ignorado.
 
 **Para en el anexo.**
+
+---
+
+## Anexo 2 — entorno fijado
+
+Responde a: 8c4abe8 (H0-revision §4, «Para el programador»)
+
+### Hecho
+
+- **R4** (`501ca5f`): `constraints-prod-2026-10-14.txt` = `pip freeze` del `.venv` de producción (solo lectura; 73
+  paquetes, sin `anthropic` ni el editable de `logcentral`). Recreé el `.venv` del worktree con
+  `pip install -r requirements.txt -c constraints-prod-2026-10-14.txt`.
+  **Conflictos: ninguno.** `anthropic` 1.14.0 se instaló con todas las versiones de producción (`pydantic` 2.12.5,
+  `jiter` 0.13.0, `anyio` 4.12.1…), sin quitar nada de las constraints. Las únicas versiones nuevas son lo que el
+  SDK trae: `httpx2` 2.3.0, `httpcore2` 2.3.0, `opentelemetry-api` 1.45.1 y `truststore` 0.10.5.
+- **R5** (`0c300d2`): `requirements.txt` es ahora el **freeze completo** del `.venv` (62 paquetes), con un
+  comentario de cabecera (fecha y porqué) y la línea editable `-e /data/logcentral/packages/client/` (`pip freeze`
+  la muestra como URL git; conservé la ruta local, como se pedía). Las constraints **ya no hacen falta y las
+  borré en el mismo commit**. **Prueba:** instalé solo `requirements.txt` (sin constraints) en un venv limpio de
+  Python 3.12 y su `pip freeze` es **idéntico** al del `.venv` del worktree.
+- **R6, diff de `pip freeze`** entre el `.venv` de producción (3.11.0rc1, anthropic 0.79.0) y el nuevo (3.12.14,
+  anthropic 1.14.0): **57 paquetes idénticos.** Distintos:
+  - `anthropic` 0.79.0 → 1.14.0;
+  - nuevos por el SDK: `httpx2` 2.3.0, `httpcore2` 2.3.0, `opentelemetry-api` 1.45.1, `truststore` 0.10.5;
+  - **16 paquetes que solo estaban en producción y no vienen en el nuevo:** `annotated-doc`, `cffi`, `click`,
+    `curl-cffi`, `filelock`, `fsspec`, `hf-xet`, `huggingface-hub`, `markdown-it-py`, `mdurl`, `pycparser`, `rich`,
+    `shellingham`, `tokenizers`, `typer`, `typer-slim`.
+
+  Esto último **no es del SDK**, y lo señalo porque el §4 pedía que solo cambiaran `anthropic` y sus dependencias.
+  Son huérfanos: `pip show` dice que `tokenizers`, `curl-cffi` y `typer-slim` no los requiere nadie (`huggingface-hub`
+  solo `tokenizers`; `rich`, solo `typer`), `anthropic` 0.79.0 no los pedía (`Requires: anyio, distro,
+  docstring-parser, httpx, jiter, pydantic, sniffio, typing-extensions`), y **ningún `.py` del repo los importa**
+  (`grep` sobre el árbol sin `.venv` ni `backup_old_modules/`). Alguien los instaló a mano alguna vez. Al recrear
+  el venv desaparecen; si algo externo (un script de `/data/` fuera de este repo) los usara con este `.venv`, no
+  lo sé ni lo he comprobado.
+- **R6, `pytest` completo** en el `.venv` recreado: **417 passed** (Python 3.12.14, anthropic 1.14.0, requests 2.32.5).
+- **R6, [API] con `-k` en Haiku 4.5 + el entorno fijado**, salida en
+  `docs/fase2/goldens/2026-10-14-haiku45-entorno-fijado-k.txt`: **#04, #05, #20, #24 y #51 pasan.** El tiempo
+  contesta con datos reales (p. ej. «Ahora mismo en Madrid registran 23 °C», «En Gijón, 20 °C») y la salida no
+  tiene ningún `Forecast fetch failed` ni `RequestsCookieJar`. Latencia (n = 5): mediana 5,76 s, p90 7,02 s.
+
+### Gasto
+
+Autorizado por Josem el 2026-10-14, en la ventana del programador («adelante»). Este paso cuesta **0,1001 $**
+(Haiku 4.5: 0,0825 · Sonnet 4.6: 0,0176), el doble de mi estimación de 0,05 $: con Haiku 4.5 el planner manda ≈ 16.000
+tokens por turno.
+
+| | Haiku 5.5 | Haiku 4.5 | Sonnet 4.6 | Total |
+|---|---|---|---|---|
+| Hasta el anexo 1 | 0,2417 $ | 0,2344 $ | 0,5159 $ | 0,9920 $ |
+| R6 (`-k`, entorno fijado) | — | 0,0825 $ | 0,0176 $ | 0,1001 $ |
+| **Total del hito** | **0,2417 $** | **0,3169 $** | **0,5335 $** | **1,0921 $** |
+
+Quedan ≈ 0,11 $ de los 1,2 $.
+
+### Qué trae `fase-2` (lo que se despliega)
+
+- **Planner: Haiku 4.5**, como en producción hoy (`_MODELO_PLANNER = "claude-haiku-4-5-20251001"`,
+  `_PLANNER_EXTRA = {}`). Cambia solo la estructura: un único sitio para el modelo, `_llamar_planner()`,
+  `max_tokens` 4096 en el planner (antes 1024) y 512 en `_is_plan_reply` (antes 10) —son techos, no gasto—, y avisos
+  de log si el planner devuelve `refusal` o se corta por `max_tokens`.
+- **Python 3.12 + anthropic 1.14.0** y `requirements.txt` como freeze completo.
+- Tests y harness (latencia por turno, precio de Haiku 5.5, test de aclaración que se salta con 4.5).
+- Sin cambios de BD, unidades ni `config.yaml`.
+
+### Despliegue definitivo (lo ejecuta Josem)
+
+```bash
+# 1. Parar el servicio
+sudo systemctl stop sebastian.service
+# 2. Apartar el venv de producción (Python 3.11.0rc1, anthropic 0.79.0)
+mv /data/AssistantStudies/sebastian2/.venv /data/AssistantStudies/sebastian2/.venv-3.11-old
+# 3. Merge de la rama de la fase
+cd /data/AssistantStudies && git status        # debe estar limpio y en main
+git merge --ff-only fase-2
+# 4. Venv nuevo en producción: Python 3.12 + el freeze completo
+cd /data/AssistantStudies/sebastian2 && python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
+#    comprobación: no debe imprimir nada
+diff <(grep -v '^#\|^$\|^-e' requirements.txt) <(.venv/bin/pip freeze | grep -v '^-e')
+# 5. Arrancar y comprobar
+sudo systemctl start sebastian.service
+logcentral query --source sebastian --level error                  # vacío desde el arranque
+logcentral query --source sebastian --grep "Escribiendo en BD"     # sebastian_db / sebastian_memory
+```
+
+Tras el arranque, **prueba por Telegram «¿qué tiempo hace en Madrid?»** (es justo lo que rompía `requests` 2.34) y
+«¿y mañana?». El cuaderno usa el mismo `.venv` en su próximo disparo. `.venv-3.11-old` queda ignorado por git
+(`.venv-*`, que trae el propio merge). El paso 4 tarda un par de minutos; el servicio está parado durante los pasos
+2–5, que es el único hueco.
+
+**Vuelta atrás:**
+
+```bash
+sudo systemctl stop sebastian.service
+rm -rf /data/AssistantStudies/sebastian2/.venv
+mv /data/AssistantStudies/sebastian2/.venv-3.11-old /data/AssistantStudies/sebastian2/.venv
+cd /data/AssistantStudies && git reset --hard ee01f58     # el main de antes de la fase 2 (hoy)
+sudo systemctl start sebastian.service
+```
+
+### Desviaciones
+
+1. El `-k` de R6 costó el doble de lo estimado (0,10 $ frente a 0,05 $), dentro del tope.
+2. 16 paquetes huérfanos de producción no están en el venv nuevo (arriba): no es un cambio del SDK.
+3. `pytest==9.0.2` entra en el freeze (el venv de producción ya lo tenía instalado a mano), así que el `.venv`
+   de producción recreado también lo llevará.
+
+### Decisiones que necesito
+
+Ninguna. Si te preocupa algún paquete huérfano, dímelo antes del despliegue; yo no lo he visto usado.
+
+**Para en el anexo 2.** H0 queda listo para que Josem lo despliegue.

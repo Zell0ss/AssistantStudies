@@ -1,0 +1,153 @@
+2026-10-14 22:30:42.876 | INFO     | utils.config:load_config:40 - Configuration loaded from config.yaml
+[32m22:30:42[0m | [1mINFO    [0m | [36msebastian[0m — Configuration loaded from config.yaml
+2026-10-14 22:30:42.881 | INFO     | db.connection:init_pool:37 - Database connection pool initialized
+[32m22:30:42[0m | [1mINFO    [0m | [36msebastian[0m — Database connection pool initialized
+2026-10-14 22:30:42.882 | DEBUG    | db.connection:get_connection:46 - Database connection acquired from pool
+2026-10-14 22:30:42.883 | DEBUG    | db.connection:close_connection:55 - Database connection closed
+2026-10-14 22:30:42.945 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 22:30:42.946 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 22:30:42.946 | INFO     | modules.calendar:add_event:76 - Added event 'teatro' for user golden_test_user
+[32m22:30:42[0m | [1mINFO    [0m | [36msebastian[0m — Added event 'teatro' for user golden_test_user
+2026-10-14 22:30:42.951 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 22:30:42.951 | INFO     | modules.calendar:add_ticket:433 - Added ticket type=QR_CODE to event 1339
+[32m22:30:42[0m | [1mINFO    [0m | [36msebastian[0m — Added ticket type=QR_CODE to event 1339
+2026-10-14 22:30:46.087 | INFO     | modules.memory:store:66 - Stored memory 73d9d751-ab89-484c-a096-e5f3730656a3: Mi cuñado Paco es alérgico a los frutos secos
+[32m22:30:46[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 73d9d751-ab89-484c-a096-e5f3730656a3: Mi cuñado Paco es alérgico a los frutos secos
+2026-10-14 22:30:46.257 | INFO     | modules.memory:store:66 - Stored memory 72510670-dbec-428c-9bbb-6f88aede2743: A mi señor le gusta el vino tinto de Ribera del Duero
+[32m22:30:46[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 72510670-dbec-428c-9bbb-6f88aede2743: A mi señor le gusta el vino tinto de Ribera del Duero
+2026-10-14 22:30:46.415 | INFO     | modules.memory:store:66 - Stored memory 842cb93e-de52-43f7-81e2-b8bc6957cab4: El cumpleaños de Rebe es en marzo
+[32m22:30:46[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 842cb93e-de52-43f7-81e2-b8bc6957cab4: El cumpleaños de Rebe es en marzo
+2026-10-14 22:30:47.945 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='Qué tiempo va a hacer hoy en Madrid'
+[32m22:30:47[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Qué tiempo va a hacer hoy en Madrid'
+2026-10-14 22:30:47.946 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=0
+[32m22:30:47[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 22:30:49.212 | DEBUG    | core.tool_executor:execute:70 - Executing tool: weather_get inputs={'city': 'Madrid'}
+2026-10-14 22:30:49.215 | INFO     | modules.user_settings:set_weather_location:140 - User golden_test_user weather location set to: Madrid
+[32m22:30:49[0m | [1mINFO    [0m | [36msebastian[0m — User golden_test_user weather location set to: Madrid
+2026-10-14 22:30:49.225 | DEBUG    | core.tool_executor:execute:131 - Tool weather_get result: 📌 Ubicación actualizada a Madrid.
+📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36
+🍷 "Existen 5 buenas razones para beber vino: la llegada de un huésped, la se
+2026-10-14 22:30:49.225 | INFO     | core.orchestrator:_log_tool_execution:81 - Tool weather_get → 📌 Ubicación actualizada a Madrid.
+📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° –… (12.8ms)
+[32m22:30:49[0m | [1mINFO    [0m | [36msebastian[0m — Tool weather_get → 📌 Ubicación actualizada a Madrid.
+📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° –… (12.8ms)
+2026-10-14 22:30:49.225 | DEBUG    | core.orchestrator:_log_tool_execution:84 - Tool weather_get | input={"city": "Madrid"} | full_result="📌 Ubicación actualizada a Madrid.\n📍 Madrid, ES\n🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C\n🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36\n🍷 \"Existen 5 buenas razones para beber vino: la llegada de un huésped, la sed presente y futura, el buen sabor del vino y no importa que otra razón. Proverbio italiano.\""
+2026-10-14 22:30:53.230 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16830 | tokens_out=142 | latency_ms=5285.0
+[32m22:30:53[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16830 | tokens_out=142 | latency_ms=5285.0
+.2026-10-14 22:30:53.279 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='Mírame que tiempo hace hoy en Madrid. Si puedes dame a que hora sale el.sol'
+[32m22:30:53[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Mírame que tiempo hace hoy en Madrid. Si puedes dame a que hora sale el.sol'
+2026-10-14 22:30:53.281 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=0
+[32m22:30:53[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 22:30:54.247 | DEBUG    | core.tool_executor:execute:70 - Executing tool: weather_get inputs={'city': 'Madrid'}
+2026-10-14 22:30:54.249 | DEBUG    | core.tool_executor:execute:131 - Tool weather_get result: 📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36
+🍷 "El buen vino en vaso chico."
+2026-10-14 22:30:54.249 | INFO     | core.orchestrator:_log_tool_execution:81 - Tool weather_get → 📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 … (2.3ms)
+[32m22:30:54[0m | [1mINFO    [0m | [36msebastian[0m — Tool weather_get → 📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 … (2.3ms)
+2026-10-14 22:30:54.250 | DEBUG    | core.orchestrator:_log_tool_execution:84 - Tool weather_get | input={"city": "Madrid"} | full_result="📍 Madrid, ES\n🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C\n🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36\n🍷 \"El buen vino en vaso chico.\""
+2026-10-14 22:30:58.273 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16751 | tokens_out=254 | latency_ms=4994.1
+[32m22:30:58[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16751 | tokens_out=254 | latency_ms=4994.1
+.2026-10-14 22:30:58.331 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='recuerda que mi cuñado Paco es alérgico a los frutos secos'
+[32m22:30:58[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='recuerda que mi cuñado Paco es alérgico a los frutos secos'
+2026-10-14 22:30:58.332 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=0
+[32m22:30:58[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 22:30:59.601 | DEBUG    | core.tool_executor:execute:70 - Executing tool: mark_as_memorable inputs={'content': 'Mi cuñado Paco es alérgico a los frutos secos', 'tags': ['familia', 'alergias']}
+2026-10-14 22:31:00.577 | INFO     | modules.memory:store:66 - Stored memory 3ad749b9-71c9-4a17-ab2f-52282fa369ab: Mi cuñado Paco es alérgico a los frutos secos
+[32m22:31:00[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 3ad749b9-71c9-4a17-ab2f-52282fa369ab: Mi cuñado Paco es alérgico a los frutos secos
+2026-10-14 22:31:00.579 | DEBUG    | core.tool_executor:execute:131 - Tool mark_as_memorable result: {'success': True, 'result': 'Guardado en memoria.', 'data': {'id': '3ad749b9-71c9-4a17-ab2f-52282fa369ab'}}
+2026-10-14 22:31:00.579 | INFO     | core.orchestrator:_log_tool_execution:81 - Tool mark_as_memorable → dict with 3 keys (978.0ms)
+[32m22:31:00[0m | [1mINFO    [0m | [36msebastian[0m — Tool mark_as_memorable → dict with 3 keys (978.0ms)
+2026-10-14 22:31:00.579 | DEBUG    | core.orchestrator:_log_tool_execution:84 - Tool mark_as_memorable | input={"content": "Mi cuñado Paco es alérgico a los frutos secos", "tags": ["familia", "alergias"]} | full_result={"success": true, "result": "Guardado en memoria.", "data": {"id": "3ad749b9-71c9-4a17-ab2f-52282fa369ab"}}
+2026-10-14 22:31:05.248 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16726 | tokens_out=170 | latency_ms=6917.8
+[32m22:31:05[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16726 | tokens_out=170 | latency_ms=6917.8
+.2026-10-14 22:31:05.301 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='he dormido 6 horas, fatal'
+[32m22:31:05[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='he dormido 6 horas, fatal'
+2026-10-14 22:31:05.303 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=0
+[32m22:31:05[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 22:31:06.250 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 22:31:06.252 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m22:31:06[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 22:31:06.252 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 22:31:06.252 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool salud → ok (1.9ms)
+[32m22:31:06[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.9ms)
+2026-10-14 22:31:12.394 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16583 | tokens_out=220 | latency_ms=7092.5
+[32m22:31:12[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16583 | tokens_out=220 | latency_ms=7092.5
+.2026-10-14 22:31:12.451 | INFO     | core.orchestrator:_handle_inner:390 - Turn start | user=golden_test_user | message='¿y en Gijón?'
+[32m22:31:12[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='¿y en Gijón?'
+2026-10-14 22:31:12.453 | INFO     | core.orchestrator:_cargar_historial:204 - Historial cargado | user=golden_test_user | intercambios=1
+[32m22:31:12[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=1
+2026-10-14 22:31:13.427 | DEBUG    | core.tool_executor:execute:70 - Executing tool: weather_get inputs={'city': 'Gijón'}
+2026-10-14 22:31:13.430 | INFO     | modules.user_settings:set_weather_location:140 - User golden_test_user weather location set to: Gijón
+[32m22:31:13[0m | [1mINFO    [0m | [36msebastian[0m — User golden_test_user weather location set to: Gijón
+2026-10-14 22:31:13.432 | DEBUG    | core.tool_executor:execute:131 - Tool weather_get result: 📌 Ubicación actualizada a Gijón.
+📍 Gijón, ES
+🌡️ Ahora: 20.3°C  |  Hoy: 17.4° – 22.5°C
+🌧️ Lluvia: 0%  |  🌅 08:35 – 🌇 19:41
+🍷 "El vino agrada y el agua enfada"
+2026-10-14 22:31:13.432 | INFO     | core.orchestrator:_log_tool_execution:81 - Tool weather_get → 📌 Ubicación actualizada a Gijón.
+📍 Gijón, ES
+🌡️ Ahora: 20.3°C  |  Hoy: 17.4° – 2… (5.4ms)
+[32m22:31:13[0m | [1mINFO    [0m | [36msebastian[0m — Tool weather_get → 📌 Ubicación actualizada a Gijón.
+📍 Gijón, ES
+🌡️ Ahora: 20.3°C  |  Hoy: 17.4° – 2… (5.4ms)
+2026-10-14 22:31:13.432 | DEBUG    | core.orchestrator:_log_tool_execution:84 - Tool weather_get | input={"city": "Gijón"} | full_result="📌 Ubicación actualizada a Gijón.\n📍 Gijón, ES\n🌡️ Ahora: 20.3°C  |  Hoy: 17.4° – 22.5°C\n🌧️ Lluvia: 0%  |  🌅 08:35 – 🌇 19:41\n🍷 \"El vino agrada y el agua enfada\""
+2026-10-14 22:31:18.208 | INFO     | core.orchestrator:_log_turn_end:231 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16847 | tokens_out=147 | latency_ms=5756.5
+[32m22:31:18[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-4-5-20251001,claude-sonnet-4-6 | tokens_in=16847 | tokens_out=147 | latency_ms=5756.5
+.
+=========================== GOLDEN REGRESSION REPORT ===========================
+
+#04 [PASS] mode=exact
+  Frase:     Qué tiempo va a hacer hoy en Madrid
+  Esperado:  weather_get
+  Real:      weather_get
+  Valida:    Caso base
+  Alfred:    Buenas noches. Esta noche ya habrá refrescado, pero el día ha sido templado: entre 16 y 27 °C, sin lluvia y con el sol poniéndose a las 19:36. Ahora mismo en Madrid registran 23 °C.
+
+#05 [PASS] mode=exact
+  Frase:     Mírame que tiempo hace hoy en Madrid. Si puedes dame a que hora sale el.sol
+  Esperado:  weather_get
+  Real:      weather_get
+  Valida:    Petición compuesta + errata real ("el.sol"). El sunrise ya viene en la respuesta de weather_get — dos llamadas sería FAIL por redundancia
+  Alfred:    En Madrid ahora mismo tiene usted 23 °C, con mínima de 16 y máxima de 27, sin lluvia prevista.
+
+El sol salió esta mañana a las **8:24** y se puso a las **19:36**.
+
+#20 [PASS] mode=exact
+  Frase:     recuerda que mi cuñado Paco es alérgico a los frutos secos
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Sprint 3: mark_as_memorable — hecho personal duradero, escribe un punto real en sebastian_memory_test
+  Alfred:    Anotado, señor. Paco, alérgico a los frutos secos. Lo tendré presente.
+
+#24 [PASS] mode=exact
+  Frase:     he dormido 6 horas, fatal
+  Esperado:  salud
+  Real:      salud
+  Valida:    Sprint H4 (D3, D39-D42): caso base de la tool salud
+  Alfred:    Lo siento, el registro no ha podido guardarse ahora mismo. Le sugiero intentarlo de nuevo en unos minutos, y me aseguraré de anotarlo.
+
+Dicho esto, seis horas con mal descanso no es un buen inicio. Si
+
+#51 [PASS] mode=any_of
+  Frase:     ¿y en Gijón?
+  Esperado:  weather_get  O  weather_forecast
+  Real:      weather_get
+  Valida:    Fase 1 H2 (D21): cambio de ciudad sin repetir la intención (tiempo)
+  Alfred:    En Gijón, 20 °C, sin lluvia prevista. Algo más fresca que Madrid, pero muy agradable para esta época.
+============= USO DE LA API (medido por Orchestrator._track_usage) =============
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001                79330             644    0.0825
+claude-sonnet-4-6                         4407             289    0.0176
+TOTAL                                                             0.1001
+latencia por turno (misma medida que 'Turn end'): n=5 mediana=5.76s p90=7.02s min=5.0s max=7.1s
+============================== RESUMEN: 5/5 PASS ===============================
+5 passed, 50 deselected in 35.40s
