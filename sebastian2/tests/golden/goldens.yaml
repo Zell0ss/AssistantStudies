@@ -367,3 +367,24 @@
   mode: exact
   expected: [list_add_item]
   validates: "Fase 1 H2 (D21), negativa: el historial no arrastra la tool del turno anterior (tiempo)"
+
+- id: 53
+  phrase: "Que sabes de mi?"
+  mode: exact
+  expected: [search_memory]
+  validates: "Fase 1 H4 (D26): pregunta sobre el usuario va a la memoria, no a capacidades (incidente 2026-10-14)"
+
+- id: 54
+  phrase: "Que sabes de mi?"
+  historia:
+    - {user: "Que tiempo hace en Madrid?", bot: "En Madrid, 17 °C y nublado, señor."}
+    - {user: "Y mañana?", bot: "Mañana en Madrid, entre 12 y 19 °C, sin lluvia."}
+  mode: exact
+  expected: [search_memory]
+  validates: "Fase 1 H4 (D26): reproduce el incidente tal cual, con el historial del tiempo"
+
+- id: 55
+  phrase: "Cómo me llamo?"
+  mode: exact
+  expected: [search_memory]
+  validates: "Fase 1 H4 (D26): dato personal concreto, va a la memoria"

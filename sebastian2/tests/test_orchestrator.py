@@ -637,3 +637,19 @@ def test_no_guarda_respuesta_vacia(mock_anthropic_cls, db):
     Orchestrator(db, '99999').handle("hola")
 
     assert _filas_conversations(db) == []
+
+
+# ── Fase 1 H4: D26, Sebastian no se inventa al usuario ───────────────────────────────────────
+
+def test_planner_system_lleva_la_regla_d26():
+    from core.orchestrator import _planner_system
+    texto = _planner_system()
+    assert "D26" in texto
+    assert "preguntas sobre el usuario" in texto
+    assert "search_memory" in texto
+
+
+def test_alfred_system_lleva_la_regla_d26():
+    assert "D26" in _ALFRED_SYSTEM
+    assert "no es una fuente" in _ALFRED_SYSTEM
+    assert "no me consta" in _ALFRED_SYSTEM
