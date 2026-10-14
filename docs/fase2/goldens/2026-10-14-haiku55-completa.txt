@@ -1,0 +1,1353 @@
+2026-10-14 21:39:33.890 | INFO     | utils.config:load_config:40 - Configuration loaded from config.yaml
+[32m21:39:33[0m | [1mINFO    [0m | [36msebastian[0m — Configuration loaded from config.yaml
+2026-10-14 21:39:33.894 | INFO     | db.connection:init_pool:37 - Database connection pool initialized
+[32m21:39:33[0m | [1mINFO    [0m | [36msebastian[0m — Database connection pool initialized
+2026-10-14 21:39:33.894 | DEBUG    | db.connection:get_connection:46 - Database connection acquired from pool
+2026-10-14 21:39:33.895 | DEBUG    | db.connection:close_connection:55 - Database connection closed
+2026-10-14 21:39:33.947 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 21:39:33.948 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 21:39:33.948 | INFO     | modules.calendar:add_event:76 - Added event 'teatro' for user golden_test_user
+[32m21:39:33[0m | [1mINFO    [0m | [36msebastian[0m — Added event 'teatro' for user golden_test_user
+2026-10-14 21:39:33.950 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 21:39:33.950 | INFO     | modules.calendar:add_ticket:433 - Added ticket type=QR_CODE to event 1046
+[32m21:39:33[0m | [1mINFO    [0m | [36msebastian[0m — Added ticket type=QR_CODE to event 1046
+2026-10-14 21:39:36.851 | INFO     | modules.memory:store:66 - Stored memory 1fd014aa-3e22-4706-89f3-d8954d27a91b: Mi cuñado Paco es alérgico a los frutos secos
+[32m21:39:36[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 1fd014aa-3e22-4706-89f3-d8954d27a91b: Mi cuñado Paco es alérgico a los frutos secos
+2026-10-14 21:39:37.028 | INFO     | modules.memory:store:66 - Stored memory 9dfe787e-11bf-46b8-bb67-92d626f198a8: A mi señor le gusta el vino tinto de Ribera del Duero
+[32m21:39:37[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 9dfe787e-11bf-46b8-bb67-92d626f198a8: A mi señor le gusta el vino tinto de Ribera del Duero
+2026-10-14 21:39:37.204 | INFO     | modules.memory:store:66 - Stored memory 73157ae5-2a00-4cc8-8b06-b03a59261bc1: El cumpleaños de Rebe es en marzo
+[32m21:39:37[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 73157ae5-2a00-4cc8-8b06-b03a59261bc1: El cumpleaños de Rebe es en marzo
+2026-10-14 21:39:37.667 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Apunta en el calendario una cita'
+[32m21:39:37[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Apunta en el calendario una cita'
+2026-10-14 21:39:37.669 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:39:37[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:39:38.985 | DEBUG    | db.pending_plan_repo:save:29 - Saved pending plan for user 'golden_test_user': '¿Qué cita quieres apuntar? Dime el título, la fecha y la hora (si es todo el día, también).'
+2026-10-14 21:39:41.025 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=clarification_requested | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9911 | tokens_out=201 | latency_ms=3357.6
+[32m21:39:41[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=clarification_requested | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9911 | tokens_out=201 | latency_ms=3357.6
+2026-10-14 21:39:41.072 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Mañana a las 10:30, es con el dentista'
+[32m21:39:41[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Mañana a las 10:30, es con el dentista'
+2026-10-14 21:39:42.544 | DEBUG    | core.tool_executor:execute:70 - Executing tool: calendar_add_event inputs={'title': 'Dentista', 'date': '2026-10-15', 'time': '10:30', 'all_day': False}
+2026-10-14 21:39:42.545 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 21:39:42.547 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 21:39:42.547 | INFO     | modules.calendar:add_event:76 - Added event 'Dentista' for user golden_test_user
+[32m21:39:42[0m | [1mINFO    [0m | [36msebastian[0m — Added event 'Dentista' for user golden_test_user
+2026-10-14 21:39:42.547 | DEBUG    | core.tool_executor:execute:131 - Tool calendar_add_event result: {'status': 'added', 'message': 'Evento añadido: Dentista', 'event_id': 1047}
+2026-10-14 21:39:42.548 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool calendar_add_event → status=added (3.3ms)
+[32m21:39:42[0m | [1mINFO    [0m | [36msebastian[0m — Tool calendar_add_event → status=added (3.3ms)
+2026-10-14 21:39:42.548 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool calendar_add_event | input={"title": "Dentista", "date": "2026-10-15", "time": "10:30", "all_day": false} | full_result={"status": "added", "message": "Evento añadido: Dentista", "event_id": 1047}
+2026-10-14 21:39:43.409 | DEBUG    | db.pending_plan_repo:delete:48 - Deleted pending plan for user 'golden_test_user'
+2026-10-14 21:39:44.764 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19823 | tokens_out=200 | latency_ms=3692.2
+[32m21:39:44[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19823 | tokens_out=200 | latency_ms=3692.2
+
+[turno 1] tools=['request_clarification'] | Alfred: Entendido, señor. ¿Qué cita desea apuntar? Necesito el título, la fecha y la hora — o si ocupará el día completo.
+[plan guardado] contiene bloques thinking: True
+[turno 2] tools=['calendar_add_event'] | Alfred: Anotado, señor. Dentista mañana, 15 de octubre, a las 10:30.
+.2026-10-14 21:39:44.815 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Guárdame esta nota / Gotas mama / HYABAK a demanada una en cada ojo (fijas 12-16-20-24 horas) / Pequeñas 9:00 y 21:00 una en cada ojo AZARGA / Monodosis una gota sola ojo derecho de Lumigan a las 23:0'
+[32m21:39:44[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Guárdame esta nota / Gotas mama / HYABAK a demanada una en cada ojo (fijas 12-16-20-24 horas) / Pequeñas 9:00 y 21:00 una en cada ojo AZARGA / Monodosis una gota sola ojo derecho de Lumigan a las 23:0'
+2026-10-14 21:39:44.817 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:39:44[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:39:46.458 | DEBUG    | core.tool_executor:execute:70 - Executing tool: notes_create inputs={'content': 'Gotas mama\n- HYABAK: a demanda, una gota en cada ojo. Fijas a las 12:00, 16:00, 20:00 y 24:00 horas.\n- AZARGA: pequeñas, a las 9:00 y a las 21:00, una gota en cada ojo.\n- Lumigan (monodosis): una gota sola en el ojo derecho a las 23:00.\n\nNota: separar el Lexatin al menos 1 hora de la de dormir.', 'tags': ['salud', 'medicación', 'gotas']}
+2026-10-14 21:39:46.458 | DEBUG    | modules.base:__init__:22 - NotesModule initialized for user golden_test_user
+2026-10-14 21:39:46.461 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 21:39:46.461 | INFO     | modules.notes:create:45 - Created note 1425 with tags: ['salud', 'medicación', 'gotas']
+[32m21:39:46[0m | [1mINFO    [0m | [36msebastian[0m — Created note 1425 with tags: ['salud', 'medicación', 'gotas']
+2026-10-14 21:39:46.461 | DEBUG    | core.tool_executor:execute:131 - Tool notes_create result: 1425
+2026-10-14 21:39:46.462 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool notes_create → value=1425 (3.6ms)
+[32m21:39:46[0m | [1mINFO    [0m | [36msebastian[0m — Tool notes_create → value=1425 (3.6ms)
+2026-10-14 21:39:46.462 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool notes_create | input={"content": "Gotas mama\n- HYABAK: a demanda, una gota en cada ojo. Fijas a las 12:00, 16:00, 20:00 y 24:00 horas.\n- AZARGA: pequeñas, a las 9:00 y a las 21:00, una gota en cada ojo.\n- Lumigan (monodosis): una gota sola en el ojo derecho a las 23:00.\n\nNota: separar el Lexatin al menos 1 hora de la de dormir.", "tags": ["salud", "medicación", "gotas"]} | full_result=1425
+2026-10-14 21:39:49.480 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19848 | tokens_out=371 | latency_ms=4664.9
+[32m21:39:49[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19848 | tokens_out=371 | latency_ms=4664.9
+.2026-10-14 21:39:49.531 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Dime qué notas tengo'
+[32m21:39:49[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Dime qué notas tengo'
+2026-10-14 21:39:49.532 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:39:49[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:39:51.709 | DEBUG    | core.tool_executor:execute:70 - Executing tool: notes_search inputs={'query': ''}
+2026-10-14 21:39:51.709 | DEBUG    | modules.base:__init__:22 - NotesModule initialized for user golden_test_user
+2026-10-14 21:39:51.710 | DEBUG    | core.tool_executor:execute:131 - Tool notes_search result: [{'id': 1425, 'user_id': 'golden_test_user', 'content': 'Gotas mama\n- HYABAK: a demanda, una gota en cada ojo. Fijas a las 12:00, 16:00, 20:00 y 24:00 horas.\n- AZARGA: pequeñas, a las 9:00 y a las 2
+2026-10-14 21:39:51.710 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool notes_search → 3 items (1.3ms)
+[32m21:39:51[0m | [1mINFO    [0m | [36msebastian[0m — Tool notes_search → 3 items (1.3ms)
+2026-10-14 21:39:51.710 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool notes_search | input={"query": ""} | full_result=[{"id": 1425, "user_id": "golden_test_user", "content": "Gotas mama\n- HYABAK: a demanda, una gota en cada ojo. Fijas a las 12:00, 16:00, 20:00 y 24:00 horas.\n- AZARGA: pequeñas, a las 9:00 y a las 21:00, una gota en cada ojo.\n- Lumigan (monodosis): una gota sola en el ojo derecho a las 23:00.\n\nNota: separar el Lexatin al menos 1 hora de la de dormir.", "tags": "[\"salud\", \"medicaci\\u00f3n\", \"gotas\"]", "created_at": "2026-10-14 21:39:46", "updated_at": "2026-10-14 21:39:46", "archived": 0}, {"id": 1017, "user_id": "golden_test_user", "content": "Nota de prueba 1017 (golden harness fixture)", "tags": null, "created_at": "2026-10-14 21:39:33", "updated_at": "2026-10-14 21:39:33", "archived": 0}, {"id": 1018, "user_id": "golden_test_user", "content": "Nota de prueba 1018 (golden harness fixture)", "tags": null, "created_at": "2026-10-14 21:39:33", "updated_at": "2026-10-14 21:39:33", "archived": 0}]
+2026-10-14 21:39:56.891 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=20100 | tokens_out=396 | latency_ms=7360.4
+[32m21:39:56[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=20100 | tokens_out=396 | latency_ms=7360.4
+.2026-10-14 21:39:56.951 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='borra las notas 1017 y la 1018'
+[32m21:39:56[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='borra las notas 1017 y la 1018'
+2026-10-14 21:39:56.952 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:39:56[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:39:58.732 | DEBUG    | core.tool_executor:execute:70 - Executing tool: notes_delete inputs={'note_id': 1017}
+2026-10-14 21:39:58.733 | DEBUG    | modules.base:__init__:22 - NotesModule initialized for user golden_test_user
+2026-10-14 21:39:58.735 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 21:39:58.735 | INFO     | modules.notes:delete:131 - Deleted note 1017
+[32m21:39:58[0m | [1mINFO    [0m | [36msebastian[0m — Deleted note 1017
+2026-10-14 21:39:58.735 | DEBUG    | core.tool_executor:execute:131 - Tool notes_delete result: {'status': 'deleted'}
+2026-10-14 21:39:58.735 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool notes_delete → status=deleted (3.1ms)
+[32m21:39:58[0m | [1mINFO    [0m | [36msebastian[0m — Tool notes_delete → status=deleted (3.1ms)
+2026-10-14 21:39:58.736 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool notes_delete | input={"note_id": 1017} | full_result={"status": "deleted"}
+2026-10-14 21:39:58.736 | DEBUG    | core.tool_executor:execute:70 - Executing tool: notes_delete inputs={'note_id': 1018}
+2026-10-14 21:39:58.736 | DEBUG    | modules.base:__init__:22 - NotesModule initialized for user golden_test_user
+2026-10-14 21:39:58.738 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 21:39:58.738 | INFO     | modules.notes:delete:131 - Deleted note 1018
+[32m21:39:58[0m | [1mINFO    [0m | [36msebastian[0m — Deleted note 1018
+2026-10-14 21:39:58.738 | DEBUG    | core.tool_executor:execute:131 - Tool notes_delete result: {'status': 'deleted'}
+2026-10-14 21:39:58.738 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool notes_delete → status=deleted (2.4ms)
+[32m21:39:58[0m | [1mINFO    [0m | [36msebastian[0m — Tool notes_delete → status=deleted (2.4ms)
+2026-10-14 21:39:58.739 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool notes_delete | input={"note_id": 1018} | full_result={"status": "deleted"}
+2026-10-14 21:40:00.816 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19525 | tokens_out=363 | latency_ms=3865.8
+[32m21:40:00[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19525 | tokens_out=363 | latency_ms=3865.8
+.2026-10-14 21:40:00.870 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Qué tiempo va a hacer hoy en Madrid'
+[32m21:40:00[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Qué tiempo va a hacer hoy en Madrid'
+2026-10-14 21:40:00.872 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:00[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:01.690 | DEBUG    | core.tool_executor:execute:70 - Executing tool: weather_get inputs={'city': 'Madrid'}
+2026-10-14 21:40:01.693 | INFO     | modules.user_settings:set_weather_location:140 - User golden_test_user weather location set to: Madrid
+[32m21:40:01[0m | [1mINFO    [0m | [36msebastian[0m — User golden_test_user weather location set to: Madrid
+2026-10-14 21:40:02.666 | DEBUG    | core.tool_executor:execute:131 - Tool weather_get result: 📌 Ubicación actualizada a Madrid.
+📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36
+🍷 "Si hay tormenta y truena el cielo, el Jerez es el mejor consuelo."
+2026-10-14 21:40:02.667 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool weather_get → 📌 Ubicación actualizada a Madrid.
+📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° –… (976.3ms)
+[32m21:40:02[0m | [1mINFO    [0m | [36msebastian[0m — Tool weather_get → 📌 Ubicación actualizada a Madrid.
+📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° –… (976.3ms)
+2026-10-14 21:40:02.668 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool weather_get | input={"city": "Madrid"} | full_result="📌 Ubicación actualizada a Madrid.\n📍 Madrid, ES\n🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C\n🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36\n🍷 \"Si hay tormenta y truena el cielo, el Jerez es el mejor consuelo.\""
+2026-10-14 21:40:06.441 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19445 | tokens_out=205 | latency_ms=5570.6
+[32m21:40:06[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19445 | tokens_out=205 | latency_ms=5570.6
+.2026-10-14 21:40:06.490 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Mírame que tiempo hace hoy en Madrid. Si puedes dame a que hora sale el.sol'
+[32m21:40:06[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Mírame que tiempo hace hoy en Madrid. Si puedes dame a que hora sale el.sol'
+2026-10-14 21:40:06.491 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:06[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:07.545 | DEBUG    | core.tool_executor:execute:70 - Executing tool: weather_get inputs={'city': 'Madrid'}
+2026-10-14 21:40:07.550 | DEBUG    | core.tool_executor:execute:131 - Tool weather_get result: 📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36
+🍷 "El agua para los bueyes y el vino para los reyes"
+2026-10-14 21:40:07.551 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool weather_get → 📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 … (5.5ms)
+[32m21:40:07[0m | [1mINFO    [0m | [36msebastian[0m — Tool weather_get → 📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 … (5.5ms)
+2026-10-14 21:40:07.551 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool weather_get | input={"city": "Madrid"} | full_result="📍 Madrid, ES\n🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C\n🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36\n🍷 \"El agua para los bueyes y el vino para los reyes\""
+2026-10-14 21:40:11.178 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19438 | tokens_out=220 | latency_ms=4688.0
+[32m21:40:11[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19438 | tokens_out=220 | latency_ms=4688.0
+.2026-10-14 21:40:11.231 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='que tiempo va a hacer este fin de semana?'
+[32m21:40:11[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='que tiempo va a hacer este fin de semana?'
+2026-10-14 21:40:11.233 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:11[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:12.046 | DEBUG    | core.tool_executor:execute:70 - Executing tool: weather_forecast inputs={'time_window': 'weekend'}
+2026-10-14 21:40:12.952 | DEBUG    | core.tool_executor:execute:131 - Tool weather_forecast result: 📍 Madrid, ES — Fin de semana
+
+Sáb 17 oct  🌦️ 16°–20°  💧55%
+Dom 18 oct  ⛅ 9°–17°  💧28%
+
+🍷 "Vino y alegría, hacen buena compañía."
+2026-10-14 21:40:12.953 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool weather_forecast → 📍 Madrid, ES — Fin de semana
+
+Sáb 17 oct  🌦️ 16°–20°  💧55%
+Dom 18 oct  ⛅ 9°–17° … (906.5ms)
+[32m21:40:12[0m | [1mINFO    [0m | [36msebastian[0m — Tool weather_forecast → 📍 Madrid, ES — Fin de semana
+
+Sáb 17 oct  🌦️ 16°–20°  💧55%
+Dom 18 oct  ⛅ 9°–17° … (906.5ms)
+2026-10-14 21:40:12.953 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool weather_forecast | input={"time_window": "weekend"} | full_result="📍 Madrid, ES — Fin de semana\n\nSáb 17 oct  🌦️ 16°–20°  💧55%\nDom 18 oct  ⛅ 9°–17°  💧28%\n\n🍷 \"Vino y alegría, hacen buena compañía.\""
+2026-10-14 21:40:17.679 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19371 | tokens_out=208 | latency_ms=6447.8
+[32m21:40:17[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19371 | tokens_out=208 | latency_ms=6447.8
+.2026-10-14 21:40:17.726 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='qué citas tengo para hoy y ya está'
+[32m21:40:17[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='qué citas tengo para hoy y ya está'
+2026-10-14 21:40:17.728 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:17[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:18.694 | DEBUG    | core.tool_executor:execute:70 - Executing tool: calendar_list_events inputs={'time_window': 'today'}
+2026-10-14 21:40:18.694 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 21:40:18.695 | DEBUG    | core.tool_executor:execute:131 - Tool calendar_list_events result: []
+2026-10-14 21:40:18.695 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool calendar_list_events → 0 items (1.5ms)
+[32m21:40:18[0m | [1mINFO    [0m | [36msebastian[0m — Tool calendar_list_events → 0 items (1.5ms)
+2026-10-14 21:40:18.696 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool calendar_list_events | input={"time_window": "today"} | full_result=[]
+2026-10-14 21:40:21.049 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19179 | tokens_out=122 | latency_ms=3323.1
+[32m21:40:21[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19179 | tokens_out=122 | latency_ms=3323.1
+.2026-10-14 21:40:21.097 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='que tickets tengo para el teatro mañana?'
+[32m21:40:21[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='que tickets tengo para el teatro mañana?'
+2026-10-14 21:40:21.098 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:21[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:22.207 | DEBUG    | core.tool_executor:execute:70 - Executing tool: calendar_search_events inputs={'query': 'teatro'}
+2026-10-14 21:40:22.207 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 21:40:22.208 | DEBUG    | core.tool_executor:execute:131 - Tool calendar_search_events result: [{'event_id': 1046, 'title': 'teatro', 'date': datetime.date(2026, 10, 15), 'time': '20:00', 'all_day': False, 'recurring': False, 'note': None}]
+2026-10-14 21:40:22.208 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool calendar_search_events → 1 items (1.3ms)
+[32m21:40:22[0m | [1mINFO    [0m | [36msebastian[0m — Tool calendar_search_events → 1 items (1.3ms)
+2026-10-14 21:40:22.209 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool calendar_search_events | input={"query": "teatro"} | full_result=[{"event_id": 1046, "title": "teatro", "date": "2026-10-15", "time": "20:00", "all_day": false, "recurring": false, "note": null}]
+2026-10-14 21:40:23.118 | DEBUG    | core.tool_executor:execute:70 - Executing tool: calendar_get_tickets inputs={'event_id': 1046}
+2026-10-14 21:40:23.118 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 21:40:23.119 | DEBUG    | core.tool_executor:execute:131 - Tool calendar_get_tickets result: [{'type': 'QR_CODE', 'value': 'GOLDEN-TEST-TICKET-001', 'added_at': '2026-10-14T21:39:33.949611'}]
+2026-10-14 21:40:23.119 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool calendar_get_tickets → 1 items (1.1ms)
+[32m21:40:23[0m | [1mINFO    [0m | [36msebastian[0m — Tool calendar_get_tickets → 1 items (1.1ms)
+2026-10-14 21:40:23.120 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool calendar_get_tickets | input={"event_id": 1046} | full_result=[{"type": "QR_CODE", "value": "GOLDEN-TEST-TICKET-001", "added_at": "2026-10-14T21:39:33.949611"}]
+2026-10-14 21:40:26.175 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=3 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=28815 | tokens_out=276 | latency_ms=5078.0
+[32m21:40:26[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=3 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=28815 | tokens_out=276 | latency_ms=5078.0
+.2026-10-14 21:40:26.224 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='lee mi cita de teatro de mañana'
+[32m21:40:26[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='lee mi cita de teatro de mañana'
+2026-10-14 21:40:26.226 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:26[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:27.503 | DEBUG    | core.tool_executor:execute:70 - Executing tool: calendar_search_events inputs={'query': 'teatro'}
+2026-10-14 21:40:27.504 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 21:40:27.504 | DEBUG    | core.tool_executor:execute:131 - Tool calendar_search_events result: [{'event_id': 1046, 'title': 'teatro', 'date': datetime.date(2026, 10, 15), 'time': '20:00', 'all_day': False, 'recurring': False, 'note': None}]
+2026-10-14 21:40:27.504 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool calendar_search_events → 1 items (0.8ms)
+[32m21:40:27[0m | [1mINFO    [0m | [36msebastian[0m — Tool calendar_search_events → 1 items (0.8ms)
+2026-10-14 21:40:27.505 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool calendar_search_events | input={"query": "teatro"} | full_result=[{"event_id": 1046, "title": "teatro", "date": "2026-10-15", "time": "20:00", "all_day": false, "recurring": false, "note": null}]
+2026-10-14 21:40:30.814 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19385 | tokens_out=257 | latency_ms=4590.0
+[32m21:40:30[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19385 | tokens_out=257 | latency_ms=4590.0
+.2026-10-14 21:40:30.866 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Elimina de inventario actimeles'
+[32m21:40:30[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Elimina de inventario actimeles'
+2026-10-14 21:40:30.867 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:30[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:31.685 | DEBUG    | core.tool_executor:execute:70 - Executing tool: inventory_remove inputs={'item_name': 'actimeles'}
+2026-10-14 21:40:31.686 | DEBUG    | core.tool_executor:execute:131 - Tool inventory_remove result: {'status': 'not_found'}
+2026-10-14 21:40:31.686 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool inventory_remove → status=not_found (1.1ms)
+[32m21:40:31[0m | [1mINFO    [0m | [36msebastian[0m — Tool inventory_remove → status=not_found (1.1ms)
+2026-10-14 21:40:31.686 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool inventory_remove | input={"item_name": "actimeles"} | full_result={"status": "not_found"}
+2026-10-14 21:40:34.400 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19187 | tokens_out=185 | latency_ms=3534.4
+[32m21:40:34[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19187 | tokens_out=185 | latency_ms=3534.4
+.2026-10-14 21:40:34.452 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Actualiza Actimel a 6 unidades'
+[32m21:40:34[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Actualiza Actimel a 6 unidades'
+2026-10-14 21:40:34.453 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:34[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:36.153 | DEBUG    | core.tool_executor:execute:70 - Executing tool: inventory_set_quantity inputs={'item_name': 'Actimel', 'quantity': 6}
+2026-10-14 21:40:36.156 | DEBUG    | core.tool_executor:execute:131 - Tool inventory_set_quantity result: {'status': 'updated', 'message': 'Actualizado Actimel: 6 unidades', 'warning': False}
+2026-10-14 21:40:36.157 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool inventory_set_quantity → status=updated (3.7ms)
+[32m21:40:36[0m | [1mINFO    [0m | [36msebastian[0m — Tool inventory_set_quantity → status=updated (3.7ms)
+2026-10-14 21:40:36.157 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool inventory_set_quantity | input={"item_name": "Actimel", "quantity": 6} | full_result={"status": "updated", "message": "Actualizado Actimel: 6 unidades", "warning": false}
+2026-10-14 21:40:38.253 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19279 | tokens_out=138 | latency_ms=3801.5
+[32m21:40:38[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19279 | tokens_out=138 | latency_ms=3801.5
+.2026-10-14 21:40:38.307 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Cuando es san patricio?'
+[32m21:40:38[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Cuando es san patricio?'
+2026-10-14 21:40:38.309 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:38[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:41.567 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9891 | tokens_out=222 | latency_ms=3260.1
+[32m21:40:41[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9891 | tokens_out=222 | latency_ms=3260.1
+.2026-10-14 21:40:41.615 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='gracias crack'
+[32m21:40:41[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='gracias crack'
+2026-10-14 21:40:41.616 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:41[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:44.258 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9882 | tokens_out=41 | latency_ms=2643.8
+[32m21:40:44[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9882 | tokens_out=41 | latency_ms=2643.8
+.2026-10-14 21:40:44.314 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='que hora es'
+[32m21:40:44[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='que hora es'
+2026-10-14 21:40:44.315 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:44[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:46.800 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9881 | tokens_out=40 | latency_ms=2486.3
+[32m21:40:46[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9881 | tokens_out=40 | latency_ms=2486.3
+.2026-10-14 21:40:46.849 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='que tareas tengo abiertas en saxhero'
+[32m21:40:46[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='que tareas tengo abiertas en saxhero'
+2026-10-14 21:40:46.850 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:46[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:47.934 | DEBUG    | core.tool_executor:execute:70 - Executing tool: tasks_list inputs={'project': 'saxhero', 'state': 'open'}
+2026-10-14 21:40:47.935 | DEBUG    | modules.base:__init__:22 - TasksModule initialized for user golden_test_user
+2026-10-14 21:40:47.935 | DEBUG    | core.tool_executor:execute:131 - Tool tasks_list result: [{'id': 9001, 'title': 'Tarea a completar (golden harness fixture)', 'project': 'saxhero', 'priority': 'normal', 'done': 0, 'notes': None, 'tags': None, 'created_at': datetime.datetime(2026, 10, 14, 2
+2026-10-14 21:40:47.936 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool tasks_list → 2 items (1.3ms)
+[32m21:40:47[0m | [1mINFO    [0m | [36msebastian[0m — Tool tasks_list → 2 items (1.3ms)
+2026-10-14 21:40:47.936 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool tasks_list | input={"project": "saxhero", "state": "open"} | full_result=[{"id": 9001, "title": "Tarea a completar (golden harness fixture)", "project": "saxhero", "priority": "normal", "done": 0, "notes": null, "tags": null, "created_at": "2026-10-14 21:39:33", "updated_at": "2026-10-14 21:39:33"}, {"id": 9419, "title": "Practicar escalas (golden harness fixture)", "project": "saxhero", "priority": "normal", "done": 0, "notes": null, "tags": null, "created_at": "2026-10-14 21:39:33", "updated_at": "2026-10-14 21:39:33"}]
+2026-10-14 21:40:51.001 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19598 | tokens_out=230 | latency_ms=4151.6
+[32m21:40:51[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19598 | tokens_out=230 | latency_ms=4151.6
+.2026-10-14 21:40:51.058 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='apuntame una tarea en sebastian: revisar fuzzy match'
+[32m21:40:51[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='apuntame una tarea en sebastian: revisar fuzzy match'
+2026-10-14 21:40:51.060 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:51[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:52.150 | DEBUG    | core.tool_executor:execute:70 - Executing tool: tasks_create inputs={'project': 'sebastian', 'title': 'revisar fuzzy match'}
+2026-10-14 21:40:52.150 | DEBUG    | modules.base:__init__:22 - TasksModule initialized for user golden_test_user
+2026-10-14 21:40:52.154 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 21:40:52.154 | INFO     | modules.tasks:create:72 - Created task 9420 in project sebastian: revisar fuzzy match
+[32m21:40:52[0m | [1mINFO    [0m | [36msebastian[0m — Created task 9420 in project sebastian: revisar fuzzy match
+2026-10-14 21:40:52.154 | DEBUG    | core.tool_executor:execute:131 - Tool tasks_create result: {'status': 'created', 'task_id': 9420}
+2026-10-14 21:40:52.154 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool tasks_create → status=created (4.3ms)
+[32m21:40:52[0m | [1mINFO    [0m | [36msebastian[0m — Tool tasks_create → status=created (4.3ms)
+2026-10-14 21:40:52.154 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool tasks_create | input={"project": "sebastian", "title": "revisar fuzzy match"} | full_result={"status": "created", "task_id": 9420}
+2026-10-14 21:40:54.446 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19259 | tokens_out=155 | latency_ms=3387.8
+[32m21:40:54[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19259 | tokens_out=155 | latency_ms=3387.8
+.2026-10-14 21:40:54.495 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='en que estado esta el proyecto agora?'
+[32m21:40:54[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='en que estado esta el proyecto agora?'
+2026-10-14 21:40:54.497 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:40:54[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:40:55.477 | DEBUG    | core.tool_executor:execute:70 - Executing tool: consult_docs inputs={'project': 'agora', 'query': 'estado actual'}
+2026-10-14 21:40:55.478 | DEBUG    | core.tool_executor:execute:131 - Tool consult_docs result: {'status': 'found', 'results': [{'source': 'PROJECTS.md ## agora', 'content': '# agora — Chat IA con tertulianos\n\n- **Working dir:** `/data/agora/`\n- **DB:** `tertulia_db` on seb01 MariaDB\n- **Fro
+2026-10-14 21:40:55.479 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool consult_docs → status=found (2.0ms)
+[32m21:40:55[0m | [1mINFO    [0m | [36msebastian[0m — Tool consult_docs → status=found (2.0ms)
+2026-10-14 21:40:55.479 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool consult_docs | input={"project": "agora", "query": "estado actual"} | full_result={"status": "found", "results": [{"source": "PROJECTS.md ## agora", "content": "# agora — Chat IA con tertulianos\n\n- **Working dir:** `/data/agora/`\n- **DB:** `tertulia_db` on seb01 MariaDB\n- **Frontend:** `http://seb01:5151` (nginx SPA, `frontend/dist/`, proxy `/api/*` → uvicorn :8001)\n- **Backend:** uvicorn :8001 (loopback); `make dev` levanta ambos en dev; systemd activo (`agora-backend.service`)\n- **LogCentral source:** `tertulia` (pendiente integrar)\n- **Design docs:** `docs-disenio/agora-disenio-decisiones.md` (arch/DB), `docs-disenio/agora-perfiles-semilla.md` (andamios y perfiles semilla)"}]}
+2026-10-14 21:41:00.312 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19743 | tokens_out=371 | latency_ms=5816.4
+[32m21:41:00[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19743 | tokens_out=371 | latency_ms=5816.4
+.2026-10-14 21:41:00.364 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='que puerto usa glasspannel?'
+[32m21:41:00[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='que puerto usa glasspannel?'
+2026-10-14 21:41:00.366 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:00[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:01.486 | DEBUG    | core.tool_executor:execute:70 - Executing tool: consult_docs inputs={'project': 'glasspannel', 'query': 'puerto'}
+2026-10-14 21:41:01.488 | DEBUG    | core.tool_executor:execute:131 - Tool consult_docs result: {'status': 'found', 'results': [{'source': 'PROJECTS.md ## glasspannel', 'content': '# glasspannel — Server Control Panel\n\n- **Repo:** https://github.com/Zell0ss/glasspannel\n- **Working dir:** `/da
+2026-10-14 21:41:01.488 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool consult_docs → status=found (1.7ms)
+[32m21:41:01[0m | [1mINFO    [0m | [36msebastian[0m — Tool consult_docs → status=found (1.7ms)
+2026-10-14 21:41:01.488 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool consult_docs | input={"project": "glasspannel", "query": "puerto"} | full_result={"status": "found", "results": [{"source": "PROJECTS.md ## glasspannel", "content": "# glasspannel — Server Control Panel\n\n- **Repo:** https://github.com/Zell0ss/glasspannel\n- **Working dir:** `/data/glasspannel/`\n- **URL:** `http://seb01:3000`\n- **Service:** `sudo systemctl start/stop/restart glasspannel`\n- **DB:** `sebastian_db` on seb01 MariaDB (tables: `project_tasks`, `draft_projects`)"}]}
+2026-10-14 21:41:04.120 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19540 | tokens_out=163 | latency_ms=3755.3
+[32m21:41:04[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19540 | tokens_out=163 | latency_ms=3755.3
+.2026-10-14 21:41:04.171 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='marca como hecha la tarea 9001'
+[32m21:41:04[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='marca como hecha la tarea 9001'
+2026-10-14 21:41:04.172 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:04[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:05.168 | DEBUG    | core.tool_executor:execute:70 - Executing tool: tasks_complete inputs={'task_id': 9001}
+2026-10-14 21:41:05.168 | DEBUG    | modules.base:__init__:22 - TasksModule initialized for user golden_test_user
+2026-10-14 21:41:05.171 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 21:41:05.172 | INFO     | modules.tasks:complete:91 - Completed task 9001
+[32m21:41:05[0m | [1mINFO    [0m | [36msebastian[0m — Completed task 9001
+2026-10-14 21:41:05.172 | DEBUG    | core.tool_executor:execute:131 - Tool tasks_complete result: {'status': 'completed', 'task_id': 9001}
+2026-10-14 21:41:05.172 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool tasks_complete → status=completed (4.0ms)
+[32m21:41:05[0m | [1mINFO    [0m | [36msebastian[0m — Tool tasks_complete → status=completed (4.0ms)
+2026-10-14 21:41:05.172 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool tasks_complete | input={"task_id": 9001} | full_result={"status": "completed", "task_id": 9001}
+2026-10-14 21:41:07.338 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19200 | tokens_out=108 | latency_ms=3167.3
+[32m21:41:07[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19200 | tokens_out=108 | latency_ms=3167.3
+.2026-10-14 21:41:07.391 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='recuerda que mi cuñado Paco es alérgico a los frutos secos'
+[32m21:41:07[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='recuerda que mi cuñado Paco es alérgico a los frutos secos'
+2026-10-14 21:41:07.393 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:07[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:08.478 | DEBUG    | core.tool_executor:execute:70 - Executing tool: mark_as_memorable inputs={'content': 'El cuñado de Sebastian, Paco, es alérgico a los frutos secos.', 'tags': ['familia', 'salud']}
+2026-10-14 21:41:08.858 | INFO     | modules.memory:store:66 - Stored memory 7fef3ba8-9934-41e6-8be0-e82ece8cb28c: El cuñado de Sebastian, Paco, es alérgico a los frutos secos.
+[32m21:41:08[0m | [1mINFO    [0m | [36msebastian[0m — Stored memory 7fef3ba8-9934-41e6-8be0-e82ece8cb28c: El cuñado de Sebastian, Paco, es alérgico a los frutos secos.
+2026-10-14 21:41:08.859 | DEBUG    | core.tool_executor:execute:131 - Tool mark_as_memorable result: {'success': True, 'result': 'Guardado en memoria.', 'data': {'id': '7fef3ba8-9934-41e6-8be0-e82ece8cb28c'}}
+2026-10-14 21:41:08.859 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool mark_as_memorable → dict with 3 keys (380.9ms)
+[32m21:41:08[0m | [1mINFO    [0m | [36msebastian[0m — Tool mark_as_memorable → dict with 3 keys (380.9ms)
+2026-10-14 21:41:08.860 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool mark_as_memorable | input={"content": "El cuñado de Sebastian, Paco, es alérgico a los frutos secos.", "tags": ["familia", "salud"]} | full_result={"success": true, "result": "Guardado en memoria.", "data": {"id": "7fef3ba8-9934-41e6-8be0-e82ece8cb28c"}}
+2026-10-14 21:41:11.334 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19403 | tokens_out=189 | latency_ms=3942.9
+[32m21:41:11[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19403 | tokens_out=189 | latency_ms=3942.9
+.2026-10-14 21:41:11.383 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='que te dije de la alergia de paco?'
+[32m21:41:11[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='que te dije de la alergia de paco?'
+2026-10-14 21:41:11.384 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:11[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:12.562 | DEBUG    | core.tool_executor:execute:70 - Executing tool: search_memory inputs={'query': 'alergia de Paco'}
+2026-10-14 21:41:12.847 | INFO     | modules.memory:search:97 - Memory search 'alergia de Paco' -> 4 matches
+[32m21:41:12[0m | [1mINFO    [0m | [36msebastian[0m — Memory search 'alergia de Paco' -> 4 matches
+2026-10-14 21:41:12.848 | DEBUG    | core.tool_executor:execute:131 - Tool search_memory result: {'success': True, 'result': '4 resultado(s) encontrado(s).', 'data': {'matches': [{'content': 'Mi cuñado Paco es alérgico a los frutos secos', 'tags': ['familia', 'salud'], 'score': 0.66305315}, {'con
+2026-10-14 21:41:12.848 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool search_memory → dict with 3 keys (286.1ms)
+[32m21:41:12[0m | [1mINFO    [0m | [36msebastian[0m — Tool search_memory → dict with 3 keys (286.1ms)
+2026-10-14 21:41:12.848 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool search_memory | input={"query": "alergia de Paco"} | full_result={"success": true, "result": "4 resultado(s) encontrado(s).", "data": {"matches": [{"content": "Mi cuñado Paco es alérgico a los frutos secos", "tags": ["familia", "salud"], "score": 0.66305315}, {"content": "El cuñado de Sebastian, Paco, es alérgico a los frutos secos.", "tags": ["familia", "salud"], "score": 0.58783114}, {"content": "El cumpleaños de Rebe es en marzo", "tags": ["familia", "fechas"], "score": 0.20611542}, {"content": "A mi señor le gusta el vino tinto de Ribera del Duero", "tags": ["preferencias"], "score": 0.1972397}]}}
+2026-10-14 21:41:12.848 | DEBUG    | core.tool_executor:execute:70 - Executing tool: notes_search inputs={'query': 'alergia Paco'}
+2026-10-14 21:41:12.849 | DEBUG    | modules.base:__init__:22 - NotesModule initialized for user golden_test_user
+2026-10-14 21:41:12.849 | DEBUG    | core.tool_executor:execute:131 - Tool notes_search result: ()
+2026-10-14 21:41:12.849 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool notes_search → tuple (1.0ms)
+[32m21:41:12[0m | [1mINFO    [0m | [36msebastian[0m — Tool notes_search → tuple (1.0ms)
+2026-10-14 21:41:12.850 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool notes_search | input={"query": "alergia Paco"} | full_result=[]
+2026-10-14 21:41:15.507 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19753 | tokens_out=208 | latency_ms=4124.0
+[32m21:41:15[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19753 | tokens_out=208 | latency_ms=4124.0
+F2026-10-14 21:41:15.694 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='apunta leche a la compra'
+[32m21:41:15[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='apunta leche a la compra'
+2026-10-14 21:41:15.696 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:15[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:16.773 | DEBUG    | core.tool_executor:execute:70 - Executing tool: list_add_item inputs={'list_name': 'compra', 'item_name': 'leche', 'quantity': 1}
+2026-10-14 21:41:16.778 | DEBUG    | core.tool_executor:execute:131 - Tool list_add_item result: {'status': 'added', 'message': 'Añadido leche: 1 unidades'}
+2026-10-14 21:41:16.778 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool list_add_item → status=added (5.2ms)
+[32m21:41:16[0m | [1mINFO    [0m | [36msebastian[0m — Tool list_add_item → status=added (5.2ms)
+2026-10-14 21:41:16.779 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool list_add_item | input={"list_name": "compra", "item_name": "leche", "quantity": 1} | full_result={"status": "added", "message": "Añadido leche: 1 unidades"}
+2026-10-14 21:41:19.039 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19270 | tokens_out=142 | latency_ms=3344.4
+[32m21:41:19[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19270 | tokens_out=142 | latency_ms=3344.4
+.2026-10-14 21:41:19.086 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='que puedes hacer?'
+[32m21:41:19[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='que puedes hacer?'
+2026-10-14 21:41:19.087 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:19[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:27.098 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9887 | tokens_out=401 | latency_ms=8011.6
+[32m21:41:27[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9887 | tokens_out=401 | latency_ms=8011.6
+.2026-10-14 21:41:27.149 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='he dormido 6 horas, fatal'
+[32m21:41:27[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='he dormido 6 horas, fatal'
+2026-10-14 21:41:27.151 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:27[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:28.481 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:41:28.486 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:41:28[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:41:28.487 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:41:28.487 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (5.3ms)
+[32m21:41:28[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (5.3ms)
+2026-10-14 21:41:32.558 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19232 | tokens_out=200 | latency_ms=5408.3
+[32m21:41:32[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19232 | tokens_out=200 | latency_ms=5408.3
+.2026-10-14 21:41:32.677 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='anoche dormí fatal, me desperté dos veces'
+[32m21:41:32[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='anoche dormí fatal, me desperté dos veces'
+2026-10-14 21:41:32.679 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:32[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:33.694 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:41:33.695 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:41:33[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:41:33.696 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:41:33.696 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.9ms)
+[32m21:41:33[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.9ms)
+2026-10-14 21:41:38.557 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19251 | tokens_out=210 | latency_ms=5880.0
+[32m21:41:38[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19251 | tokens_out=210 | latency_ms=5880.0
+.2026-10-14 21:41:38.608 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='esta noche he dormido genial, como un tronco'
+[32m21:41:38[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='esta noche he dormido genial, como un tronco'
+2026-10-14 21:41:38.615 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:38[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:39.842 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:41:39.843 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:41:39[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:41:39.844 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:41:39.844 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.9ms)
+[32m21:41:39[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.9ms)
+2026-10-14 21:41:42.933 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19249 | tokens_out=164 | latency_ms=4325.3
+[32m21:41:42[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19249 | tokens_out=164 | latency_ms=4325.3
+.2026-10-14 21:41:42.982 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='dormí 7 horas y media, bastante bien'
+[32m21:41:42[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='dormí 7 horas y media, bastante bien'
+2026-10-14 21:41:42.983 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:42[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:43.871 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:41:43.874 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:41:43[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:41:43.875 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:41:43.875 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (3.2ms)
+[32m21:41:43[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (3.2ms)
+2026-10-14 21:41:46.920 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19247 | tokens_out=181 | latency_ms=3938.5
+[32m21:41:46[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19247 | tokens_out=181 | latency_ms=3938.5
+.2026-10-14 21:41:46.968 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='recuérdame acostarme pronto'
+[32m21:41:46[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='recuérdame acostarme pronto'
+2026-10-14 21:41:46.970 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:46[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:49.300 | DEBUG    | db.pending_plan_repo:save:29 - Saved pending plan for user 'golden_test_user': '¿A qué hora quieres que te recuerde acostarte? (Por ejemplo, esta noche a las 23:00, o indica otra hora y si es solo hoy o todos los días.)'
+2026-10-14 21:41:51.699 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=clarification_requested | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9924 | tokens_out=419 | latency_ms=4730.3
+[32m21:41:51[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=clarification_requested | iterations=1 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=9924 | tokens_out=419 | latency_ms=4730.3
+F2026-10-14 21:41:51.748 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='apunta melatonina en la compra'
+[32m21:41:51[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='apunta melatonina en la compra'
+2026-10-14 21:41:55.835 | DEBUG    | db.pending_plan_repo:delete:48 - Deleted pending plan for user 'golden_test_user'
+2026-10-14 21:41:55.836 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:55[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:41:56.932 | DEBUG    | core.tool_executor:execute:70 - Executing tool: list_add_item inputs={'list_name': 'compra', 'item_name': 'melatonina'}
+2026-10-14 21:41:56.936 | DEBUG    | core.tool_executor:execute:131 - Tool list_add_item result: {'status': 'added', 'message': 'Añadido melatonina: 1 unidades'}
+2026-10-14 21:41:56.936 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool list_add_item → status=added (3.4ms)
+[32m21:41:56[0m | [1mINFO    [0m | [36msebastian[0m — Tool list_add_item → status=added (3.4ms)
+2026-10-14 21:41:56.936 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool list_add_item | input={"list_name": "compra", "item_name": "melatonina"} | full_result={"status": "added", "message": "Añadido melatonina: 1 unidades"}
+2026-10-14 21:41:59.479 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19417 | tokens_out=125 | latency_ms=7730.3
+[32m21:41:59[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19417 | tokens_out=125 | latency_ms=7730.3
+.2026-10-14 21:41:59.530 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='he comido lentejas con chorizo'
+[32m21:41:59[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='he comido lentejas con chorizo'
+2026-10-14 21:41:59.531 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:41:59[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:00.492 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:42:00.494 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:00[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:42:00.495 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:42:00.495 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (2.7ms)
+[32m21:42:00[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (2.7ms)
+2026-10-14 21:42:03.697 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19265 | tokens_out=224 | latency_ms=4167.5
+[32m21:42:03[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19265 | tokens_out=224 | latency_ms=4167.5
+.2026-10-14 21:42:03.748 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='me he tomado un puñado de galletas'
+[32m21:42:03[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='me he tomado un puñado de galletas'
+2026-10-14 21:42:03.749 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:03[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:05.684 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:42:05.685 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:05[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:42:05.685 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:42:05.686 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.9ms)
+[32m21:42:05[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.9ms)
+2026-10-14 21:42:08.284 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19290 | tokens_out=222 | latency_ms=4535.9
+[32m21:42:08[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19290 | tokens_out=222 | latency_ms=4535.9
+.2026-10-14 21:42:08.331 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='de cena ensalada y una tortilla'
+[32m21:42:08[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='de cena ensalada y una tortilla'
+2026-10-14 21:42:08.333 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:08[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:09.455 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:42:09.457 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:09[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:42:09.457 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:42:09.457 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.7ms)
+[32m21:42:09[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.7ms)
+2026-10-14 21:42:12.350 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19270 | tokens_out=209 | latency_ms=4018.7
+[32m21:42:12[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19270 | tokens_out=209 | latency_ms=4018.7
+.2026-10-14 21:42:12.399 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='desayuno: café con leche y una tostada con tomate'
+[32m21:42:12[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='desayuno: café con leche y una tostada con tomate'
+2026-10-14 21:42:12.401 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:12[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:13.603 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:42:13.605 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:13[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:42:13.605 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:42:13.605 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.9ms)
+[32m21:42:13[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.9ms)
+2026-10-14 21:42:16.158 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19327 | tokens_out=240 | latency_ms=3758.4
+[32m21:42:16[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19327 | tokens_out=240 | latency_ms=3758.4
+.2026-10-14 21:42:16.207 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='ayer cené pizza con la familia'
+[32m21:42:16[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='ayer cené pizza con la familia'
+2026-10-14 21:42:16.209 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:16[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:24.894 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:42:24.896 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:24[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:42:24.896 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:42:24.896 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (2.1ms)
+[32m21:42:24[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (2.1ms)
+2026-10-14 21:42:27.729 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19304 | tokens_out=234 | latency_ms=11521.3
+[32m21:42:27[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19304 | tokens_out=234 | latency_ms=11521.3
+.2026-10-14 21:42:27.784 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='he comido lentejas y estoy lleno'
+[32m21:42:27[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='he comido lentejas y estoy lleno'
+2026-10-14 21:42:27.785 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:27[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:28.849 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:42:28.851 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:28[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:42:28.851 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:42:28.851 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (2.2ms)
+[32m21:42:28[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (2.2ms)
+2026-10-14 21:42:31.776 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19237 | tokens_out=172 | latency_ms=3992.3
+[32m21:42:31[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19237 | tokens_out=172 | latency_ms=3992.3
+.2026-10-14 21:42:31.824 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='tengo un hambre que me muero'
+[32m21:42:31[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='tengo un hambre que me muero'
+2026-10-14 21:42:31.825 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:31[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:33.055 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:42:33.057 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:33[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:42:33.057 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:42:33.057 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.9ms)
+[32m21:42:33[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.9ms)
+2026-10-14 21:42:36.877 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19289 | tokens_out=251 | latency_ms=5053.3
+[32m21:42:36[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19289 | tokens_out=251 | latency_ms=5053.3
+.2026-10-14 21:42:36.925 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='estoy lleno'
+[32m21:42:36[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='estoy lleno'
+2026-10-14 21:42:36.927 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:36[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:38.246 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:42:38.247 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:38[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:42:38.247 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:42:38.247 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.9ms)
+[32m21:42:38[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.9ms)
+2026-10-14 21:42:40.768 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19241 | tokens_out=198 | latency_ms=3843.3
+[32m21:42:40[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19241 | tokens_out=198 | latency_ms=3843.3
+.2026-10-14 21:42:40.816 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='ya no tengo hambre, estoy satisfecho'
+[32m21:42:40[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='ya no tengo hambre, estoy satisfecho'
+2026-10-14 21:42:40.818 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:40[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:41.833 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:42:41.835 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:41[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:42:41.835 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:42:41.835 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (2.1ms)
+[32m21:42:41[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (2.1ms)
+2026-10-14 21:42:44.820 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19249 | tokens_out=210 | latency_ms=4003.9
+[32m21:42:44[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19249 | tokens_out=210 | latency_ms=4003.9
+.2026-10-14 21:42:44.874 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='apunta tomates en la compra'
+[32m21:42:44[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='apunta tomates en la compra'
+2026-10-14 21:42:44.876 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:44[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:45.935 | DEBUG    | core.tool_executor:execute:70 - Executing tool: list_add_item inputs={'list_name': 'compra', 'item_name': 'tomates'}
+2026-10-14 21:42:45.938 | DEBUG    | core.tool_executor:execute:131 - Tool list_add_item result: {'status': 'added', 'message': 'Añadido tomates: 1 unidades'}
+2026-10-14 21:42:45.938 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool list_add_item → status=added (2.9ms)
+[32m21:42:45[0m | [1mINFO    [0m | [36msebastian[0m — Tool list_add_item → status=added (2.9ms)
+2026-10-14 21:42:45.938 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool list_add_item | input={"list_name": "compra", "item_name": "tomates"} | full_result={"status": "added", "message": "Añadido tomates: 1 unidades"}
+2026-10-14 21:42:48.132 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19246 | tokens_out=131 | latency_ms=3257.9
+[32m21:42:48[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19246 | tokens_out=131 | latency_ms=3257.9
+.2026-10-14 21:42:48.180 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='recuérdame comer a las 2'
+[32m21:42:48[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='recuérdame comer a las 2'
+2026-10-14 21:42:48.181 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:48[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:50.352 | DEBUG    | core.tool_executor:execute:70 - Executing tool: calendar_add_event inputs={'title': 'Comer', 'date': '2026-10-15', 'time': '14:00'}
+2026-10-14 21:42:50.352 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 21:42:50.354 | DEBUG    | modules.base:commit:42 - Transaction committed
+2026-10-14 21:42:50.354 | INFO     | modules.calendar:add_event:76 - Added event 'Comer' for user golden_test_user
+[32m21:42:50[0m | [1mINFO    [0m | [36msebastian[0m — Added event 'Comer' for user golden_test_user
+2026-10-14 21:42:50.355 | DEBUG    | core.tool_executor:execute:131 - Tool calendar_add_event result: {'status': 'added', 'message': 'Evento añadido: Comer', 'event_id': 1048}
+2026-10-14 21:42:50.355 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool calendar_add_event → status=added (2.9ms)
+[32m21:42:50[0m | [1mINFO    [0m | [36msebastian[0m — Tool calendar_add_event → status=added (2.9ms)
+2026-10-14 21:42:50.355 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool calendar_add_event | input={"title": "Comer", "date": "2026-10-15", "time": "14:00"} | full_result={"status": "added", "message": "Evento añadido: Comer", "event_id": 1048}
+2026-10-14 21:42:54.287 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19551 | tokens_out=473 | latency_ms=6106.9
+[32m21:42:54[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19551 | tokens_out=473 | latency_ms=6106.9
+.2026-10-14 21:42:54.334 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='busca una receta de lentejas'
+[32m21:42:54[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='busca una receta de lentejas'
+2026-10-14 21:42:54.336 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:54[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:56.012 | DEBUG    | core.tool_executor:execute:70 - Executing tool: notes_search inputs={'query': 'lentejas'}
+2026-10-14 21:42:56.012 | DEBUG    | modules.base:__init__:22 - NotesModule initialized for user golden_test_user
+2026-10-14 21:42:56.014 | DEBUG    | core.tool_executor:execute:131 - Tool notes_search result: ()
+2026-10-14 21:42:56.014 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool notes_search → tuple (1.9ms)
+[32m21:42:56[0m | [1mINFO    [0m | [36msebastian[0m — Tool notes_search → tuple (1.9ms)
+2026-10-14 21:42:56.014 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool notes_search | input={"query": "lentejas"} | full_result=[]
+2026-10-14 21:42:59.081 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19224 | tokens_out=210 | latency_ms=4747.0
+[32m21:42:59[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19224 | tokens_out=210 | latency_ms=4747.0
+.2026-10-14 21:42:59.137 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='¿qué tiempo hace?'
+[32m21:42:59[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='¿qué tiempo hace?'
+2026-10-14 21:42:59.138 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:42:59[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:42:59.953 | DEBUG    | core.tool_executor:execute:70 - Executing tool: weather_get inputs={}
+2026-10-14 21:42:59.955 | DEBUG    | core.tool_executor:execute:131 - Tool weather_get result: 📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36
+🍷 "Bebe vino y come queso y sabrás que es eso."
+2026-10-14 21:42:59.955 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool weather_get → 📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 … (2.6ms)
+[32m21:42:59[0m | [1mINFO    [0m | [36msebastian[0m — Tool weather_get → 📍 Madrid, ES
+🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C
+🌧️ Lluvia: 0%  |  🌅 08:24 … (2.6ms)
+2026-10-14 21:42:59.956 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool weather_get | input={} | full_result="📍 Madrid, ES\n🌡️ Ahora: 23.0°C  |  Hoy: 15.9° – 27.1°C\n🌧️ Lluvia: 0%  |  🌅 08:24 – 🌇 19:36\n🍷 \"Bebe vino y come queso y sabrás que es eso.\""
+2026-10-14 21:43:03.552 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19346 | tokens_out=163 | latency_ms=4414.8
+[32m21:43:03[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19346 | tokens_out=163 | latency_ms=4414.8
+.2026-10-14 21:43:03.610 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='tengo hambre, apunta galletas en la compra'
+[32m21:43:03[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='tengo hambre, apunta galletas en la compra'
+2026-10-14 21:43:03.611 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:43:03[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:43:05.099 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:43:05.100 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:43:05[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:43:05.100 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:43:05.100 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.8ms)
+[32m21:43:05[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.8ms)
+2026-10-14 21:43:05.101 | DEBUG    | core.tool_executor:execute:70 - Executing tool: list_add_item inputs={'list_name': 'compra', 'item_name': 'galletas'}
+2026-10-14 21:43:05.103 | DEBUG    | core.tool_executor:execute:131 - Tool list_add_item result: {'status': 'added', 'message': 'Añadido galletas: 1 unidades'}
+2026-10-14 21:43:05.104 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool list_add_item → status=added (3.0ms)
+[32m21:43:05[0m | [1mINFO    [0m | [36msebastian[0m — Tool list_add_item → status=added (3.0ms)
+2026-10-14 21:43:05.104 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool list_add_item | input={"list_name": "compra", "item_name": "galletas"} | full_result={"status": "added", "message": "Añadido galletas: 1 unidades"}
+2026-10-14 21:43:08.127 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19495 | tokens_out=329 | latency_ms=4517.0
+[32m21:43:08[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19495 | tokens_out=329 | latency_ms=4517.0
+.2026-10-14 21:43:08.178 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='me he zampado un bocata de jamón'
+[32m21:43:08[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='me he zampado un bocata de jamón'
+2026-10-14 21:43:08.179 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:43:08[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:43:10.818 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:43:10.819 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:43:10[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:43:10.819 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:43:10.819 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.7ms)
+[32m21:43:10[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.7ms)
+2026-10-14 21:43:14.107 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19267 | tokens_out=205 | latency_ms=5929.4
+[32m21:43:14[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19267 | tokens_out=205 | latency_ms=5929.4
+.2026-10-14 21:43:14.158 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='llevo todo el día sin comer, tengo un agujero'
+[32m21:43:14[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='llevo todo el día sin comer, tengo un agujero'
+2026-10-14 21:43:14.160 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:43:14[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:43:15.624 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:43:15.626 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:43:15[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:43:15.626 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:43:15.626 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (2.3ms)
+[32m21:43:15[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (2.3ms)
+2026-10-14 21:43:20.225 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19343 | tokens_out=319 | latency_ms=6066.7
+[32m21:43:20[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19343 | tokens_out=319 | latency_ms=6066.7
+.2026-10-14 21:43:20.274 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='para merendar un par de mandarinas'
+[32m21:43:20[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='para merendar un par de mandarinas'
+2026-10-14 21:43:20.276 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:43:20[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:43:22.084 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:43:22.085 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:43:22[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:43:22.086 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:43:22.086 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.8ms)
+[32m21:43:22[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.8ms)
+2026-10-14 21:43:25.041 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19432 | tokens_out=372 | latency_ms=4766.7
+[32m21:43:25[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19432 | tokens_out=372 | latency_ms=4766.7
+.2026-10-14 21:43:25.091 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='uf, he comido demasiado'
+[32m21:43:25[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='uf, he comido demasiado'
+2026-10-14 21:43:25.093 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:43:25[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:43:26.241 | DEBUG    | core.tool_executor:execute:68 - Executing tool: salud
+2026-10-14 21:43:26.243 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:43:26[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-10-14 21:43:26.243 | DEBUG    | core.tool_executor:execute:129 - Tool salud result: ok
+2026-10-14 21:43:26.243 | INFO     | core.orchestrator:_log_tool_execution:77 - Tool salud → ok (1.8ms)
+[32m21:43:26[0m | [1mINFO    [0m | [36msebastian[0m — Tool salud → ok (1.8ms)
+2026-10-14 21:43:29.376 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19254 | tokens_out=186 | latency_ms=4285.3
+[32m21:43:29[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19254 | tokens_out=186 | latency_ms=4285.3
+.2026-10-14 21:43:29.422 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='compra yogures'
+[32m21:43:29[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='compra yogures'
+2026-10-14 21:43:29.424 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:43:29[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:43:30.530 | DEBUG    | core.tool_executor:execute:70 - Executing tool: list_add_item inputs={'list_name': 'compra', 'item_name': 'yogures', 'quantity': 1}
+2026-10-14 21:43:30.533 | DEBUG    | core.tool_executor:execute:131 - Tool list_add_item result: {'status': 'added', 'message': 'Añadido yogures: 1 unidades'}
+2026-10-14 21:43:30.533 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool list_add_item → status=added (3.0ms)
+[32m21:43:30[0m | [1mINFO    [0m | [36msebastian[0m — Tool list_add_item → status=added (3.0ms)
+2026-10-14 21:43:30.534 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool list_add_item | input={"list_name": "compra", "item_name": "yogures", "quantity": 1} | full_result={"status": "added", "message": "Añadido yogures: 1 unidades"}
+2026-10-14 21:43:32.662 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19260 | tokens_out=154 | latency_ms=3239.7
+[32m21:43:32[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19260 | tokens_out=154 | latency_ms=3239.7
+F2026-10-14 21:43:32.718 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='¿qué ceno hoy?'
+[32m21:43:32[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='¿qué ceno hoy?'
+2026-10-14 21:43:32.720 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:43:32[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:43:34.930 | DEBUG    | core.tool_executor:execute:70 - Executing tool: inventory_list inputs={}
+2026-10-14 21:43:34.931 | DEBUG    | core.tool_executor:execute:131 - Tool inventory_list result: [{'id': 485, 'item_name': 'Actimel', 'quantity': Decimal('6.00'), 'unit': 'unidades', 'notes': None, 'checked': 0, 'created_at': datetime.datetime(2026, 10, 14, 21, 39, 33), 'updated_at': datetime.dat
+2026-10-14 21:43:34.932 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool inventory_list → 1 items (1.7ms)
+[32m21:43:34[0m | [1mINFO    [0m | [36msebastian[0m — Tool inventory_list → 1 items (1.7ms)
+2026-10-14 21:43:34.932 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool inventory_list | input={} | full_result=[{"id": 485, "item_name": "Actimel", "quantity": "6.00", "unit": "unidades", "notes": null, "checked": 0, "created_at": "2026-10-14 21:39:33", "updated_at": "2026-10-14 21:40:36"}]
+2026-10-14 21:43:34.932 | DEBUG    | core.tool_executor:execute:70 - Executing tool: notes_search inputs={'query': 'cena'}
+2026-10-14 21:43:34.932 | DEBUG    | modules.base:__init__:22 - NotesModule initialized for user golden_test_user
+2026-10-14 21:43:34.933 | DEBUG    | core.tool_executor:execute:131 - Tool notes_search result: ()
+2026-10-14 21:43:34.933 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool notes_search → tuple (0.8ms)
+[32m21:43:34[0m | [1mINFO    [0m | [36msebastian[0m — Tool notes_search → tuple (0.8ms)
+2026-10-14 21:43:34.933 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool notes_search | input={"query": "cena"} | full_result=[]
+2026-10-14 21:43:34.933 | DEBUG    | core.tool_executor:execute:70 - Executing tool: search_memory inputs={'query': 'preferencias de comida y cenas'}
+2026-10-14 21:43:35.292 | INFO     | modules.memory:search:97 - Memory search 'preferencias de comida y cenas' -> 4 matches
+[32m21:43:35[0m | [1mINFO    [0m | [36msebastian[0m — Memory search 'preferencias de comida y cenas' -> 4 matches
+2026-10-14 21:43:35.293 | DEBUG    | core.tool_executor:execute:131 - Tool search_memory result: {'success': True, 'result': '4 resultado(s) encontrado(s).', 'data': {'matches': [{'content': 'A mi señor le gusta el vino tinto de Ribera del Duero', 'tags': ['preferencias'], 'score': 0.31288332}, {
+2026-10-14 21:43:35.293 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool search_memory → dict with 3 keys (359.5ms)
+[32m21:43:35[0m | [1mINFO    [0m | [36msebastian[0m — Tool search_memory → dict with 3 keys (359.5ms)
+2026-10-14 21:43:35.293 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool search_memory | input={"query": "preferencias de comida y cenas"} | full_result={"success": true, "result": "4 resultado(s) encontrado(s).", "data": {"matches": [{"content": "A mi señor le gusta el vino tinto de Ribera del Duero", "tags": ["preferencias"], "score": 0.31288332}, {"content": "Mi cuñado Paco es alérgico a los frutos secos", "tags": ["familia", "salud"], "score": 0.29921454}, {"content": "El cuñado de Sebastian, Paco, es alérgico a los frutos secos.", "tags": ["familia", "salud"], "score": 0.2617943}, {"content": "El cumpleaños de Rebe es en marzo", "tags": ["familia", "fechas"], "score": 0.22195339}]}}
+2026-10-14 21:43:40.032 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=20100 | tokens_out=501 | latency_ms=7314.0
+[32m21:43:40[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=20100 | tokens_out=501 | latency_ms=7314.0
+F2026-10-14 21:43:40.086 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='¿y mañana?'
+[32m21:43:40[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='¿y mañana?'
+2026-10-14 21:43:40.088 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=1
+[32m21:43:40[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=1
+2026-10-14 21:43:44.546 | DEBUG    | core.tool_executor:execute:70 - Executing tool: calendar_list_events inputs={'time_window': 'tomorrow'}
+2026-10-14 21:43:44.546 | DEBUG    | modules.base:__init__:22 - CalendarModule initialized for user golden_test_user
+2026-10-14 21:43:44.548 | DEBUG    | core.tool_executor:execute:131 - Tool calendar_list_events result: [{'event_id': 1048, 'title': 'Comer', 'date': datetime.date(2026, 10, 15), 'time': '14:00', 'all_day': False, 'recurring': False, 'note': None}, {'event_id': 1046, 'title': 'teatro', 'date': datetime.
+2026-10-14 21:43:44.548 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool calendar_list_events → 2 items (1.9ms)
+[32m21:43:44[0m | [1mINFO    [0m | [36msebastian[0m — Tool calendar_list_events → 2 items (1.9ms)
+2026-10-14 21:43:44.548 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool calendar_list_events | input={"time_window": "tomorrow"} | full_result=[{"event_id": 1048, "title": "Comer", "date": "2026-10-15", "time": "14:00", "all_day": false, "recurring": false, "note": null}, {"event_id": 1046, "title": "teatro", "date": "2026-10-15", "time": "20:00", "all_day": false, "recurring": false, "note": null}]
+2026-10-14 21:43:46.902 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19491 | tokens_out=142 | latency_ms=6815.7
+[32m21:43:46[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19491 | tokens_out=142 | latency_ms=6815.7
+.2026-10-14 21:43:46.952 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='¿y en Gijón?'
+[32m21:43:46[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='¿y en Gijón?'
+2026-10-14 21:43:46.953 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=1
+[32m21:43:46[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=1
+2026-10-14 21:43:47.973 | DEBUG    | core.tool_executor:execute:70 - Executing tool: weather_get inputs={'city': 'Gijón'}
+2026-10-14 21:43:47.976 | INFO     | modules.user_settings:set_weather_location:140 - User golden_test_user weather location set to: Gijón
+[32m21:43:47[0m | [1mINFO    [0m | [36msebastian[0m — User golden_test_user weather location set to: Gijón
+2026-10-14 21:43:48.215 | DEBUG    | core.tool_executor:execute:131 - Tool weather_get result: 📌 Ubicación actualizada a Gijón.
+📍 Gijón, ES
+🌡️ Ahora: 20.3°C  |  Hoy: 17.4° – 22.5°C
+🌧️ Lluvia: 0%  |  🌅 08:35 – 🌇 19:41
+🍷 "El hombre debe al vino ser el único animal que bebe sin sed. Plinio."
+2026-10-14 21:43:48.215 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool weather_get → 📌 Ubicación actualizada a Gijón.
+📍 Gijón, ES
+🌡️ Ahora: 20.3°C  |  Hoy: 17.4° – 2… (242.2ms)
+[32m21:43:48[0m | [1mINFO    [0m | [36msebastian[0m — Tool weather_get → 📌 Ubicación actualizada a Gijón.
+📍 Gijón, ES
+🌡️ Ahora: 20.3°C  |  Hoy: 17.4° – 2… (242.2ms)
+2026-10-14 21:43:48.215 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool weather_get | input={"city": "Gijón"} | full_result="📌 Ubicación actualizada a Gijón.\n📍 Gijón, ES\n🌡️ Ahora: 20.3°C  |  Hoy: 17.4° – 22.5°C\n🌧️ Lluvia: 0%  |  🌅 08:35 – 🌇 19:41\n🍷 \"El hombre debe al vino ser el único animal que bebe sin sed. Plinio.\""
+2026-10-14 21:43:52.456 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19531 | tokens_out=403 | latency_ms=5504.3
+[32m21:43:52[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19531 | tokens_out=403 | latency_ms=5504.3
+.2026-10-14 21:43:52.515 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='apunta leche a la compra'
+[32m21:43:52[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='apunta leche a la compra'
+2026-10-14 21:43:52.516 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=1
+[32m21:43:52[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=1
+2026-10-14 21:43:53.559 | DEBUG    | core.tool_executor:execute:70 - Executing tool: list_add_item inputs={'list_name': 'compra', 'item_name': 'leche'}
+2026-10-14 21:43:53.562 | DEBUG    | core.tool_executor:execute:131 - Tool list_add_item result: {'status': 'updated', 'message': 'Actualizado leche: 2.00 unidades'}
+2026-10-14 21:43:53.562 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool list_add_item → status=updated (3.6ms)
+[32m21:43:53[0m | [1mINFO    [0m | [36msebastian[0m — Tool list_add_item → status=updated (3.6ms)
+2026-10-14 21:43:53.563 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool list_add_item | input={"list_name": "compra", "item_name": "leche"} | full_result={"status": "updated", "message": "Actualizado leche: 2.00 unidades"}
+2026-10-14 21:43:55.670 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19351 | tokens_out=138 | latency_ms=3155.1
+[32m21:43:55[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19351 | tokens_out=138 | latency_ms=3155.1
+.2026-10-14 21:43:55.726 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Que sabes de mi?'
+[32m21:43:55[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Que sabes de mi?'
+2026-10-14 21:43:55.727 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:43:55[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:43:56.788 | DEBUG    | core.tool_executor:execute:70 - Executing tool: search_memory inputs={'query': 'datos personales del usuario Sebastian', 'k': 10}
+2026-10-14 21:43:57.061 | INFO     | modules.memory:search:97 - Memory search 'datos personales del usuario Sebastian' -> 4 matches
+[32m21:43:57[0m | [1mINFO    [0m | [36msebastian[0m — Memory search 'datos personales del usuario Sebastian' -> 4 matches
+2026-10-14 21:43:57.062 | DEBUG    | core.tool_executor:execute:131 - Tool search_memory result: {'success': True, 'result': '4 resultado(s) encontrado(s).', 'data': {'matches': [{'content': 'El cuñado de Sebastian, Paco, es alérgico a los frutos secos.', 'tags': ['familia', 'salud'], 'score': 0.
+2026-10-14 21:43:57.062 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool search_memory → dict with 3 keys (274.1ms)
+[32m21:43:57[0m | [1mINFO    [0m | [36msebastian[0m — Tool search_memory → dict with 3 keys (274.1ms)
+2026-10-14 21:43:57.062 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool search_memory | input={"query": "datos personales del usuario Sebastian", "k": 10} | full_result={"success": true, "result": "4 resultado(s) encontrado(s).", "data": {"matches": [{"content": "El cuñado de Sebastian, Paco, es alérgico a los frutos secos.", "tags": ["familia", "salud"], "score": 0.4114176}, {"content": "Mi cuñado Paco es alérgico a los frutos secos", "tags": ["familia", "salud"], "score": 0.2602678}, {"content": "El cumpleaños de Rebe es en marzo", "tags": ["familia", "fechas"], "score": 0.2507815}, {"content": "A mi señor le gusta el vino tinto de Ribera del Duero", "tags": ["preferencias"], "score": 0.220419}]}}
+2026-10-14 21:44:00.679 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19642 | tokens_out=285 | latency_ms=4953.4
+[32m21:44:00[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19642 | tokens_out=285 | latency_ms=4953.4
+.2026-10-14 21:44:00.736 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Que sabes de mi?'
+[32m21:44:00[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Que sabes de mi?'
+2026-10-14 21:44:00.738 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=2
+[32m21:44:00[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=2
+2026-10-14 21:44:01.834 | DEBUG    | core.tool_executor:execute:70 - Executing tool: search_memory inputs={'query': 'datos personales del usuario Sebastian', 'k': 10}
+2026-10-14 21:44:02.136 | INFO     | modules.memory:search:97 - Memory search 'datos personales del usuario Sebastian' -> 4 matches
+[32m21:44:02[0m | [1mINFO    [0m | [36msebastian[0m — Memory search 'datos personales del usuario Sebastian' -> 4 matches
+2026-10-14 21:44:02.137 | DEBUG    | core.tool_executor:execute:131 - Tool search_memory result: {'success': True, 'result': '4 resultado(s) encontrado(s).', 'data': {'matches': [{'content': 'El cuñado de Sebastian, Paco, es alérgico a los frutos secos.', 'tags': ['familia', 'salud'], 'score': 0.
+2026-10-14 21:44:02.138 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool search_memory → dict with 3 keys (303.7ms)
+[32m21:44:02[0m | [1mINFO    [0m | [36msebastian[0m — Tool search_memory → dict with 3 keys (303.7ms)
+2026-10-14 21:44:02.138 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool search_memory | input={"query": "datos personales del usuario Sebastian", "k": 10} | full_result={"success": true, "result": "4 resultado(s) encontrado(s).", "data": {"matches": [{"content": "El cuñado de Sebastian, Paco, es alérgico a los frutos secos.", "tags": ["familia", "salud"], "score": 0.4114176}, {"content": "Mi cuñado Paco es alérgico a los frutos secos", "tags": ["familia", "salud"], "score": 0.2602678}, {"content": "El cumpleaños de Rebe es en marzo", "tags": ["familia", "fechas"], "score": 0.2507815}, {"content": "A mi señor le gusta el vino tinto de Ribera del Duero", "tags": ["preferencias"], "score": 0.220419}]}}
+2026-10-14 21:44:05.467 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19882 | tokens_out=328 | latency_ms=4730.3
+[32m21:44:05[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19882 | tokens_out=328 | latency_ms=4730.3
+.2026-10-14 21:44:05.517 | INFO     | core.orchestrator:_handle_inner:388 - Turn start | user=golden_test_user | message='Cómo me llamo?'
+[32m21:44:05[0m | [1mINFO    [0m | [36msebastian[0m — Turn start | user=golden_test_user | message='Cómo me llamo?'
+2026-10-14 21:44:05.519 | INFO     | core.orchestrator:_cargar_historial:202 - Historial cargado | user=golden_test_user | intercambios=0
+[32m21:44:05[0m | [1mINFO    [0m | [36msebastian[0m — Historial cargado | user=golden_test_user | intercambios=0
+2026-10-14 21:44:06.692 | DEBUG    | core.tool_executor:execute:70 - Executing tool: search_memory inputs={'query': 'nombre del usuario, cómo se llama Sebastian'}
+2026-10-14 21:44:06.979 | INFO     | modules.memory:search:97 - Memory search 'nombre del usuario, cómo se llama Sebastian' -> 4 matches
+[32m21:44:06[0m | [1mINFO    [0m | [36msebastian[0m — Memory search 'nombre del usuario, cómo se llama Sebastian' -> 4 matches
+2026-10-14 21:44:06.980 | DEBUG    | core.tool_executor:execute:131 - Tool search_memory result: {'success': True, 'result': '4 resultado(s) encontrado(s).', 'data': {'matches': [{'content': 'El cuñado de Sebastian, Paco, es alérgico a los frutos secos.', 'tags': ['familia', 'salud'], 'score': 0.
+2026-10-14 21:44:06.981 | INFO     | core.orchestrator:_log_tool_execution:79 - Tool search_memory → dict with 3 keys (288.2ms)
+[32m21:44:06[0m | [1mINFO    [0m | [36msebastian[0m — Tool search_memory → dict with 3 keys (288.2ms)
+2026-10-14 21:44:06.981 | DEBUG    | core.orchestrator:_log_tool_execution:82 - Tool search_memory | input={"query": "nombre del usuario, cómo se llama Sebastian"} | full_result={"success": true, "result": "4 resultado(s) encontrado(s).", "data": {"matches": [{"content": "El cuñado de Sebastian, Paco, es alérgico a los frutos secos.", "tags": ["familia", "salud"], "score": 0.42972058}, {"content": "El cumpleaños de Rebe es en marzo", "tags": ["familia", "fechas"], "score": 0.28403026}, {"content": "A mi señor le gusta el vino tinto de Ribera del Duero", "tags": ["preferencias"], "score": 0.24345301}, {"content": "Mi cuñado Paco es alérgico a los frutos secos", "tags": ["familia", "salud"], "score": 0.24340859}]}}
+2026-10-14 21:44:09.976 | INFO     | core.orchestrator:_log_turn_end:229 - Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19630 | tokens_out=211 | latency_ms=4458.5
+[32m21:44:09[0m | [1mINFO    [0m | [36msebastian[0m — Turn end | user=golden_test_user | outcome=completed | iterations=2 | models=claude-haiku-5-5,claude-sonnet-4-6 | tokens_in=19630 | tokens_out=211 | latency_ms=4458.5
+.
+=================================== FAILURES ===================================
+____________________________ test_golden[golden_21] ____________________________
+
+golden = {'expected': ['search_memory'], 'id': 21, 'mode': 'exact', 'phrase': 'que te dije de la alergia de paco?', ...}
+orchestrator_runner = <function orchestrator_runner.<locals>._run at 0x7fc1d25c54e0>
+
+    @pytest.mark.golden
+    @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
+    def test_golden(golden, orchestrator_runner):
+        actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"))
+        passed = _matches(actual, golden["mode"], golden["expected"])
+        response_text = response.get("text", "") if isinstance(response, dict) else str(response)
+    
+        GOLDEN_RESULTS.append({
+            "id": golden["id"],
+            "phrase": golden["phrase"],
+            "mode": golden["mode"],
+            "expected": _fmt_expected(golden["mode"], golden["expected"]),
+            "actual": _fmt_sequence(actual),
+            "passed": passed,
+            "validates": golden.get("validates", ""),
+            "response_text": response_text,
+        })
+    
+>       assert passed, (
+            f"Golden #{golden['id']} ({golden['mode']}) — "
+            f"esperado {golden['expected']!r}, real {actual!r}. "
+            f"Respuesta de Alfred: {response_text!r}"
+        )
+E       AssertionError: Golden #21 (exact) — esperado ['search_memory'], real ['search_memory', 'notes_search']. Respuesta de Alfred: 'Que su cuñado Paco es alérgico a los frutos secos, señor.'
+E       assert False
+
+tests/golden/test_goldens.py:64: AssertionError
+____________________________ test_golden[golden_28] ____________________________
+
+golden = {'expected': [[], ['notes_create']], 'id': 28, 'mode': 'any_of', 'phrase': 'recuérdame acostarme pronto', ...}
+orchestrator_runner = <function orchestrator_runner.<locals>._run at 0x7fc1d25c56c0>
+
+    @pytest.mark.golden
+    @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
+    def test_golden(golden, orchestrator_runner):
+        actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"))
+        passed = _matches(actual, golden["mode"], golden["expected"])
+        response_text = response.get("text", "") if isinstance(response, dict) else str(response)
+    
+        GOLDEN_RESULTS.append({
+            "id": golden["id"],
+            "phrase": golden["phrase"],
+            "mode": golden["mode"],
+            "expected": _fmt_expected(golden["mode"], golden["expected"]),
+            "actual": _fmt_sequence(actual),
+            "passed": passed,
+            "validates": golden.get("validates", ""),
+            "response_text": response_text,
+        })
+    
+>       assert passed, (
+            f"Golden #{golden['id']} ({golden['mode']}) — "
+            f"esperado {golden['expected']!r}, real {actual!r}. "
+            f"Respuesta de Alfred: {response_text!r}"
+        )
+E       AssertionError: Golden #28 (any_of) — esperado [[], ['notes_create']], real ['request_clarification']. Respuesta de Alfred: 'Entiendo que hay un mensaje mal encaminado, señor. Esa pregunta está dirigida a usted, no al revés.\n\n¿A qué hora desea que le recuerde acostarse? ¿Y prefiere que sea solo esta noche o de forma recurrente?'
+E       assert False
+
+tests/golden/test_goldens.py:64: AssertionError
+____________________________ test_golden[golden_48] ____________________________
+
+golden = {'expected': [['request_clarification'], []], 'id': 48, 'mode': 'any_of', 'phrase': 'compra yogures', ...}
+orchestrator_runner = <function orchestrator_runner.<locals>._run at 0x7fc1d19f7c40>
+
+    @pytest.mark.golden
+    @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
+    def test_golden(golden, orchestrator_runner):
+        actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"))
+        passed = _matches(actual, golden["mode"], golden["expected"])
+        response_text = response.get("text", "") if isinstance(response, dict) else str(response)
+    
+        GOLDEN_RESULTS.append({
+            "id": golden["id"],
+            "phrase": golden["phrase"],
+            "mode": golden["mode"],
+            "expected": _fmt_expected(golden["mode"], golden["expected"]),
+            "actual": _fmt_sequence(actual),
+            "passed": passed,
+            "validates": golden.get("validates", ""),
+            "response_text": response_text,
+        })
+    
+>       assert passed, (
+            f"Golden #{golden['id']} ({golden['mode']}) — "
+            f"esperado {golden['expected']!r}, real {actual!r}. "
+            f"Respuesta de Alfred: {response_text!r}"
+        )
+E       AssertionError: Golden #48 (any_of) — esperado [['request_clarification'], []], real ['list_add_item']. Respuesta de Alfred: 'Anotado, señor. Yogures en la lista de la compra.'
+E       assert False
+
+tests/golden/test_goldens.py:64: AssertionError
+____________________________ test_golden[golden_49] ____________________________
+
+golden = {'expected': [[]], 'id': 49, 'mode': 'any_of', 'phrase': '¿qué ceno hoy?', ...}
+orchestrator_runner = <function orchestrator_runner.<locals>._run at 0x7fc1d1b10360>
+
+    @pytest.mark.golden
+    @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
+    def test_golden(golden, orchestrator_runner):
+        actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"))
+        passed = _matches(actual, golden["mode"], golden["expected"])
+        response_text = response.get("text", "") if isinstance(response, dict) else str(response)
+    
+        GOLDEN_RESULTS.append({
+            "id": golden["id"],
+            "phrase": golden["phrase"],
+            "mode": golden["mode"],
+            "expected": _fmt_expected(golden["mode"], golden["expected"]),
+            "actual": _fmt_sequence(actual),
+            "passed": passed,
+            "validates": golden.get("validates", ""),
+            "response_text": response_text,
+        })
+    
+>       assert passed, (
+            f"Golden #{golden['id']} ({golden['mode']}) — "
+            f"esperado {golden['expected']!r}, real {actual!r}. "
+            f"Respuesta de Alfred: {response_text!r}"
+        )
+E       AssertionError: Golden #49 (any_of) — esperado [[]], real ['inventory_list', 'notes_search', 'search_memory']. Respuesta de Alfred: 'Una cena ligera esta noche se complica, señor. En el inventario solo consta Actimel —seis unidades— y no tengo anotadas preferencias ni ideas de cena.\n\n¿Desea que le ayude a revisar si falta algo en la despensa, o prefiere que apunte lo que decida cenar esta noche?'
+E       assert False
+
+tests/golden/test_goldens.py:64: AssertionError
+=========================== GOLDEN REGRESSION REPORT ===========================
+
+#01 [PASS] mode=exact
+  Frase:     Guárdame esta nota / Gotas mama / HYABAK a demanada una en cada ojo (fijas 12-16-20-24 horas) / Pequeñas 9:00 y 21:00 una en cada ojo AZARGA / Monodosis una gota sola ojo derecho de Lumigan a las 23:00 / Separar el lexatin al menos 1h de la de dormir
+  Esperado:  notes_create
+  Real:      notes_create
+  Valida:    Nota multilínea con contenido médico intacto, sin resumir (revisar el input capturado en el informe, no solo la tool)
+  Alfred:    Anotado, señor. La pauta de gotas para su madre queda guardada con el identificador 1425, bajo las etiquetas *salud*, *medicación* y *gotas*.
+
+#02 [PASS] mode=exact
+  Frase:     Dime qué notas tengo
+  Esperado:  notes_search
+  Real:      notes_search
+  Valida:    Listado simple. PASS con cualquier query — notes_search es la única tool disponible para esta intención (gap de producto anotado aparte, no se toca en esta sesión)
+  Alfred:    Tiene tres notas guardadas, señor:
+
+1. **Gotas mamá** *(etiquetas: salud, medicación, gotas)* — Pauta de colirios con horarios para HYABAK, AZARGA y Lumigan, más una nota sobre el Lexatin.
+
+2. **Nota 
+
+#03 [PASS] mode=multiset
+  Frase:     borra las notas 1017 y la 1018
+  Esperado:  notes_delete → notes_delete
+  Real:      notes_delete → notes_delete
+  Valida:    Encadenado: dos llamadas de un mensaje
+  Alfred:    Hecho, señor. Las notas 1017 y 1018 han sido eliminadas.
+
+#04 [PASS] mode=exact
+  Frase:     Qué tiempo va a hacer hoy en Madrid
+  Esperado:  weather_get
+  Real:      weather_get
+  Valida:    Caso base
+  Alfred:    En Madrid esta noche pueden esperar temperaturas alrededor de los 23 °C, con un rango de entre 16 y 27 °C a lo largo del día. Sin lluvia prevista y el sol ya puesto desde las 19:36.
+
+Una velada tranqu
+
+#05 [PASS] mode=exact
+  Frase:     Mírame que tiempo hace hoy en Madrid. Si puedes dame a que hora sale el.sol
+  Esperado:  weather_get
+  Real:      weather_get
+  Valida:    Petición compuesta + errata real ("el.sol"). El sunrise ya viene en la respuesta de weather_get — dos llamadas sería FAIL por redundancia
+  Alfred:    En Madrid esta noche tiene usted 23 °C, con un rango hoy de 16 a 27 °C y sin probabilidad de lluvia.
+
+El sol salió esta mañana a las **8:24** y se puso a las **19:36**.
+
+#06 [PASS] mode=exact
+  Frase:     que tiempo va a hacer este fin de semana?
+  Esperado:  weather_forecast
+  Real:      weather_forecast
+  Valida:    Rango de fechas relativo (requiere datetime en prompt)
+  Alfred:    El fin de semana en Madrid se presenta así, señor:
+
+- **Sábado 18:** Lluvia probable, entre 16 y 20 °C, con un 55 % de posibilidades de precipitación.
+- **Domingo 19:** Más despejado, de 9 a 17 °C y s
+
+#07 [PASS] mode=exact
+  Frase:     qué citas tengo para hoy y ya está
+  Esperado:  calendar_list_events
+  Real:      calendar_list_events
+  Valida:    Contención: "y ya está" prohíbe encadenar de más (p.ej. no debe seguir con calendar_get_tickets por cada evento)
+  Alfred:    Agenda limpia para hoy, señor. Sin citas.
+
+#08 [PASS] mode=exact
+  Frase:     que tickets tengo para el teatro mañana?
+  Esperado:  calendar_search_events → calendar_get_tickets
+  Real:      calendar_search_events → calendar_get_tickets
+  Valida:    Filtro evento+fecha relativa. Encadenado obligatorio: calendar_get_tickets requiere event_id, solo se obtiene buscando primero
+  Alfred:    Tiene anotado teatro mañana a las 20:00. Su entrada es un código QR:
+
+**GOLDEN-TEST-TICKET-001**
+
+Le recomendaría tenerlo a mano antes de salir.
+
+#09 [PASS] mode=any_of
+  Frase:     lee mi cita de teatro de mañana
+  Esperado:  calendar_search_events  O  calendar_search_events → calendar_get_tickets  O  calendar_list_events
+  Real:      calendar_search_events
+  Valida:    Ambigua a propósito: lectura del evento vs lectura del ticket. Ambas aceptadas, se registra cuál elige. calendar_list_events (listar las citas de mañana) aceptada en la fase 3 (H3-revision §2.2): con la tool `salud` en el planner, el planner la elige a veces (4 de 15 con la descripción corta, 6 de 15 con la larga, 1 de 15 sin `salud` ampliada)
+  Alfred:    Mañana tiene función de teatro a las **20:00**.
+
+No hay nota adicional en la cita. ¿Desea que añada algo?
+
+#10 [PASS] mode=exact
+  Frase:     Elimina de inventario actimeles
+  Esperado:  inventory_remove
+  Real:      inventory_remove
+  Valida:    Fuzzy match "actimeles" → "Actimel" (el match aproximado es responsabilidad del modelo/tool, no de esta golden)
+  Alfred:    No encuentro ninguna entrada con ese nombre en el inventario, señor. ¿Podría estar registrado bajo otro nombre?
+
+#11 [PASS] mode=exact
+  Frase:     Actualiza Actimel a 6 unidades
+  Esperado:  inventory_set_quantity
+  Real:      inventory_set_quantity
+  Valida:    Update con cantidad ABSOLUTA. Si el modelo llama a inventory_update_quantity (delta) es FAIL legítimo — imán de confusión conocido entre las dos tools de cantidad
+  Alfred:    Hecho, señor. Actimel actualizado a 6 unidades.
+
+#12 [PASS] mode=none
+  Frase:     Cuando es san patricio?
+  Esperado:  (ninguna)
+  Real:      (ninguna)
+  Valida:    Conocimiento general sin tools
+  Alfred:    San Patricio se celebra el **17 de marzo**.
+
+#13 [PASS] mode=none
+  Frase:     gracias crack
+  Esperado:  (ninguna)
+  Real:      (ninguna)
+  Valida:    Charla pura, cero tools
+  Alfred:    De nada, señor. A su disposición.
+
+#14 [PASS] mode=none
+  Frase:     que hora es
+  Esperado:  (ninguna)
+  Real:      (ninguna)
+  Valida:    El bug histórico: sin fecha/hora en el prompt esto degeneraba en "Son las 00:00 horas, señor". Ahora el planner ya recibe la fecha de hoy — validar que responde sin tools (la hora exacta la resuelve Alfred con el datetime del synthesis prompt, no con una tool)
+  Alfred:    Son las 21:40, señor.
+
+#15 [PASS] mode=exact
+  Frase:     que tareas tengo abiertas en saxhero
+  Esperado:  tasks_list
+  Real:      tasks_list
+  Valida:    Sprint 2: tasks_list filtrado por proyecto, estado abierto por defecto
+  Alfred:    En **Saxhero** tiene dos tareas abiertas:
+
+1. Tarea a completar
+2. Practicar escalas
+
+Ambas con prioridad normal. ¿Desea completar o gestionar alguna de ellas?
+
+#16 [PASS] mode=exact
+  Frase:     apuntame una tarea en sebastian: revisar fuzzy match
+  Esperado:  tasks_create
+  Real:      tasks_create
+  Valida:    Sprint 2: tasks_create. 'sebastian' debe validar contra PROJECTS.md (sección 'Sebastian 2.0 — ...') vía known_projects
+  Alfred:    Anotado, señor. Tarea «revisar fuzzy match» registrada en el proyecto Sebastian.
+
+#17 [PASS] mode=exact
+  Frase:     en que estado esta el proyecto agora?
+  Esperado:  consult_docs
+  Real:      consult_docs
+  Valida:    Sprint 2: consult_docs resolviendo la sección '## agora' de PROJECTS.md
+  Alfred:    El proyecto **Agora** es un chat de IA con tertulianos. En cuanto a su estado documentado:
+
+- **Frontend:** SPA en nginx, accesible en `seb01:5151`, con proxy al backend.
+- **Backend:** uvicorn en el 
+
+#18 [PASS] mode=exact
+  Frase:     que puerto usa glasspannel?
+  Esperado:  consult_docs
+  Real:      consult_docs
+  Valida:    Sprint 2: consult_docs — la sección de glasspannel no dice "puerto" literal (dice URL http://seb01:3000), valida que el planner llama a la tool igualmente y deja que Alfred infiera del contenido devuelto
+  Alfred:    El puerto **3000**, señor. Accesible en `http://seb01:3000`.
+
+#19 [PASS] mode=exact
+  Frase:     marca como hecha la tarea 9001
+  Esperado:  tasks_complete
+  Real:      tasks_complete
+  Valida:    Sprint 2: tasks_complete con id sembrado explícito (fixture golden #19, project 'saxhero')
+  Alfred:    Hecha, señor. La tarea 9001 queda marcada como completada.
+
+#20 [PASS] mode=exact
+  Frase:     recuerda que mi cuñado Paco es alérgico a los frutos secos
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Sprint 3: mark_as_memorable — hecho personal duradero, escribe un punto real en sebastian_memory_test
+  Alfred:    Anotado, señor. Paco, alérgico a frutos secos. Lo tendré en cuenta.
+
+#21 [FAIL] mode=exact
+  Frase:     que te dije de la alergia de paco?
+  Esperado:  search_memory
+  Real:      search_memory → notes_search
+  Valida:    Sprint 3: search_memory encuentra la memoria sembrada en conftest.py (misma frase que golden #20, contenido pre-existente vía fixture)
+  Alfred:    Que su cuñado Paco es alérgico a los frutos secos, señor.
+
+#22 [PASS] mode=exact
+  Frase:     apunta leche a la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Sprint 3: frontera operativo vs memoria — 'apunta' aquí es la lista de la compra, NO debe disparar mark_as_memorable
+  Alfred:    Anotado, señor. Leche en la lista de la compra.
+
+#23 [PASS] mode=none
+  Frase:     que puedes hacer?
+  Esperado:  (ninguna)
+  Real:      (ninguna)
+  Valida:    Sprint 3b: pregunta de capacidades no dispara ninguna tool — el planner ya sabe (via digest inyectado) que no hace falta herramienta; Alfred responde desde el digest en _ALFRED_SYSTEM
+  Alfred:    A su servicio. Estas son mis capacidades actuales:
+
+- **Calendario** — apunto, consulto y borro citas y eventos, incluidos los recurrentes. Le recuerdo la agenda cada mañana.
+- **Tiempo** — le doy el 
+
+#24 [PASS] mode=exact
+  Frase:     he dormido 6 horas, fatal
+  Esperado:  salud
+  Real:      salud
+  Valida:    Sprint H4 (D3, D39-D42): caso base de la tool salud
+  Alfred:    Lamentablemente no ha podido registrarse ahora mismo, señor. Le sugiero que lo intentemos de nuevo en unos minutos.
+
+Y seis horas con mal descanso… procure no forzar demasiado esta noche.
+
+#25 [PASS] mode=exact
+  Frase:     anoche dormí fatal, me desperté dos veces
+  Esperado:  salud
+  Real:      salud
+  Valida:    Sprint H4: sueño contado con detalle (despertares), sigue siendo una sola llamada a salud
+  Alfred:    Entendido, señor. Lamentablemente el sistema de salud no responde en este momento; le ruego que me lo recuerde en unos minutos e intentaré anotarlo de nuevo.
+
+#26 [PASS] mode=exact
+  Frase:     esta noche he dormido genial, como un tronco
+  Esperado:  salud
+  Real:      salud
+  Valida:    Sprint H4: sueño positivo, sin cifras — salud también para el lado bueno, no solo quejas
+  Alfred:    Lo anoto en cuanto el sistema vuelva a estar disponible, señor. Si lo desea, inténtelo de nuevo en unos minutos y lo registro sin falta.
+
+#27 [PASS] mode=exact
+  Frase:     dormí 7 horas y media, bastante bien
+  Esperado:  salud
+  Real:      salud
+  Valida:    Sprint H4: horas con fracción en texto ('y media')
+  Alfred:    Lo anoto en cuanto el sistema vuelva a estar disponible. Si me lo recuerda en unos minutos, lo registro sin falta.
+
+#28 [FAIL] mode=any_of
+  Frase:     recuérdame acostarme pronto
+  Esperado:  (ninguna)  O  notes_create
+  Real:      request_clarification
+  Valida:    Sprint H4, negativa: NO es un registro de sueño, es un recordatorio futuro. No hay tool de recordatorios todavía, así que vale sin tool o como nota — lo único que falla el test es que llame a salud
+  Alfred:    Entiendo que hay un mensaje mal encaminado, señor. Esa pregunta está dirigida a usted, no al revés.
+
+¿A qué hora desea que le recuerde acostarse? ¿Y prefiere que sea solo esta noche o de forma recurre
+
+#29 [PASS] mode=exact
+  Frase:     apunta melatonina en la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Sprint H4, negativa: frontera salud vs lista de la compra — 'apunta' + un suplemento para dormir no debe disparar salud (descripción de la tool, estrecha a propósito)
+  Alfred:    Anotado, señor. Melatonina en la lista de la compra.
+
+#30 [PASS] mode=exact
+  Frase:     he comido lentejas con chorizo
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3 (D46): caso base de comida
+  Alfred:    Mis disculpas, señor — el sistema no ha podido registrarlo en este momento. Le sugiero intentarlo de nuevo en unos minutos.
+
+#31 [PASS] mode=exact
+  Frase:     me he tomado un puñado de galletas
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3: picoteo entre horas, sigue siendo salud
+  Alfred:    Entendido, aunque me temo que el registro no ha podido guardarse en este momento. Le sugiero que lo intentemos de nuevo en unos minutos.
+
+#32 [PASS] mode=exact
+  Frase:     de cena ensalada y una tortilla
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3: comida sin verbo ('de cena ...'), estilo telegráfico real
+  Alfred:    Lo siento, señor — la herramienta ha fallado al intentar registrarlo. Le ruego que lo intente de nuevo en unos minutos.
+
+#33 [PASS] mode=exact
+  Frase:     desayuno: café con leche y una tostada con tomate
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3: comida con forma de etiqueta ('desayuno: ...')
+  Alfred:    Lo siento, señor — ha habido un problema técnico al registrar el desayuno. Le ruego que lo intente de nuevo en unos minutos.
+
+#34 [PASS] mode=exact
+  Frase:     ayer cené pizza con la familia
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3: comida de un día pasado (D51), con compañía; sigue siendo una sola llamada a salud
+  Alfred:    Lo siento, señor — el sistema no ha podido registrarlo en este momento. Le sugiero intentarlo de nuevo en unos minutos.
+
+#35 [PASS] mode=exact
+  Frase:     he comido lentejas y estoy lleno
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3 (D47): comida y saciedad en un mensaje = UNA llamada a salud (Tristras separa los tipos)
+  Alfred:    Lo siento, señor — el registro no ha podido completarse ahora mismo. Le sugiero que lo intente de nuevo en unos minutos.
+
+#36 [PASS] mode=exact
+  Frase:     tengo un hambre que me muero
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3 (D49): hambre intensa
+  Alfred:    Vaya momento para que los sistemas me fallen. No he podido registrarlo, pero lo intento de nuevo en un momento.
+
+Mientras tanto — ¿le preparo algo? Si me dice qué tiene en casa, o quiere que consulte 
+
+#37 [PASS] mode=exact
+  Frase:     estoy lleno
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3 (D49): saciedad; sin llamar a memoria ni a notas (nada de salud en la memoria episódica)
+  Alfred:    Entendido, señor. El sistema no ha podido registrarlo en este momento. Si le parece, inténtelo de nuevo en unos minutos.
+
+#38 [PASS] mode=exact
+  Frase:     ya no tengo hambre, estoy satisfecho
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3 (D49): saciedad con negación de hambre
+  Alfred:    Entendido, señor. Desafortunadamente el sistema no ha podido registrarlo en este momento. Si me lo recuerda en unos minutos, lo anoto sin falta.
+
+#39 [PASS] mode=exact
+  Frase:     apunta tomates en la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Fase 3 H3, negativa: un alimento en la lista de la compra no es una comida (frontera como #29)
+  Alfred:    Anotado, señor. Tomates en la lista de la compra.
+
+#40 [PASS] mode=any_of
+  Frase:     recuérdame comer a las 2
+  Esperado:  calendar_add_event  O  (ninguna)
+  Real:      calendar_add_event
+  Valida:    Fase 3 H3, negativa: recordatorio futuro, no una comida. Aceptado: lo que el planner hizo en el paso B (calendar_add_event) o nada; lo único que falla es llamar a salud
+  Alfred:    Anotado, señor. Mañana a las 14:00 le recuerdo que es hora de comer.
+
+#41 [PASS] mode=any_of
+  Frase:     busca una receta de lentejas
+  Esperado:  notes_search  O  (ninguna)
+  Real:      notes_search
+  Valida:    Fase 3 H3, negativa: pide una receta, no apunta una comida. Aceptado: lo observado en B (notes_search) o nada; falla si llama a salud
+  Alfred:    No tengo ninguna receta de lentejas guardada en sus notas, señor.
+
+¿Desea que guarde una cuando la tengamos, o prefiere que busquemos en otra fuente?
+
+#42 [PASS] mode=any_of
+  Frase:     ¿qué tiempo hace?
+  Esperado:  weather_get  O  request_clarification
+  Real:      weather_get
+  Valida:    Fase 3 H3, negativa: tiempo, sin relación con salud. Aceptado: lo observado en B (weather_get) o pedir aclaración (sin ciudad); falla si llama a salud
+  Alfred:    En Madrid tenemos ahora mismo 23 °C, cielo despejado y sin probabilidad de lluvia. La temperatura ha oscilado entre 16 y 27 °C durante el día.
+
+Una noche agradable, señor.
+
+#43 [PASS] mode=multiset
+  Frase:     tengo hambre, apunta galletas en la compra
+  Esperado:  salud → list_add_item
+  Real:      salud → list_add_item
+  Valida:    Fase 3 H3, frontera: una sensación y una lista en la misma frase, cada una a su tool
+  Alfred:    Galletas anotadas en la lista de la compra.
+
+En cuanto al hambre, no he podido registrarla esta vez — pruebe de nuevo en un momento si desea que quede apuntado.
+
+#44 [PASS] mode=exact
+  Frase:     me he zampado un bocata de jamón
+  Esperado:  salud
+  Real:      salud
+  Valida:    H3-revision §2.1: comida con jerga ('zampar', 'bocata'), sin 'he comido'
+  Alfred:    Entendido, señor. Por algún motivo el sistema no ha podido registrarlo ahora mismo. Le sugiero que lo intente en unos minutos y con mucho gusto lo anoto.
+
+#45 [PASS] mode=exact
+  Frase:     llevo todo el día sin comer, tengo un agujero
+  Esperado:  salud
+  Real:      salud
+  Valida:    H3-revision §2.1: hambre dicha por metáfora y por ausencia de comida
+  Alfred:    Entendido — aunque no he podido dejar nota de ello ahora mismo, lo tengo presente.
+
+Un día en ayunas a estas horas es bastante castigo. ¿Desea que le sugiera algo rápido, o prefiere que le ayude a org
+
+#46 [PASS] mode=exact
+  Frase:     para merendar un par de mandarinas
+  Esperado:  salud
+  Real:      salud
+  Valida:    H3-revision §2.1: picoteo telegráfico, sin verbo
+  Alfred:    Lo siento, señor. El registro no ha respondido en este momento. Si me lo recuerda en un rato, lo apunto sin falta.
+
+#47 [PASS] mode=exact
+  Frase:     uf, he comido demasiado
+  Esperado:  salud
+  Real:      salud
+  Valida:    H3-revision §2.1: saciedad dicha como exceso, no como 'estoy lleno'
+  Alfred:    Vaya, lo siento — el sistema de salud no ha respondido bien ahora mismo. Si me lo recuerda en un momento, lo anoto sin falta.
+
+#48 [FAIL] mode=any_of
+  Frase:     compra yogures
+  Esperado:  request_clarification  O  (ninguna)
+  Real:      list_add_item
+  Valida:    H3-revision §2.1, negativa cercana: un alimento en imperativo (mandato de compra), no una comida. Aceptado: lo observado en la línea base (pide aclaración) o nada; falla si llama a salud
+  Alfred:    Anotado, señor. Yogures en la lista de la compra.
+
+#49 [FAIL] mode=any_of
+  Frase:     ¿qué ceno hoy?
+  Esperado:  (ninguna)
+  Real:      inventory_list → notes_search → search_memory
+  Valida:    H3-revision §2.1, negativa cercana: pide una idea de cena, no cuenta lo que ha comido. Aceptado: lo observado en la línea base (ninguna tool); falla si llama a salud
+  Alfred:    Una cena ligera esta noche se complica, señor. En el inventario solo consta Actimel —seis unidades— y no tengo anotadas preferencias ni ideas de cena.
+
+¿Desea que le ayude a revisar si falta algo en l
+
+#50 [PASS] mode=any_of
+  Frase:     ¿y mañana?
+  Esperado:  calendar_list_events  O  calendar_search_events
+  Real:      calendar_list_events
+  Valida:    Fase 1 H2 (D21): «¿y mañana?» solo se entiende con el turno anterior (calendario)
+  Alfred:    Mañana tiene dos compromisos, señor:
+
+- **14:00** — Comer
+- **20:00** — Teatro
+
+#51 [PASS] mode=any_of
+  Frase:     ¿y en Gijón?
+  Esperado:  weather_get  O  weather_forecast
+  Real:      weather_get
+  Valida:    Fase 1 H2 (D21): cambio de ciudad sin repetir la intención (tiempo)
+  Alfred:    En Gijón, 20 °C, sin lluvia. La horquilla del día va de 17 a 22 °C.
+
+#52 [PASS] mode=exact
+  Frase:     apunta leche a la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Fase 1 H2 (D21), negativa: el historial no arrastra la tool del turno anterior (tiempo)
+  Alfred:    Leche apuntada en la lista de la compra, señor.
+
+#53 [PASS] mode=exact
+  Frase:     Que sabes de mi?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Fase 1 H4 (D26): pregunta sobre el usuario va a la memoria, no a capacidades (incidente 2026-10-14)
+  Alfred:    De usted, señor, tengo anotado lo siguiente:
+
+- **Su cuñado Paco** es alérgico a los frutos secos.
+- **Rebe** cumple años en marzo.
+- A usted **le gusta el vino tinto de Ribera del Duero**.
+
+Poco más 
+
+#54 [PASS] mode=exact
+  Frase:     Que sabes de mi?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Fase 1 H4 (D26): reproduce el incidente tal cual, con el historial del tiempo
+  Alfred:    Lo que tengo anotado sobre usted, señor:
+
+- Su cuñado **Paco** es alérgico a los frutos secos.
+- El cumpleaños de **Rebe** es en marzo.
+- Le gusta el **vino tinto de Ribera del Duero**.
+
+Si desea añad
+
+#55 [PASS] mode=exact
+  Frase:     Cómo me llamo?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Fase 1 H4 (D26): dato personal concreto, va a la memoria
+  Alfred:    No me consta su nombre, señor. Si gusta indicármelo, lo anoto de inmediato.
+============= USO DE LA API (medido por Orchestrator._track_usage) =============
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-5-5                       1010911           10183    0.1062
+claude-sonnet-4-6                        48539            3038    0.1912
+TOTAL                                                             0.2974
+latencia por turno (misma medida que 'Turn end'): n=57 mediana=4.41s p90=6.59s min=2.5s max=11.5s
+============================= RESUMEN: 51/55 PASS ==============================
+=========================== short test summary info ============================
+FAILED tests/golden/test_goldens.py::test_golden[golden_21] - AssertionError:...
+FAILED tests/golden/test_goldens.py::test_golden[golden_28] - AssertionError:...
+FAILED tests/golden/test_goldens.py::test_golden[golden_48] - AssertionError:...
+FAILED tests/golden/test_goldens.py::test_golden[golden_49] - AssertionError:...
+4 failed, 52 passed in 276.15s (0:04:36)
