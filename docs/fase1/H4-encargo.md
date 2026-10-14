@@ -141,3 +141,102 @@ Responde a: 76fa3cb (H3-revision §3)
    respuestas del test de síntesis y los comandos de despliegue para Josem.
 
 **Para en el informe.** No sigas con nada de la fase 2.
+
+## 5. Añadido (2026-10-14): los goldens escribieron en la producción de Tristras
+
+Responde a: 3fe603a (este mismo encargo; aún no hay informe de H4)
+
+**Qué pasó.** Lo avisó el arquitecto de tristras. El 2026-10-13, a las 23:42 y a las 23:54, se
+pasaron los goldens de H1 y H2 desde este worktree. El `config.yaml` era copia del de producción,
+con `tristras_url: http://127.0.0.1:8003` y el token real. La tool `salud` no está simulada en
+los goldens, así que cada frase de prueba de comida, hambre y sueño se guardó en `tristras_db`
+como si fuera de Josem: 16 comidas, 14 sensaciones y 1 noche. Tristras ya lo ha limpiado. En
+este worktree, `tristras_url` apunta ahora a `127.0.0.1:8013`, donde no escucha nadie.
+
+**Atribución: hueco del plan (arquitecto).**
+- La lista previa del PLAN §1 solo miró la API de Anthropic, y el §0 mandaba copiar el
+  `config.yaml` de producción sin decir qué había que neutralizar en la copia.
+- El harness aislaba MariaDB y Qdrant, pero no los servicios externos que salen de la config.
+
+**Revisión de las demás tools** (`core/tool_executor.py`, lo he hecho yo):
+
+| Tool | Sale a | ¿Escribe? | En los goldens |
+|---|---|---|---|
+| `salud` | Tristras (`tristras_url`, `tristras_token`) | **Sí** | **Agujero** |
+| `youtube_transcript` | `youtube_workdir` y `<vault>/Clippings/` | **Sí, en el vault real** | **Agujero latente**: ningún golden lo pide hoy, pero el planner puede elegirlo |
+| `mark_as_memorable` | Qdrant y OpenAI | Sí | Aislado (`sebastian_memory_test`) |
+| calendario, listas, notas, inventario, tareas, ajustes | MariaDB | Sí | Aislado (`sebastian_test`, D25) |
+| `weather_*` | OpenMeteo | No (solo lee) | Sin riesgo |
+| `consult_docs` | Vault | No (solo lee) | Sin riesgo |
+
+No hay ninguna tool que mande mensajes de Telegram ni que escriba en Google Calendar: el
+calendario es la tabla `events`.
+
+**Decisión: D27** (en ADR-MEMORIA). La config que reciben los goldens se neutraliza en el
+harness, sea cual sea el `config.yaml`. Ningún servicio con escritura que salga de la config
+puede apuntar a algo real durante los tests.
+
+### Qué se cambia — antes de cualquier paso [API] de H4
+
+- **T4.4 · Neutralizar Tristras.** En `tests/golden/conftest.py`, la config que acaba en el
+  `Orchestrator` y el `ToolExecutor` (hoy `memory_config`, mejor con un nombre que diga lo que es
+  ahora) fuerza estos dos valores:
+  - `tristras_url = "http://127.0.0.1:9"` (el puerto discard, donde nunca escucha nadie);
+  - `tristras_token = "golden-sin-tristras"`.
+
+  Así `salud` siempre cae en su camino de fallo de red, que los goldens #24–29 y #30–43 ya dan
+  por bueno, porque solo comprueban qué tool elige el planner.
+- **T4.5 · Neutralizar YouTube.** En la misma config:
+  - `youtube_workdir` va a un directorio temporal de la sesión;
+  - la escritura de `Clippings/` no puede llegar al vault real.
+
+  Como `Clippings/` se calcula desde `vault_docs_path` (que `consult_docs` necesita real para
+  leer), elige una de dos:
+  - **(a)** una clave opcional `youtube_clippings_path` en la config (por defecto, la de hoy), que
+    el harness apunta al directorio temporal;
+  - **(b)** el runner de goldens sustituye `_youtube_transcript` por un stub que solo registra la
+    llamada.
+
+  Recomiendo la **(a)**: deja la costura en el código y la puede usar también el entorno de
+  desarrollo. Cuenta cuál eliges en Desviaciones.
+- **T4.6 · Comentario `D27`** en la costura del harness.
+
+### Pruebas normativas del añadido
+
+En `tests/test_golden_config.py`, **sin API y no marcado `golden`**, para que corra en cada
+`pytest`. Construye la config de los goldens con la misma función o fixture que usa el harness y
+comprueba:
+
+- `test_goldens_no_apuntan_a_tristras_real`: `tristras_url` no contiene `:8003` y su puerto es 9.
+- `test_goldens_no_llevan_token_real`: `tristras_token` es distinto del de `get_config()` y vale
+  `"golden-sin-tristras"`.
+- `test_goldens_no_escriben_en_el_vault`: la ruta de `Clippings` que resultaría (o el stub, si
+  eliges la (b)) no está dentro de `/data/library/mi-wiki/`.
+- `test_goldens_youtube_workdir_temporal`: `youtube_workdir` está bajo el directorio temporal del
+  sistema, no en `/data/ytb-video-extracts`.
+
+**Valídalo rompiéndolo:** quita a mano el override de T4.4 y comprueba que los dos primeros tests
+fallan. Cuéntalo en el informe y no lo dejes así.
+
+Además, revisa los tests unitarios que tocan `salud` (`test_salud_module.py`,
+`test_ticket_handler.py`, `test_tool_executor.py`) y confirma en el informe que ninguno llega a
+la red: todos deben simular `requests`.
+
+**Cuando esté:** el informe lo dice en una sección propia. Yo se lo paso al arquitecto de
+tristras para que lo compruebe desde allí.
+
+## Para el programador
+
+Responde a: 3fe603a (H4-encargo)
+
+Este añadido **va antes que todo lo del §3 que gaste API**. Orden:
+
+1. PLAN §0, como dice el encargo. Deja en la copia de `config.yaml` el `tristras_url` muerto que
+   ya tiene (`:8013`) hasta que T4.4 esté hecho.
+2. T4.4–T4.6 y los cuatro tests de este añadido, con la validación rompiéndolo.
+3. Lo del §3 y lo del §2 (T4.1–T4.3), como estaba.
+4. **Solo entonces**, con el «sí» de Josem en tu ventana, la pasada **[API]**.
+   - El tope sigue siendo 1 $: este añadido no gasta.
+   - Después de la pasada, comprueba en LogCentral (source `tristras`) que no entró ninguna
+     ingesta durante la ventana de la pasada, y pega el comando y su salida en el informe.
+5. El informe de H4 incluye una sección «D27 — servicios externos en los goldens».
