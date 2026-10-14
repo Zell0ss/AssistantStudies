@@ -340,7 +340,11 @@ class ToolExecutor:
     def _youtube_transcript(self, inputs: dict):
         config = self._config if self._config is not None else get_config()
         workdir = Path(config.get('youtube_workdir', _YOUTUBE_WORKDIR_DEFECTO))
-        clippings = Path(config['vault_docs_path']).parent / 'Clippings'
+        # D27: `youtube_clippings_path` (opcional) permite sacar la escritura de Clippings/ del vault
+        # real, p. ej. en los goldens. Por defecto, como siempre: <padre de vault_docs_path>/Clippings.
+        clippings = Path(
+            config.get('youtube_clippings_path') or Path(config['vault_docs_path']).parent / 'Clippings'
+        )
 
         try:
             resultado = extraer(inputs['url'], inputs.get('idioma') or 'original', workdir, clippings)

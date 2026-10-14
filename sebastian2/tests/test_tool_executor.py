@@ -635,3 +635,15 @@ def test_memory_module_uses_configured_collection_name(db):
         openai_api_key='sk-fake',
         qdrant_url='http://localhost:6333',
     )
+
+
+@patch('core.tool_executor.extraer')
+def test_youtube_transcript_usa_youtube_clippings_path_si_esta(mock_extraer, db, youtube_config, tmp_path):
+    """D27: la clave opcional youtube_clippings_path manda sobre <vault>/../Clippings."""
+    mock_extraer.return_value = {
+        'titulo': 't', 'idioma': 'es', 'subtitulos': 'manual', 'ruta_md': 'x.md', 'palabras': 1, 'id': 'x',
+    }
+    from core.tool_executor import ToolExecutor
+    config = {**youtube_config, 'youtube_clippings_path': str(tmp_path / "otros_clippings")}
+    ToolExecutor(db, '99999', config=config).execute("youtube_transcript", {"url": "u", "idioma": "es"})
+    assert str(mock_extraer.call_args[0][3]) == str(tmp_path / "otros_clippings")

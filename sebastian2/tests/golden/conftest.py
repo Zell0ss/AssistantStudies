@@ -7,7 +7,7 @@ connection to anything — if that assertion fails, the whole session aborts
 immediately. This is a hard assert, not a naming convention.
 
 Same guardrail extends to memory (Sprint 3): golden #20 writes a real point via
-mark_as_memorable, so `memory_config` refuses to run unless the isolated
+mark_as_memorable, so `config_de_goldens` refuses to run unless the isolated
 TEST_MEMORY_COLLECTION collection actually exists in Qdrant, and never resolves
 to the real 'sebastian_memory' collection.
 """
@@ -16,6 +16,7 @@ from datetime import date, datetime, timedelta
 import pymysql
 import pytest
 
+from tests.golden.aislamiento import neutralizar_servicios_externos
 from utils.config import get_config
 
 TEST_DB_NAME = "sebastian_test"
@@ -159,10 +160,13 @@ def golden_fixtures(test_db):
 
 
 @pytest.fixture(scope="session")
-def memory_config():
+def config_de_goldens(tmp_path_factory):
     """Config dict pointing memory tools at the ISOLATED sebastian_memory_test collection.
     Hard-aborts if that collection isn't reachable — golden #20 writes a real point via
-    mark_as_memorable, and this guardrail exists to keep that off 'sebastian_memory'."""
+    mark_as_memorable, and this guardrail exists to keep that off 'sebastian_memory'.
+
+    D27: además neutraliza los servicios con escritura que salen de la config (Tristras, Clippings
+    del vault, workdir de YouTube): ver tests/golden/aislamiento.py."""
     from qdrant_client import QdrantClient
 
     if TEST_MEMORY_COLLECTION == "sebastian_memory":
@@ -187,11 +191,12 @@ def memory_config():
         )
 
     base_config["memory_collection"] = TEST_MEMORY_COLLECTION
-    return base_config
+    # D27: ni Tristras ni el vault real (Clippings) ni el workdir de YouTube, sea cual sea el config.yaml.
+    return neutralizar_servicios_externos(base_config, tmp_path_factory.mktemp("goldens"))
 
 
 @pytest.fixture(scope="session")
-def memory_fixtures(memory_config):
+def memory_fixtures(config_de_goldens):
     """Seed deterministic memories in the isolated test collection. Session-scoped: wipes
     and recreates sebastian_memory_test at the start of each session for determinism."""
     from qdrant_client import QdrantClient
@@ -199,7 +204,7 @@ def memory_fixtures(memory_config):
 
     from modules.memory import MemoryModule
 
-    qdrant_url = memory_config.get("qdrant_url", "http://localhost:6333")
+    qdrant_url = config_de_goldens.get("qdrant_url", "http://localhost:6333")
     client = QdrantClient(url=qdrant_url)
     client.delete_collection(TEST_MEMORY_COLLECTION)
     client.create_collection(
@@ -210,7 +215,7 @@ def memory_fixtures(memory_config):
 
     mem = MemoryModule(
         collection_name=TEST_MEMORY_COLLECTION,
-        openai_api_key=memory_config["openai_apikey"],
+        openai_api_key=config_de_goldens["openai_apikey"],
         qdrant_url=qdrant_url,
     )
     mem.store("Mi cuñado Paco es alérgico a los frutos secos", tags=["familia", "salud"])
@@ -248,7 +253,7 @@ def sembrar_historia(db, user_id: str, historia: list) -> None:
 
 
 @pytest.fixture
-def orchestrator_runner(test_db, golden_fixtures, memory_config, memory_fixtures):
+def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixtures):
     """Returns a callable run(phrase) -> (tool_call_sequence, response_dict).
 
     Records the tool-call sequence by wrapping ToolExecutor.execute (real dispatch
@@ -286,7 +291,7 @@ def orchestrator_runner(test_db, golden_fixtures, memory_config, memory_fixtures
         with patch.object(ToolExecutor, "execute", recording_execute), \
              patch.object(Orchestrator, "_ask_user", recording_ask_user), \
              patch.object(Orchestrator, "_track_usage", midiendo_uso):
-            orch = Orchestrator(test_db, golden_fixtures["user_id"], config=memory_config)
+            orch = Orchestrator(test_db, golden_fixtures["user_id"], config=config_de_goldens)
             response = orch.handle(phrase)
 
         return calls, response
