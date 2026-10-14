@@ -60,15 +60,14 @@ avisara de que la pasada costaría ≈ 1,0 $ y rozaba el tope de 1 $ del encargo
 
 **El tope del encargo (1 $) se superó en 0,06 $.** No paré a mitad: el harness no corta por coste y
 la pasada ya se había avisado como ≈ 1,0 $ antes del «sí» de Josem; lo cuento aquí porque el encargo
-pedía hacerlo. No ha habido segunda pasada ni repeticiones. Además de la pasada, el único gasto ha
-sido 0. (La estimación del encargo, 0,3–0,6 $, volvió a quedarse corta: con 55 goldens ya van ≈ 1,06 $
+pedía hacerlo. No ha habido segunda pasada ni repeticiones; el resto del trabajo de H4 no ha llamado a la API. (La estimación del encargo, 0,3–0,6 $, volvió a quedarse corta: con 55 goldens ya van ≈ 1,06 $
 medidos.) Gasto acumulado de la fase 1: ≈ 1,9 $ (H1–H3) + 1,06 $ (H4), este último con autorización propia.
 
 ## D27 — servicios externos en los goldens
 
 **Atribución (propia, además de la del encargo):** copié el `config.yaml` de producción sin neutralizar
-nada, como decía el PLAN §0, y no miré que `salud` no estuviera simulada en los goldens. Fue mi
-pasada completa de H1 (la del #24–#47 con 49 goldens) y la de H2 las que escribieron en `tristras_db`.
+nada, como decía el PLAN §0, y no miré que `salud` no estuviera simulada en los goldens. Fueron
+mis pasadas completas de goldens de H1 (23:42 del 2026-10-13) y de H2 (23:54) las que escribieron en `tristras_db`.
 
 - **T4.4 Tristras:** `tests/golden/aislamiento.py::neutralizar_servicios_externos()` fuerza
   `tristras_url = "http://127.0.0.1:9"` y `tristras_token = "golden-sin-tristras"`. La usa la fixture
