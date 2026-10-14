@@ -136,3 +136,67 @@ Responde a: — (primer mensaje de la fase 2)
    base, el precio en vivo y los comandos de despliegue.
 
 **Para en el informe.** El plan de la fase 2 lo escribo yo después de revisar H0.
+
+## 6. Añadido (2026-10-14): Python 3.12 y `anthropic` 1.x
+
+Responde a: 360d7bc (este mismo encargo; aún no hay informe de H0)
+
+**Decisión de Josem (2026-10-14, opción B):** se actualiza el SDK dentro de H0.
+- Hoy el `.venv` de Sebastian corre con **Python 3.11.0rc1**, la del sistema, que el `CLAUDE.md`
+  global prohíbe; al recrear un `.venv` se usa 3.12. Además tenemos `anthropic` **0.79.0**, y la
+  última es la **1.14.0** (lo he mirado con `pip index versions`).
+- La guía de la skill `claude-api` (`python/claude-api/sdk-upgrade.md`) dice que de 0.x a 1.x
+  cambian tres cosas: el cliente HTTP pasa de `httpx` a `httpx2`, se quita la superficie
+  obsoleta y el mínimo es Python 3.10.
+- Nuestro uso es pequeño (`Anthropic(...)`, `messages.create`, `APIError`, `APIConnectionError`,
+  `RateLimitError`, `model_dump`, en `core/orchestrator.py` y `scripts/cuaderno/despertar.py`), y
+  ningún punto de la guía nos toca a primera vista. **Compruébalo** con el inventario del paso 1
+  de esa guía, no te fíes de mí.
+
+**Orden.** He visto que ya estás en la pasada completa con Haiku 5.5 sobre el SDK 0.79. **Termínala
+tal cual**: mide D28 sin mezclar nada. Lo de esta sección va **después**, en commits propios.
+
+- **T0.7 · `.venv` nuevo en el worktree** con `python3.12 -m venv .venv`.
+  - Instala `requirements.txt` cambiando solo `anthropic==0.79.0` por `anthropic==1.14.0`. El resto
+    de los pins se quedan como están; si alguno no instala en 3.12, para y cuéntalo.
+  - Actualiza `requirements.txt` solo en la línea de `anthropic`. Si `pip` trae dependencias
+    nuevas (`httpx2`…), no las fijes a mano: las arrastra el propio SDK.
+  - Revisa también `sebastian2/sebastian2.service`, `deploy/cuaderno.service` y cualquier otro
+    sitio que cite la ruta del `.venv`. La ruta no cambia, cambia el contenido.
+- **T0.8 · Código.** Si con 0.79 pasaste el esfuerzo por `extra_body` (T0.5), ahora pasa a
+  `output_config=` normal, comprobado en la documentación de la skill para 1.x. Lo demás, solo si
+  el inventario de la guía encuentra algo.
+- **T0.9 · Pruebas.**
+  1. `pytest` completo en el `.venv` nuevo, sin API: todo en verde.
+  2. **[API]** con `-k`: #20–#23 (memoria y capacidades), #50 y #54 (historial), un golden de
+     salud, el flujo de aclaración y reanudación, y el test de honestidad de la fase 1 (H4). Es
+     la comprobación de que el SDK nuevo se comporta igual con la configuración final (Haiku 5.5
+     + 1.14). La salida va a `docs/fase2/goldens/` como siempre.
+
+**Tope del hito:** sube de 1 $ a **1,2 $** (Josem, 2026-10-14). Si el SDK nuevo falla algún golden
+que en la pasada completa sobre 0.79 pasaba, **para**: es del SDK, y lo cuentas antes de tocar nada
+más.
+
+**Despliegue (lo hace Josem; déjalo escrito en el informe, con la vuelta atrás).** Va al final de
+H0, se adopte o no D28, porque el `.venv` nuevo vale igual con cualquier planner:
+
+1. Parar `sebastian.service`.
+2. `mv /data/AssistantStudies/sebastian2/.venv /data/AssistantStudies/sebastian2/.venv-3.11-old`
+3. Merge `--ff-only` de `fase-2` en `main`.
+4. `python3.12 -m venv .venv` e instalar `requirements.txt` en el directorio de producción.
+5. Arrancar el servicio y comprobar el arranque y que no hay errores en LogCentral. El cuaderno
+   usa el mismo `.venv` en su próximo disparo.
+
+**Vuelta atrás:** parar, borrar el `.venv` nuevo, devolver `.venv-3.11-old` a `.venv`,
+`git reset --hard` al `main` anterior y arrancar. Deja la ruta exacta y el hash en el informe.
+
+## Para el programador
+
+Responde a: 360d7bc (H0-encargo)
+
+1. Termina la pasada completa de Haiku 5.5 sobre 0.79 y guarda su salida. No la repitas.
+2. T0.7–T0.9 (este §6), en commits separados de lo de D28.
+3. Informe de H0 con las dos partes:
+   - D28: el criterio del §4, contra la pasada completa;
+   - SDK y Python: la lista de cambios encontrados, los goldens con `-k` y los pasos de despliegue
+     con la vuelta atrás.
