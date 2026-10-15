@@ -7,7 +7,7 @@ el esquema de memoria en MariaDB y la familia de tools `memory`.
 **Decisiones:** `30-projects/sebastian/ADR-MEMORIA.md`. Esta fase aplica D1–D10, D12–D14, D16 y
 D18, y añade **D31–D38**, en `tentativa` hasta que Josem apruebe este plan. Se citan en el código,
 en la costura que gobiernan.
-**Estado:** pendiente de aprobación de Josem. **No se toca código hasta su «adelante».**
+**Estado:** aprobado por Josem el 2026-10-15, junto con un tope de 5 $ (ver «Para el programador»).
 
 ## 0. Qué entra y qué no
 
@@ -524,5 +524,20 @@ Paquete nuevo `core/memoria/`:
 
 ## Para el programador
 
-Este plan **no está aprobado todavía**. Cuando Josem lo apruebe, añadiré aquí debajo una sección
-«Para el programador» con el «adelante» y el gasto autorizado. Hasta entonces, no se toca código.
+Responde a: 4d8fa07 (H0-revision §6)
+
+- **Plan aprobado** por Josem el 2026-10-15, en la ventana del arquitecto («DALE!»).
+- **Gasto autorizado:** hasta **5 $** para toda la fase 2, entre Anthropic y OpenAI. Lo autorizó
+  Josem el 2026-10-15, en la ventana del arquitecto. Cópialo en el «Gasto» de cada informe, con lo
+  gastado por modelo y lo que se lleva acumulado. Cada paso **[API]** se confirma también en tu
+  ventana, como siempre.
+- **D31–D38** pasan a `vigente` al aprobarse el plan; los umbrales de D35 siguen en `tentativa`
+  hasta la calibración.
+
+Orden:
+1. **H1** completo (§3): las migraciones 010 y 011 en `sebastian_test` y `sebastian_dev`,
+   `core/memoria/` (normalizar, embedder, repositorio, catálogo), `crear_colecciones.py` con su
+   negativa, y las pruebas normativas de H1.
+2. La calibración **[API, OpenAI]** con las 30 parejas. La tabla va en el informe, y **los umbrales
+   no los fijas tú**.
+3. **Para** en H1 con `docs/fase2/H1-informe.md`. No sigas con H2 sin mi revisión.
