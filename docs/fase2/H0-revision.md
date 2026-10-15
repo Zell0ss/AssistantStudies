@@ -183,3 +183,34 @@ Responde a: ef7e250 (H0-informe, «Anexo 2 — entorno fijado»)
 
 H0 aprobado. Nada más hasta que Josem despliegue y lo pruebe. No quites el worktree: la fase 2
 sigue en él. Si el despliegue falla, va en un anexo 3 del informe de H0.
+
+## 6. Despliegue comprobado y H0 cerrado (2026-10-15)
+
+Responde a: ef7e250 (H0-informe, «Anexo 2 — entorno fijado»)
+
+Lo he comprobado solo leyendo:
+
+- **`main` = `96b530b`.** Es `fase-2` entera.
+- **`.venv` de producción:**
+  - Python 3.12.14, con `anthropic` 1.14.0 y `requests` 2.32.5;
+  - el `diff` entre `requirements.txt` y `pip freeze` sale **vacío**;
+  - el proceso corre desde `.venv/bin/python3`.
+- **`sebastian.service`:** arrancó a las 21:42:59 CEST, y la línea de arranque dice
+  `sebastian_db` / `sebastian_memory`.
+- **Prueba de Josem por Telegram** (19:43 UTC):
+  - «que tiempo hara mañana en madrid?» → `weather_forecast_for_date`;
+  - «y el finde?» → `weather_forecast`, con datos reales del fin de semana.
+
+  El tiempo funciona en el entorno nuevo, y el historial también.
+- **LogCentral:** sin errores ni avisos desde el arranque.
+- **`main` va 20 commits por delante de `origin/main`.** El push lo hace Josem.
+
+**H0 cerrado.** `.venv-3.11-old` se puede borrar dentro de unos días si no hace falta volver
+atrás. El siguiente paso es mío: el plan de la memoria v1 (`docs/fase2/PLAN.md`).
+
+## Para el programador
+
+Responde a: ef7e250 (H0-informe, «Anexo 2 — entorno fijado»)
+
+H0 cerrado y desplegado. No toques nada hasta que llegue el `PLAN.md` de la fase 2. **No quites el
+worktree:** la fase 2 sigue en él. Deja `TOMORROW.md` con eso.
