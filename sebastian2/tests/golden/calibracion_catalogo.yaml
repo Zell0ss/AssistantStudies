@@ -1,0 +1,46 @@
+# Calibracion de la resolucion semantica del catalogo (fase 2, H1, D35).
+# `scripts/memoria/calibrar.py` embebe las descripciones del catalogo (los atributos semilla de la BD
+# mas `catalogo_extra`, que son atributos que un usuario real acabaria teniendo) y puntua cada
+# expresion contra ellos. Positivas: tienen una entrada correcta. Negativas: se parecen a una entrada
+# pero NO la tienen (la que pasaria si el umbral fuera demasiado bajo va en `parecida_a`).
+catalogo_extra:
+  - {nombre: presion_neumaticos, descripcion: Presion de inflado de los neumaticos de un vehiculo}
+  - {nombre: matricula, descripcion: Matricula o placa de un vehiculo}
+  - {nombre: telefono, descripcion: Numero de telefono de contacto de una persona}
+  - {nombre: direccion, descripcion: Direccion postal o calle donde vive una persona o esta un lugar}
+  - {nombre: profesion, descripcion: Trabajo u oficio al que se dedica una persona}
+  - {nombre: fecha_revision, descripcion: Fecha de la proxima revision o inspeccion tecnica de un vehiculo}
+
+positivas:
+  - {expresion: las ruedas del coche, esperado: presion_neumaticos}
+  - {expresion: mi cuñado, esperado: parentesco}
+  - {expresion: no puede comer frutos secos, esperado: alergia}
+  - {expresion: cuando cumple años mi madre, esperado: cumpleanos}
+  - {expresion: su numero de movil, esperado: telefono}
+  - {expresion: en que calle vive, esperado: direccion}
+  - {expresion: el numero de la placa del coche, esperado: matricula}
+  - {expresion: a que se dedica, esperado: profesion}
+  - {expresion: que le gusta beber, esperado: preferencia}
+  - {expresion: en que servidor corre, esperado: host}
+  - {expresion: con que lenguajes esta hecho, esperado: stack}
+  - {expresion: donde esta el codigo fuente, esperado: repo}
+  - {expresion: en que fase va el proyecto, esperado: estado}
+  - {expresion: que base de datos usa, esperado: db}
+  - {expresion: cuando toca pasar la revision del coche, esperado: fecha_revision}
+
+negativas:
+  - {expresion: la presion arterial, parecida_a: presion_neumaticos}
+  - {expresion: la temperatura del horno, parecida_a: presion_neumaticos}
+  - {expresion: el saldo de la cuenta del banco, parecida_a: nota}
+  - {expresion: la altura de Paco, parecida_a: profesion}
+  - {expresion: el color favorito del coche, parecida_a: preferencia}
+  - {expresion: el numero de hijos, parecida_a: parentesco}
+  - {expresion: el peso de la maleta, parecida_a: nota}
+  - {expresion: la contraseña del wifi, parecida_a: nota}
+  - {expresion: el seguro del coche, parecida_a: matricula}
+  - {expresion: la hora de la cena, parecida_a: fecha_revision}
+  - {expresion: el grupo sanguineo, parecida_a: alergia}
+  - {expresion: el precio de la gasolina, parecida_a: presion_neumaticos}
+  - {expresion: cuantos kilometros tiene el coche, parecida_a: matricula}
+  - {expresion: el nombre del perro, parecida_a: parentesco}
+  - {expresion: la talla de zapato, parecida_a: preferencia}

@@ -42,3 +42,11 @@ youtube_workdir: "/data/ytb-video-extracts"
 # Tristras — ingesta de salud, tool `salud` y fotos sin QR (D3, D39-D42, fase 2)
 tristras_url: "http://127.0.0.1:8003"
 tristras_token: "your_tristras_ingesta_token_here"
+
+# Memoria v1 (fase 2, D35, D37). Opcional: sin esta seccion rigen los valores provisionales del plan.
+# Los umbrales son `tentativa` hasta calibrarlos con uso real.
+# memoria:
+#   umbrales:
+#     reutilizar: {puntuacion: 0.75, margen: 0.05}
+#     sustituir:  {puntuacion: 0.85, margen: 0.08}
+#   propietario_vault: 815566372   # por defecto, cuaderno_chat_id

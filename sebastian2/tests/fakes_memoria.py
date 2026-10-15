@@ -2,6 +2,7 @@
 import hashlib
 import math
 import re
+from types import SimpleNamespace
 
 from qdrant_client import QdrantClient
 
@@ -45,6 +46,10 @@ class QdrantQueDejaMarca:
 
     def __init__(self):
         self.llamadas = []
+
+    def get_collections(self):
+        self.llamadas.append("get_collections")
+        return SimpleNamespace(collections=[])
 
     def __getattr__(self, nombre):
         def registrar(*args, **kwargs):

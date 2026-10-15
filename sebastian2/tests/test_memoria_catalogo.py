@@ -165,7 +165,7 @@ def test_catalogo_embebe_descripciones_no_alias(catalogo):
 def test_catalogo_ordena_y_da_margen(catalogo):
     cat, repo = catalogo
     cat.indexar_atributos()
-    candidatos = cat.buscar_atributos("alergia a la penicilina de una persona", k=3)
+    candidatos = cat.buscar_atributos("alergia a la penicilina", k=3)
     puntuaciones = [c["score"] for c in candidatos]
     assert puntuaciones == sorted(puntuaciones, reverse=True)
     assert candidatos[0]["nombre"] == "alergia"

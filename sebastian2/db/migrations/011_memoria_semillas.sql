@@ -27,6 +27,7 @@ JOIN (
   UNION ALL SELECT 'alergia', 'alergica a'
   UNION ALL SELECT 'alergia', 'intolerancia'
   UNION ALL SELECT 'cumpleanos', 'cumple'
+  UNION ALL SELECT 'cumpleanos', 'cumpleaños'
   UNION ALL SELECT 'cumpleanos', 'cumples'
   UNION ALL SELECT 'cumpleanos', 'fecha de nacimiento'
   UNION ALL SELECT 'cumpleanos', 'aniversario de nacimiento'
