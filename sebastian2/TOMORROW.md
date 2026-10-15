@@ -1,11 +1,9 @@
 # tomorrow.md — Sebastian 2.0 (programador)
 
-**Punto de parada (2026-10-14):** fase 2, H0 con el anexo 2 («entorno fijado») entregado
-(`docs/fase2/H0-informe.md`). D28 no se adopta (planner en Haiku 4.5). `requirements.txt` es el freeze completo del
-`.venv` (Python 3.12 + anthropic 1.14 + requests 2.32.5; reproduce el venv exactamente). Listo para que Josem lo
-despliegue (pasos y vuelta atrás al final del anexo 2). Worktree: `/data/AssistantStudies-fase2`.
+**Punto de parada (2026-10-15):** fase 2, H0 cerrado y desplegado (H0-revision §6, `4d8fa07`; `main` = `96b530b`).
+D28 no se adopta (planner en Haiku 4.5); producción en Python 3.12 + anthropic 1.14. Worktree `/data/AssistantStudies-fase2`: no quitarlo.
 
-**Siguiente paso:** el que diga el arquitecto tras revisar el anexo 2. El plan de la fase 2 lo escribe él.
+**Siguiente paso:** no tocar nada hasta que llegue `docs/fase2/PLAN.md` (lo escribe el arquitecto).
 
 **Gotchas:**
 - Hay dos venv en el worktree: `sebastian2/.venv` es el **nuevo** (3.12 + anthropic 1.14, con `pytest==9.0.2`
