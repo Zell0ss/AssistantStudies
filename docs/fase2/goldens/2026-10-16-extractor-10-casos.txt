@@ -1,0 +1,36 @@
+'Mi cuñado Paco es alérgico a los frutos secos' →
+    {'entidad': 'Paco', 'tipo_entidad': 'persona', 'atributo': 'alergia', 'tipo_valor': 'texto', 'cardinalidad': 'varios', 'valor': 'frutos secos', 'operacion': 'afirmar', 'descripcion_atributo': '', 'ejemplos': []}
+.
+'Me equivoqué, la presión de las ruedas es 2,4 bares' →
+    {'entidad': 'coche', 'tipo_entidad': 'vehiculo', 'atributo': 'presion_neumaticos', 'tipo_valor': 'numero', 'cardinalidad': 'uno', 'valor': '2,4 bares', 'operacion': 'corregir', 'descripcion_atributo': '', 'ejemplos': []}
+.
+'Olvida lo de las camisetas UV' →
+    {'entidad': 'camisetas UV', 'tipo_entidad': 'objeto', 'atributo': 'nota', 'tipo_valor': 'texto', 'cardinalidad': 'uno', 'valor': '', 'operacion': 'retirar', 'descripcion_atributo': '', 'ejemplos': []}
+.
+'He decidido no publicar saxhero en GitHub de momento' →
+    {'entidad': 'saxhero', 'tipo_entidad': 'proyecto', 'atributo': 'nota', 'tipo_valor': 'texto', 'cardinalidad': 'varios', 'valor': 'No publicado en GitHub de momento', 'operacion': 'afirmar', 'descripcion_atributo': '', 'ejemplos': []}
+.
+'Mi cumpleaños es el 12 de marzo' →
+    {'entidad': 'yo', 'tipo_entidad': 'persona', 'atributo': 'cumpleanos', 'tipo_valor': 'fecha', 'cardinalidad': 'uno', 'valor': '--03-12', 'operacion': 'afirmar', 'descripcion_atributo': '', 'ejemplos': []}
+.
+'Qué tal estás' →
+.
+'Tengo hambre' →
+.
+'Paco y Ana son hermanos' →
+    {'entidad': 'Paco', 'tipo_entidad': 'persona', 'atributo': 'parentesco', 'tipo_valor': 'texto', 'cardinalidad': 'uno', 'valor': 'hermano de Ana', 'operacion': 'afirmar', 'descripcion_atributo': '', 'ejemplos': []}
+    {'entidad': 'Ana', 'tipo_entidad': 'persona', 'atributo': 'parentesco', 'tipo_valor': 'texto', 'cardinalidad': 'uno', 'valor': 'hermana de Paco', 'operacion': 'afirmar', 'descripcion_atributo': '', 'ejemplos': []}
+.
+'Ya no vivo en Gijón, ahora en Oviedo' →
+    {'entidad': 'yo', 'tipo_entidad': 'persona', 'atributo': 'lugar_residencia', 'tipo_valor': 'texto', 'cardinalidad': 'uno', 'valor': 'Oviedo', 'operacion': 'corregir', 'descripcion_atributo': 'Lugar donde vive actualmente una persona', 'ejemplos': ['Vivo en Madrid', 'Me he mudado a Barcelona', 'Residencia: Valencia']}
+.
+'Recuerda que mi talla de camisa es la M' →
+    {'entidad': 'yo', 'tipo_entidad': 'persona', 'atributo': 'talla_camisa', 'tipo_valor': 'texto', 'cardinalidad': 'uno', 'valor': 'M', 'operacion': 'afirmar', 'descripcion_atributo': 'Tamaño de ropa de camisa que usa una persona', 'ejemplos': []}
+.
+= USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create) =
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001                23936            1015    0.0290
+text-embedding-3-small (OpenAI)             144               -    0.0000
+TOTAL                                                             0.0290
+latencia por turno: sin datos
+10 passed in 18.10s

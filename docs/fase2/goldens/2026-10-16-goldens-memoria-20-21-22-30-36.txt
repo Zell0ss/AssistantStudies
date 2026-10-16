@@ -1,0 +1,48 @@
+.....                                                                    [100%]
+=========================== GOLDEN REGRESSION REPORT ===========================
+
+#20 [PASS] mode=exact
+  Frase:     recuerda que mi cuñado Paco es alérgico a los frutos secos
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Sprint 3: mark_as_memorable — hecho personal duradero, escribe un punto real en sebastian_memory_test
+  Alfred:    Anotado: Paco, su cuñado, es alérgico a los frutos secos. He abierto una ficha para él; avíseme si desea añadir algo más.
+
+#21 [PASS] mode=exact
+  Frase:     que te dije de la alergia de paco?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Sprint 3: search_memory encuentra la memoria sembrada en conftest.py (misma frase que golden #20, contenido pre-existente vía fixture)
+  Alfred:    Que su cuñado Paco es alérgico a los frutos secos.
+
+#22 [PASS] mode=exact
+  Frase:     apunta leche a la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Sprint 3: frontera operativo vs memoria — 'apunta' aquí es la lista de la compra, NO debe disparar mark_as_memorable
+  Alfred:    Anotado, señor. Leche en la lista de la compra.
+
+#30 [PASS] mode=exact
+  Frase:     he comido lentejas con chorizo
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3 (D46): caso base de comida
+  Alfred:    Lamento informarle que ha habido un problema técnico al intentar registrarlo. Le sugiero que lo intente de nuevo en unos minutos.
+
+#36 [PASS] mode=exact
+  Frase:     tengo un hambre que me muero
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 3 H3 (D49): hambre intensa
+  Alfred:    Entendido, aunque el sistema no ha podido registrarlo ahora mismo — inténtelo en unos minutos y lo apunto.
+
+Mientras tanto: ¿qué tiene en casa? Con mucho gusto le sugiero algo.
+= USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create) =
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001                82935             815    0.0870
+claude-sonnet-4-6                         5194             196    0.0185
+text-embedding-3-small (OpenAI)             143               -    0.0000
+TOTAL                                                             0.1055
+latencia por turno (misma medida que 'Turn end'): n=5 mediana=4.77s p90=5.80s min=3.1s max=6.0s
+============================== RESUMEN: 5/5 PASS ===============================
+5 passed, 50 deselected in 28.84s

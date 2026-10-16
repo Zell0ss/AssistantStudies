@@ -95,7 +95,6 @@ class Extractor:
         respuesta = self._cliente.messages.create(
             model=self._modelo,
             max_tokens=_TOKENS_MAXIMOS,
-            temperature=0,
             system=_prompt(catalogo, hoy),
             tools=[TOOL_REGISTRAR_HECHOS],
             tool_choice={"type": "tool", "name": TOOL_REGISTRAR_HECHOS["name"]},

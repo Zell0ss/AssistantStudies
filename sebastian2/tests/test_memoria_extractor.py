@@ -37,7 +37,7 @@ def test_llamada_forzada_a_registrar_hechos_con_haiku_45():
     assert llamada["model"] == MODELO_EXTRACTOR == "claude-haiku-4-5-20251001"
     assert llamada["tool_choice"] == {"type": "tool", "name": "registrar_hechos"}
     assert llamada["tools"] == [TOOL_REGISTRAR_HECHOS]
-    assert "temperature" not in llamada or llamada["temperature"] == 0
+    assert "temperature" not in llamada   # anthropic 1.14 ya no acepta `temperature` en messages.create
     assert llamada["messages"] == [{"role": "user", "content": "Mi cuñado Paco es alérgico a los frutos secos"}]
 
 
