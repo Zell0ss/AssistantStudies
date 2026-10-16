@@ -388,3 +388,54 @@
   mode: exact
   expected: [search_memory]
   validates: "Fase 1 H4 (D26): dato personal concreto, va a la memoria"
+
+# Fase 2 H3 (memoria v1): escritos antes del código; su línea base (con el código de H2) va solo con -k.
+- id: 56
+  phrase: "He decidido no publicar saxhero en GitHub de momento"
+  mode: exact
+  expected: [mark_as_memorable]
+  validates: "Fase 2 H3 (D31): una decisión sobre un proyecto es memoria, no una nota ni una tarea"
+
+- id: 57
+  phrase: "Al final sí publico saxhero este finde"
+  historia:
+    - {user: "He decidido no publicar saxhero en GitHub de momento", bot: "Anotado, señor: saxhero no se publica en GitHub de momento."}
+  mode: exact
+  expected: [mark_as_memorable]
+  validates: "Fase 2 H3 (D31): la corrección de una decisión previa también va a mark_as_memorable (sustituye)"
+
+- id: 58
+  phrase: "¿Qué había decidido sobre publicar saxhero?"
+  mode: exact
+  expected: [search_memory]
+  validates: "Fase 2 H3 (D36): pregunta por una decisión guardada va a search_memory"
+
+- id: 59
+  phrase: "Me equivoqué: la presión de las ruedas es 2,4 bares"
+  mode: exact
+  expected: [mark_as_memorable]
+  validates: "Fase 2 H3 (D31): corrección explícita de un dato duradero"
+
+- id: 60
+  phrase: "Apunta en mis notas: presión ruedas 2,4"
+  mode: exact
+  expected: [notes_create]
+  validates: "Fase 2 H3, negativa: «apunta en mis notas» es la tool de notas aunque el contenido sea memoria"
+
+- id: 61
+  phrase: "He desayunado tostadas con tomate"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 2 H3, negativa: una comida es salud, nunca mark_as_memorable"
+
+- id: 62
+  phrase: "Olvida lo de las camisetas UV"
+  mode: exact
+  expected: [mark_as_memorable]
+  validates: "Fase 2 H3 (R3): retirar algo es mark_as_memorable"
+
+- id: 63
+  phrase: "¿Qué alergias tiene Paco?"
+  mode: exact
+  expected: [search_memory]
+  validates: "Fase 2 H3 (D36): lectura estructurada de un hecho"
