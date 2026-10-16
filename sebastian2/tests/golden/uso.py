@@ -1,6 +1,8 @@
 """Medición de tokens y coste por modelo de una pasada de goldens (H1-revision R1)."""
 from collections import defaultdict
 
+from core.memoria.embedder import MODELO_EMBEDDING, PRECIO_EMBEDDING_POR_MILLON
+
 # Dólares por millón de tokens (entrada, salida). Fuente: docs/fase1/PLAN.md §1, comprobado con
 # la skill claude-api el 2026-10-13. Si cambia un modelo del orquestador, se actualiza aquí.
 PRECIOS_POR_MILLON = {
@@ -26,6 +28,7 @@ class AcumuladorUso:
     def __init__(self):
         self.por_modelo = defaultdict(lambda: {"entrada": 0, "salida": 0})
         self.latencias_ms: list[float] = []
+        self.tokens_embedding = 0
 
     def registrar(self, response, model: str) -> None:
         usage = getattr(response, "usage", None)
@@ -40,8 +43,15 @@ class AcumuladorUso:
         t = self.por_modelo[model]
         return (t["entrada"] * precio_entrada + t["salida"] * precio_salida) / 1_000_000
 
+    def registrar_embeddings(self, tokens: int) -> None:
+        """Tokens de OpenAI (usage.total_tokens de una llamada a embeddings; fase 2, H1-revision R3)."""
+        self.tokens_embedding += tokens or 0
+
+    def coste_embedding(self) -> float:
+        return self.tokens_embedding * PRECIO_EMBEDDING_POR_MILLON / 1_000_000
+
     def coste_total(self) -> float:
-        return sum(self.coste(m) for m in self.por_modelo)
+        return sum(self.coste(m) for m in self.por_modelo) + self.coste_embedding()
 
     def registrar_latencia(self, latency_ms: float) -> None:
         self.latencias_ms.append(latency_ms)
@@ -63,6 +73,9 @@ class AcumuladorUso:
             lineas.append(
                 f"{modelo:<30}{t['entrada']:>16}{t['salida']:>16}{self.coste(modelo):>10.4f}"
             )
+        if self.tokens_embedding:
+            lineas.append(f"{MODELO_EMBEDDING + ' (OpenAI)':<30}{self.tokens_embedding:>16}{'-':>16}"
+                          f"{self.coste_embedding():>10.4f}")
         lineas.append(f"{'TOTAL':<62}{self.coste_total():>10.4f}")
         lineas.append(self.resumen_latencia())
         return lineas

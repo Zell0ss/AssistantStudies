@@ -40,8 +40,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         return
     from tests.golden.uso import USO
     if not GOLDEN_RESULTS:
-        if USO.por_modelo:
-            terminalreporter.write_sep("=", "USO DE LA API (medido por Orchestrator._track_usage)")
+        if USO.por_modelo or USO.tokens_embedding:
+            terminalreporter.write_sep("=", "USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create)")
             for linea in USO.tabla():
                 terminalreporter.write_line(linea)
         return
@@ -61,7 +61,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
     passed_count = sum(1 for r in GOLDEN_RESULTS if r["passed"])
     total = len(GOLDEN_RESULTS)
-    terminalreporter.write_sep("=", "USO DE LA API (medido por Orchestrator._track_usage)")
+    terminalreporter.write_sep("=", "USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create)")
     for linea in USO.tabla():
         terminalreporter.write_line(linea)
     terminalreporter.write_sep(
@@ -269,6 +269,8 @@ def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixt
     """
     from unittest.mock import patch
 
+    from openai.resources.embeddings import Embeddings
+
     from core.orchestrator import Orchestrator
     from core.tool_executor import ToolExecutor
     from tests.golden.uso import USO
@@ -299,7 +301,16 @@ def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixt
             USO.registrar_latencia(round((time.perf_counter() - turn_start) * 1000, 1))
             return original_log_turn_end(self, turn_start, iterations, outcome)
 
-        with patch.object(ToolExecutor, "execute", recording_execute), \
+        original_embeddings_create = Embeddings.create
+
+        def midiendo_embeddings(self, *args, **kwargs):
+            # Mide cualquier camino a OpenAI (MemoryModule del Sprint 3 y OpenAIEmbedder), no solo el nuevo.
+            respuesta = original_embeddings_create(self, *args, **kwargs)
+            USO.registrar_embeddings(getattr(getattr(respuesta, "usage", None), "total_tokens", 0))
+            return respuesta
+
+        with patch.object(Embeddings, "create", midiendo_embeddings), \
+             patch.object(ToolExecutor, "execute", recording_execute), \
              patch.object(Orchestrator, "_ask_user", recording_ask_user), \
              patch.object(Orchestrator, "_track_usage", midiendo_uso), \
              patch.object(Orchestrator, "_log_turn_end", midiendo_latencia):

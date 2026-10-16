@@ -46,3 +46,21 @@ def test_precio_de_haiku_5_5():
     uso = AcumuladorUso()
     uso.registrar(_respuesta(1_000_000, 1_000_000), "claude-haiku-5-5")
     assert uso.coste("claude-haiku-5-5") == pytest.approx(0.60)
+
+
+def test_embeddings_de_openai_suman_tokens_y_coste():
+    # H1-revision §2.4 (R3): 0,02 $ por millón de tokens, text-embedding-3-small.
+    uso = AcumuladorUso()
+    uso.registrar_embeddings(400_000)
+    uso.registrar_embeddings(600_000)
+    assert uso.tokens_embedding == 1_000_000
+    assert uso.coste_embedding() == pytest.approx(0.02)
+    assert uso.coste_total() == pytest.approx(0.02)
+    tabla = "\n".join(uso.tabla())
+    assert "text-embedding-3-small" in tabla and "1000000" in tabla
+
+
+def test_tabla_sin_embeddings_no_los_menciona():
+    uso = AcumuladorUso()
+    uso.registrar(_respuesta(10, 10), "claude-sonnet-4-6")
+    assert "embedding" not in "\n".join(uso.tabla())
