@@ -1,34 +1,37 @@
-"""Memory tool definitions for Orchestrator (episodic memory: Qdrant + OpenAI embeddings)."""
+"""Memory tool definitions for Orchestrator (fase 2: hechos con vigencia por usuario, D31-D38)."""
 
+# Lo que dice aquí tiene que ser verdad: lo comprueba tests/test_memoria_tools.py contra el contrato
+# de las tools (el guardarraíl solo garantiza que la tool existe, no que el resumen sea cierto).
 FAMILY_SUMMARY = (
-    "Memoria: puedo recordar hechos que me pidas guardar ('recuerda que...') y recuperarlos después."
+    "Memoria: apunto lo que me pidas recordar sobre ti, tu gente, tus cosas y tus proyectos "
+    "('recuerda que...'), puedo corregirlo o retirarlo si me lo dices, y consultarlo después."
 )
 
 MEMORY_TOOLS = [
     {
         "name": "mark_as_memorable",
         "description": (
-            "Guarda un hecho personal duradero en la memoria de Sebastian — algo que debe recordar en "
-            "conversaciones futuras (preferencias, datos de personas, decisiones). Usa esta tool cuando "
-            "el usuario diga 'recuerda que...', 'apunta para el futuro...', o comparta un dato personal "
-            "duradero. NO la uses para datos operativos que ya tienen su propia tool (inventario, notas, "
-            "calendario, listas): si el usuario quiere releer algo, usa notes_create; si Sebastian debe "
-            "recordarlo como contexto para el futuro, usa esta."
+            "Guarda, corrige o retira un dato duradero en la memoria de Sebastian: algo que debe recordar "
+            "en conversaciones futuras. Úsala cuando el usuario diga 'recuerda que...'; cuando cuente un "
+            "dato duradero sobre él, su gente, sus cosas o sus proyectos; cuando tome decisiones ('he "
+            "decidido...'); cuando corrija algo dicho antes ('no, es...', 'me equivoqué', 'ya no...'); o "
+            "cuando pida olvidar ('olvida lo de...'). NO la uses para lo operativo que ya tiene su propia "
+            "tool (notas, listas, calendario, tareas, inventario) ni para lo de salud (comidas, hambre, "
+            "sueño, dolores: eso es la tool `salud`). Devuelve qué guardó, qué sustituyó y qué categorías "
+            "nuevas abrió."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "content": {
+                "texto": {
                     "type": "string",
-                    "description": "El hecho a recordar, en una frase clara y autocontenida."
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Etiquetas opcionales (ej. ['familia', 'salud'])."
+                    "description": (
+                        "Lo que el usuario ha dicho que hay que recordar, corregir u olvidar, en una frase "
+                        "autocontenida (con el nombre de quien o de qué habla)."
+                    )
                 }
             },
-            "required": ["content"]
+            "required": ["texto"]
         }
     },
     {

@@ -7,7 +7,10 @@ de resolucion (D8, D35), con los umbrales de `config.memoria.umbrales`.
 """
 import uuid
 
+from logcentral_client import get_logger
 from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
+
+logger = get_logger("sebastian")
 
 _ESPACIO_IDS = uuid.UUID("6f1e3a52-5b0a-4d0e-9a31-0c3f6c2d1b77")
 

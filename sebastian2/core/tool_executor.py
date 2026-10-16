@@ -17,6 +17,7 @@ from modules.item_list import ItemListModule
 from modules.notes import NotesModule
 from modules.tasks import TasksModule
 from modules.consult_docs import ConsultDocsModule
+from core.memoria.servicio import ServicioMemoria
 from modules.memory import MemoryModule
 from modules.project_registry import known_project_slugs
 from modules.youtube_transcript import extraer, SinSubtitulos, YtDlpDesactualizado, YtDlpError
@@ -27,16 +28,18 @@ _YOUTUBE_WORKDIR_DEFECTO = "/data/ytb-video-extracts"
 
 # D39-D42: nada de datos de salud en los logs, en ningún nivel. La tool `salud` se excluye
 # del logging genérico de abajo (inputs + resultado) y solo deja nombre + estado.
-_TOOLS_SIN_LOG_DE_CONTENIDO = {"salud"}
+# Fase 2 (memoria v1): lo que el usuario cuenta para recordar, y lo que se le devuelve, tampoco.
+_TOOLS_SIN_LOG_DE_CONTENIDO = {"salud", "mark_as_memorable", "search_memory"}
 
 
 class ToolExecutor:
     """Executes tool calls by dispatching to the appropriate module method."""
 
-    def __init__(self, db, user_id: str, config: dict = None):
+    def __init__(self, db, user_id: str, config: dict = None, on_usage=None):
         self._db = db
         self._user_id = user_id
         self._config = config
+        self._on_usage = on_usage   # el extractor de la memoria (Haiku) informa de su uso al orquestador
 
     def _vault_docs_path(self):
         config = self._config if self._config is not None else get_config()
@@ -49,6 +52,15 @@ class ToolExecutor:
             openai_api_key=config['openai_apikey'],
             qdrant_url=config.get('qdrant_url', 'http://localhost:6333'),
         )
+
+    def _servicio_memoria(self):
+        config = self._config if self._config is not None else get_config()
+        return ServicioMemoria.desde_config(
+            self._db, config, on_usage=lambda response, model: self._informar_uso(response, model))
+
+    def _informar_uso(self, response, model):
+        if self._on_usage is not None:
+            self._on_usage(response, model)
 
     def _salud_module(self):
         config = self._config if self._config is not None else get_config()
@@ -328,8 +340,8 @@ class ToolExecutor:
     # ── Memory ────────────────────────────────────────────────────────────────
 
     def _mark_as_memorable(self, inputs: dict):
-        module = self._memory_module()
-        return module.store(content=inputs['content'], tags=inputs.get('tags'))
+        # Contrato nuevo (fase 2, D31): una sola frase; el servicio extrae, resuelve y escribe.
+        return self._servicio_memoria().guardar(self._user_id, inputs['texto'])
 
     def _search_memory(self, inputs: dict):
         module = self._memory_module()

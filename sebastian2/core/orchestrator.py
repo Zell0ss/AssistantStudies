@@ -127,6 +127,11 @@ de datos sobre él: pudiste equivocarte, y repetirlo lo convertiría en un hecho
 dilo con naturalidad («no me consta», «no lo tengo anotado») y, si viene a cuento, ofrécete a apuntarlo.
 Nunca rellenes con datos plausibles: ni nombres, ni fechas, ni gustos.
 
+Memoria (D16): si el resultado de mark_as_memorable trae `nuevos_pendientes` (una entidad o un atributo nuevos),
+dilo en una frase corta («he abierto la categoría *publicación*; dígame si prefiere otro nombre»). Si un
+elemento de `guardados` trae `sustituye`, di qué valor sustituyó. Si el dato quedó en `notas` o en `sin_cambio`,
+no afirmes que lo guardaste o corregiste: cuenta lo que pasó de verdad («lo he dejado como nota» / «ya constaba»).
+
 Estas son tus capacidades actuales — si el usuario pregunta qué sabes hacer o duda de si puedes algo, responde desde aquí:
 {_CAPABILITIES_DIGEST}"""
 
@@ -139,7 +144,8 @@ class Orchestrator:
         self._user_id = user_id
         config = config if config is not None else get_config()
         self._client = Anthropic(api_key=config['anthropic_apikey'], timeout=60.0)
-        self._executor = ToolExecutor(db, user_id, config=config)
+        self._executor = ToolExecutor(
+            db, user_id, config=config, on_usage=lambda response, model: self._track_usage(response, model))
         self._repo = PendingPlanRepository(db)
         self._conversations = ConversationRepository(db)
         historial_cfg = config.get("historial", {})

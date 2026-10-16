@@ -115,8 +115,14 @@ def test_accepts_config_override_and_passes_to_tool_executor(mock_tool_executor_
     (needed by the golden harness to point memory tools at an isolated Qdrant collection)."""
     from core.orchestrator import Orchestrator
     fake_config = {'anthropic_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'}
-    Orchestrator(db, '99999', config=fake_config)
-    mock_tool_executor_cls.assert_called_once_with(db, '99999', config=fake_config)
+    orch = Orchestrator(db, '99999', config=fake_config)
+    # Fase 2 (D31): ademas, el ejecutor recibe un `on_usage` que lleva el uso del extractor de memoria a
+    # `_track_usage` (telemetria del turno).
+    mock_tool_executor_cls.assert_called_once()
+    args, kwargs = mock_tool_executor_cls.call_args
+    assert args == (db, '99999') and kwargs['config'] == fake_config
+    kwargs['on_usage'](MagicMock(usage=MagicMock(input_tokens=5, output_tokens=2)), 'claude-haiku-4-5-20251001')
+    assert orch._turn_usage['tokens_in'] == 5 and 'claude-haiku-4-5-20251001' in orch._turn_usage['models']
 
 
 @patch('core.orchestrator.Anthropic')
