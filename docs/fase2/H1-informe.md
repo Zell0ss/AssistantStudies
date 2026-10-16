@@ -105,3 +105,54 @@ exigido en las dos últimas columnas: 0,05.
    `tentativa` y se recalibren con `mem_decisiones` (como dice el plan §5)?
 
 Paro aquí. No empiezo H2 hasta tu revisión.
+
+## Anexo — calibración 2
+
+Responde a: 16382e2 (H1-revision, «Para el programador»)
+
+**Hecho (R1, R3, R2):** `R1` en `4504834` (prueba «Cumpleaños» → `cumpleaños`, cita §2.1); `R3` en `eaf6bfe`
+(`OpenAIEmbedder` y el harness de goldens acumulan `usage.total_tokens`, a 0,02 $ por millón); `R2` en
+`b553f57` (código) y en el commit de este anexo (salida y umbrales). 459 tests en verde.
+
+**Cambios en el banco:** 15 positivas y **25 negativas** (10 nuevas: «mi coche nuevo», «el coche de mi
+hermano», «la presión del agua en la ducha», «la fecha de entrega del pedido», «la dirección de correo
+electrónico», «el número de la cuenta bancaria», «la edad de Paco», «el trabajo de fin de máster», «el
+estado del tráfico», «el código postal»). Tres frases de ejemplo por atributo (16 atributos), ninguna
+repite una expresión del banco. Salida completa:
+`docs/fase2/goldens/2026-10-16-calibracion-catalogo-2.md`.
+
+### Las tres representaciones, con la regla del §2.2
+
+| representación | max(negativas) | corte (+0,03) | `reutilizar` | positivas sobre el corte | positivas ≥ `reutilizar` |
+|---|---|---|---|---|---|
+| **a** (descripción) | 0,544 | 0,574 | 0,58 | **11/15** | 10/15 |
+| b (`nombre: descripción`) | 0,540 | 0,570 | 0,58 | 7/15 | 6/15 |
+| c (descripción + 3 ejemplos) | 0,629 | 0,659 | 0,66 | 6/15 | 6/15 |
+
+**Gana la (a), la más sencilla y la que ya había** (11 positivas sobre el corte, frente a 7 y 6). No salta
+el «para» del §2.2: hay 10 de 15 positivas por encima de `reutilizar` (el mínimo era 8).
+
+**Umbrales fijados (tentativa, D35):**
+- `reutilizar` = **0,58**, margen **0,03** (max negativas 0,544 = «el código postal» frente a `direccion`;
+  + 0,03 = 0,574, hacia arriba 0,58);
+- `sustituir` = **0,68**, margen **0,05**.
+
+Ya están en `ajustes.py` (valores por defecto, con `test_ajustes_memoria.py`) y en `config.example.yaml`.
+
+**Lo que vi, para tu seguimiento:**
+- **Los ejemplos empeoran en vez de mejorar.** La (c) sube las positivas por encima de 0,50 (13/15), pero
+  también las negativas (8/25 pasan en 0,50; max 0,629): una frase de ejemplo de otro atributo se parece
+  demasiado a una expresión cercana. La (b) pierde, porque el nombre en snake_case aporta poco.
+- **Con la (a) no hay negativas por encima de 0,55**, y con 0,58 pasan 10 de 15 positivas. Las 5 que
+  quedan fuera son las coloquiales («no puede comer frutos secos», «mi cuñado», «las ruedas del
+  coche»…): irán a `nota` y a `mem_decisiones`, y se verán en la recalibración con el uso (§2.3).
+- **`ejemplos` en el extractor (H2):** lo incluyo en el contrato como pediste, pero con la (a) no se
+  embebe: el catálogo guarda solo la descripción. No añado columna `ejemplos` al esquema.
+
+**Gasto:** Anthropic 0 $. **OpenAI medido: 981 tokens × 0,02 $/millón = 0,00002 $.** El script lo imprime.
+Acumulado de la fase 2: **≈ 0,0001 $ de 5 $** (la primera calibración, estimada en < 0,001 $, y esta).
+
+**Desviación:** el `H1-revision §2.2` pedía `max(negativas) + 0,03` «por encima»; implementé «por encima»
+como estricto (`>`), y para el corte de 0,574 da el mismo resultado que `>=`.
+
+Sigo con H2 sin esperar, como indica la revisión.

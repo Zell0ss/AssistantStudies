@@ -47,6 +47,6 @@ tristras_token: "your_tristras_ingesta_token_here"
 # Los umbrales son `tentativa` hasta calibrarlos con uso real.
 # memoria:
 #   umbrales:
-#     reutilizar: {puntuacion: 0.75, margen: 0.05}
-#     sustituir:  {puntuacion: 0.85, margen: 0.08}
+#     reutilizar: {puntuacion: 0.58, margen: 0.03}
+#     sustituir:  {puntuacion: 0.68, margen: 0.05}
 #   propietario_vault: 815566372   # por defecto, cuaderno_chat_id

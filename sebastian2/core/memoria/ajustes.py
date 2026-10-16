@@ -3,9 +3,11 @@
 Los umbrales son `tentativa` hasta la calibracion con uso real: viven en la configuracion, no en
 el codigo que decide.
 """
+# Segunda calibracion (H1-revision §2.2, docs/fase2/H1-informe.md «Anexo — calibracion 2»): representacion
+# `descripcion`, max(negativas) = 0,544 -> reutilizar 0,58 (+0,03 redondeado), sustituir = +0,10.
 UMBRALES_POR_DEFECTO = {
-    "reutilizar": {"puntuacion": 0.75, "margen": 0.05},
-    "sustituir": {"puntuacion": 0.85, "margen": 0.08},
+    "reutilizar": {"puntuacion": 0.58, "margen": 0.03},
+    "sustituir": {"puntuacion": 0.68, "margen": 0.05},
 }
 
 
