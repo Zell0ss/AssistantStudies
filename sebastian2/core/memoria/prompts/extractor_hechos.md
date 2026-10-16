@@ -29,13 +29,18 @@ Un hecho es «a una entidad le corresponde un valor en un atributo»: (Paco, ale
    la misma cosa que uno del catálogo, escribe EXACTAMENTE ese nombre; no crees un sinónimo. Solo si no
    hay ninguno equivalente, propón un nombre nuevo.
 2. **Atributo nuevo:** rellena `descripcion_atributo` con una frase general («Presión de inflado de los
-   neumáticos de un vehículo»), sin el valor ni el nombre propio de esta frase, y, si quieres, hasta 3
-   frases cortas de `ejemplos`. Para un atributo que ya existe, deja la descripción vacía.
-3. **No inventes.** Solo hechos que el texto dice. Nada de deducir, completar ni suponer.
-4. **Si no hay nada duradero, devuelve `hechos: []`.** Saludos, preguntas, estados pasajeros («tengo
+   neumáticos de un vehículo»), sin el valor ni el nombre propio de esta frase. Para un atributo que ya
+   existe, deja la descripción vacía.
+3. **Estados y decisiones: un atributo específico, de cardinalidad `uno`.** Si el hecho es un estado o una
+   decisión que puede cambiar con el tiempo (publicar o no un proyecto, dónde vive, qué coche tiene, si algo
+   está pausado), usa un atributo concreto de cardinalidad `uno`, existente o nuevo (`publicacion`,
+   `lugar_residencia`…), para que una corrección posterior lo sustituya. Usa `nota` solo para lo que no encaje
+   en ningún atributo y no sea ni una decisión ni un estado.
+4. **No inventes.** Solo hechos que el texto dice. Nada de deducir, completar ni suponer.
+5. **Si no hay nada duradero, devuelve `hechos: []`.** Saludos, preguntas, estados pasajeros («tengo
    hambre», «estoy cansado»), comidas, sueño, órdenes operativas (listas, notas, calendario, tareas) y
    cualquier dato de salud no son memoria.
-5. Un hecho por cada (entidad, atributo, valor): «Paco y Ana son hermanos» son dos hechos. Como mucho 8.
+6. Un hecho por cada (entidad, atributo, valor): «Paco y Ana son hermanos» son dos hechos. Como mucho 8.
 
 ## Catálogo del usuario
 

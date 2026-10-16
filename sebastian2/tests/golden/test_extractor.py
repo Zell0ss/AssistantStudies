@@ -108,7 +108,8 @@ def test_04_decision_sobre_saxhero(entorno):
     assert len(hechos) >= 1
     h = hechos[0]
     assert h["entidad"].lower() == "saxhero" and h["tipo_entidad"] == "proyecto"
-    assert h["operacion"] == "afirmar" and h["atributo"]   # un atributo de publicación, el nombre es libre
+    # H2-revision R4: una decisión que puede cambiar no va a `nota`; cualquier otro atributo, de cardinalidad `uno`
+    assert h["operacion"] == "afirmar" and h["atributo"] != "nota" and h["cardinalidad"] == "uno"
 
 
 @pytest.mark.golden

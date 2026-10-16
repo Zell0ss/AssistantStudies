@@ -14,7 +14,6 @@ logger = get_logger("sebastian")
 # D32: modelo del extractor, en un solo sitio.
 MODELO_EXTRACTOR = "claude-haiku-4-5-20251001"
 MAX_HECHOS = 8
-MAX_EJEMPLOS = 3
 _TOKENS_MAXIMOS = 2048
 TIPOS_ENTIDAD = ("persona", "proyecto", "vehiculo", "lugar", "mascota", "organizacion", "objeto", "otro")
 _OPERACIONES = ("afirmar", "corregir", "retirar")
@@ -41,8 +40,6 @@ TOOL_REGISTRAR_HECHOS = {
                         "valor": {"type": "string", "description": "Tal cual lo dijo el usuario; fechas en ISO."},
                         "operacion": {"type": "string", "enum": list(_OPERACIONES)},
                         "descripcion_atributo": {"type": "string", "description": "Solo para un atributo nuevo: una frase general."},
-                        "ejemplos": {"type": "array", "maxItems": MAX_EJEMPLOS, "items": {"type": "string"},
-                                     "description": "Solo para un atributo nuevo: hasta 3 frases cortas de ejemplo."},
                     },
                     "required": ["entidad", "atributo", "operacion"],
                 },
@@ -69,7 +66,6 @@ def _validar(crudo) -> dict | None:
         return None
     tipo_entidad = crudo.get("tipo_entidad")
     tipo_valor = crudo.get("tipo_valor")
-    ejemplos = crudo.get("ejemplos") or []
     return {
         "entidad": entidad,
         "tipo_entidad": tipo_entidad if tipo_entidad in TIPOS_ENTIDAD else "otro",
@@ -79,8 +75,6 @@ def _validar(crudo) -> dict | None:
         "valor": str(crudo.get("valor") or "").strip(),
         "operacion": operacion,
         "descripcion_atributo": str(crudo.get("descripcion_atributo") or "").strip(),
-        "ejemplos": [str(e).strip() for e in ejemplos if str(e).strip()][:MAX_EJEMPLOS]
-        if isinstance(ejemplos, list) else [],
     }
 
 

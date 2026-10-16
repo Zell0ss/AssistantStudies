@@ -63,12 +63,12 @@ def test_esquema_de_la_tool():
     props = TOOL_REGISTRAR_HECHOS["input_schema"]["properties"]["hechos"]
     assert props["maxItems"] == MAX_HECHOS == 8
     campos = props["items"]["properties"]
+    # H2-revision R4: sin `ejemplos` (con la representacion (a) no se usa y cuesta tokens)
     assert set(campos) == {"entidad", "tipo_entidad", "atributo", "tipo_valor", "cardinalidad", "valor",
-                           "operacion", "descripcion_atributo", "ejemplos"}   # `ejemplos`: H1-revision §2.2
-    assert campos["ejemplos"]["maxItems"] == 3
+                           "operacion", "descripcion_atributo"}
     assert campos["operacion"]["enum"] == ["afirmar", "corregir", "retirar"]
     obligatorios = set(props["items"]["required"])
-    assert {"entidad", "atributo", "operacion"} <= obligatorios and "ejemplos" not in obligatorios
+    assert {"entidad", "atributo", "operacion"} <= obligatorios
 
 
 def test_devuelve_hechos_validados_con_valores_por_defecto():
@@ -76,7 +76,7 @@ def test_devuelve_hechos_validados_con_valores_por_defecto():
                              "operacion": "afirmar"}])
     [h] = Extractor(cliente).extraer("x", "c", date(2026, 10, 16))
     assert h["tipo_entidad"] == "otro" and h["cardinalidad"] == "uno" and h["tipo_valor"] == "texto"
-    assert h["ejemplos"] == [] and h["descripcion_atributo"] == ""
+    assert "ejemplos" not in h and h["descripcion_atributo"] == ""
 
 
 def test_descarta_los_malformados_y_recorta_a_8():
@@ -87,10 +87,19 @@ def test_descarta_los_malformados_y_recorta_a_8():
     assert len(hechos) == 8 and all(h["entidad"].startswith("E") for h in hechos)
 
 
-def test_tipo_de_entidad_desconocido_pasa_a_otro_y_ejemplos_se_recortan():
-    cliente = ClienteFalso([_hecho(tipo_entidad="extraterrestre", ejemplos=["a", "b", "c", "d"])])
+def test_tipo_de_entidad_desconocido_pasa_a_otro():
+    cliente = ClienteFalso([_hecho(tipo_entidad="extraterrestre")])
     [h] = Extractor(cliente).extraer("x", "c", date(2026, 10, 16))
-    assert h["tipo_entidad"] == "otro" and h["ejemplos"] == ["a", "b", "c"]
+    assert h["tipo_entidad"] == "otro"
+
+
+def test_el_prompt_pide_atributo_especifico_para_estados_y_decisiones():
+    """H2-revision R4: una decision que puede cambiar no va a `nota`: una correccion no la sustituiria."""
+    cliente = ClienteFalso([])
+    Extractor(cliente).extraer("x", "c", date(2026, 10, 16))
+    system = cliente.llamadas[0]["system"].lower()
+    assert "estados y decisiones" in system and "cardinalidad `uno`" in system
+    assert "`nota` solo para" in system
 
 
 def test_sin_tool_use_devuelve_vacio():
