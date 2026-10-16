@@ -208,6 +208,18 @@ def test_retirar_algo_que_no_existe_no_crea_nada_y_avisa(entorno):
     assert entorno.repo.atributos_por_alias(f"inventado{SUFIJO}") == []   # no crea atributos para olvidar
 
 
+def test_parentesco_varios_no_sustituye(entorno):
+    """H2-revision §2.1: una persona puede tener varias relaciones; la segunda no sustituye a la primera."""
+    parentesco = lambda valor: _hecho(entidad="Paco", atributo="parentesco", cardinalidad="uno", valor=valor)
+    _dos_turnos(entorno, parentesco("hermano de Ana"), parentesco("cuñado mío"))
+
+    paco = entorno.repo.entidades_por_alias(USER, "paco")[0]["id"]
+    attr = entorno.repo.atributos_por_alias("parentesco")[0]
+    assert attr["cardinalidad"] == "varios"
+    assert sorted(h["valor"] for h in entorno.repo.hechos_vigentes(USER, paco, attr["id"])) == [
+        "cuñado mío", "hermano de Ana"]
+
+
 # --- degradacion ------------------------------------------------------------------------------
 
 def test_sin_hechos_no_escribe_y_lo_dice(entorno):

@@ -8,7 +8,7 @@ INSERT IGNORE INTO mem_atributos (nombre, tipo_valor, tipos_entidad, cardinalida
  ('nota',        'texto',  '*',       'varios', 'activo', 'semilla', 'Cualquier dato suelto que hay que recordar y no encaja en otra categoria', NOW()),
  ('alergia',     'texto',  'persona', 'varios', 'activo', 'semilla', 'Sustancia o alimento que a una persona le provoca alergia o intolerancia', NOW()),
  ('cumpleanos',  'fecha',  'persona', 'uno',    'activo', 'semilla', 'Fecha en la que cumple años una persona', NOW()),
- ('parentesco',  'texto',  'persona', 'uno',    'activo', 'semilla', 'Relacion familiar o de amistad de una persona con el usuario', NOW()),
+ ('parentesco',  'texto',  'persona', 'varios', 'activo', 'semilla', 'Relacion familiar o de amistad de una persona con el usuario', NOW()),
  ('preferencia', 'texto',  '*',       'varios', 'activo', 'semilla', 'Gusto, preferencia o manera favorita de hacer algo', NOW()),
  ('estado',      'texto',  'proyecto', 'uno',   'activo', 'contrato_vault', 'Fase o situacion actual de un proyecto de software', NOW()),
  ('host',        'texto',  'proyecto', 'uno',   'activo', 'contrato_vault', 'Maquina o servidor donde se ejecuta un proyecto', NOW()),
@@ -49,3 +49,7 @@ JOIN (
 -- El nombre canonico de cada semilla tambien es un alias (todos son una sola palabra, ya normalizada).
 INSERT IGNORE INTO mem_atributo_alias (atributo_id, alias_norm)
 SELECT id, nombre FROM mem_atributos WHERE fuente IN ('semilla', 'contrato_vault');
+
+-- H2-revision §2.1: una persona puede tener varias relaciones a la vez (hermano de Ana y cuñado mio), asi
+-- que `parentesco` es `varios`. UPDATE idempotente para las BD donde 011 ya se aplico con `uno`.
+UPDATE mem_atributos SET cardinalidad = 'varios' WHERE nombre = 'parentesco' AND fuente = 'semilla';
