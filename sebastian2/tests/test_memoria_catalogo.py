@@ -194,3 +194,53 @@ def test_indexar_es_idempotente(catalogo):
     n1 = cat._qdrant.count("mem_test_catalogo").count
     cat.indexar_atributos()
     assert cat._qdrant.count("mem_test_catalogo").count == n1
+
+
+# --- Representaciones del catalogo (H1-revision §2.2) ----------------------------------------
+
+def _atributo(ident, nombre, descripcion, ejemplos=()):
+    return {"id": ident, "nombre": nombre, "estado": "activo", "descripcion": descripcion,
+            "ejemplos": list(ejemplos)}
+
+
+def _catalogo_sin_bd():
+    cliente = qdrant_en_memoria()
+    crear_colecciones(cliente, "rep_test")
+    embedder = EmbedderFalso()
+    return Catalogo(None, embedder, cliente, "rep_test"), embedder, cliente
+
+
+def test_representacion_nombre_y_descripcion_embebe_nombre_dos_puntos_descripcion():
+    cat, embedder, _ = _catalogo_sin_bd()
+    cat.indexar_atributos([_atributo(1, "alergia", "sustancia que da alergia")],
+                          representacion="nombre_descripcion")
+    assert embedder.llamadas == [["alergia: sustancia que da alergia"]]
+
+
+def test_representacion_con_ejemplos_un_punto_por_frase_y_maximo_3():
+    cat, embedder, cliente = _catalogo_sin_bd()
+    cat.indexar_atributos([_atributo(1, "alergia", "sustancia que da alergia",
+                                     ["uno", "dos", "tres", "cuatro"])],
+                          representacion="con_ejemplos")
+    assert embedder.llamadas == [["sustancia que da alergia", "uno", "dos", "tres"]]
+    assert cliente.count("rep_test_catalogo").count == 4
+
+
+def test_con_ejemplos_la_puntuacion_de_un_atributo_es_la_de_su_mejor_punto():
+    cat, _, _ = _catalogo_sin_bd()
+    cat.indexar_atributos([
+        _atributo(1, "alergia", "sustancia que da alergia", ["penicilina frutos secos"]),
+        _atributo(2, "matricula", "placa de un vehiculo", ["numero de placa"]),
+    ], representacion="con_ejemplos")
+
+    candidatos = cat.buscar_atributos("penicilina frutos secos", k=3)
+
+    # un atributo aparece UNA vez, aunque varios de sus puntos entren en el top
+    assert [c["id"] for c in candidatos].count(1) == 1
+    assert candidatos[0]["nombre"] == "alergia" and candidatos[0]["score"] > 0.99
+
+
+def test_representacion_desconocida_falla():
+    cat, _, _ = _catalogo_sin_bd()
+    with pytest.raises(ValueError):
+        cat.indexar_atributos([_atributo(1, "x", "y")], representacion="inventada")

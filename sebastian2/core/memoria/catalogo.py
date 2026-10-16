@@ -12,6 +12,22 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
 _ESPACIO_IDS = uuid.UUID("6f1e3a52-5b0a-4d0e-9a31-0c3f6c2d1b77")
 
 
+# Que se embebe por atributo (H1-revision §2.2). La puntuacion de un atributo es la de su mejor punto.
+REPRESENTACIONES = ("descripcion", "nombre_descripcion", "con_ejemplos")
+MAX_EJEMPLOS = 3
+
+
+def textos_de(atributo: dict, representacion: str) -> list[str]:
+    """Los textos que se embeben para un atributo, cada uno como punto propio con el mismo id."""
+    if representacion == "descripcion":
+        return [atributo["descripcion"]]
+    if representacion == "nombre_descripcion":
+        return [f"{atributo['nombre']}: {atributo['descripcion']}"]
+    if representacion == "con_ejemplos":
+        return [atributo["descripcion"], *(atributo.get("ejemplos") or [])[:MAX_EJEMPLOS]]
+    raise ValueError(f"representacion desconocida: {representacion!r}")
+
+
 def sufijo_catalogo(base: str) -> str:
     return f"{base}_catalogo"
 
@@ -30,17 +46,19 @@ class Catalogo:
 
     # --- Indexado ------------------------------------------------------------------------
 
-    def indexar_atributos(self, atributos: list[dict] | None = None) -> int:
-        """Embebe la `descripcion` de cada atributo (todos, o los que se pasen). Devuelve cuantos."""
+    def indexar_atributos(self, atributos: list[dict] | None = None,
+                          representacion: str = "descripcion") -> int:
+        """Embebe cada atributo (todos, o los que se pasen) segun `representacion`. Devuelve cuantos puntos."""
         atributos = self._repo.listar_atributos() if atributos is None else atributos
-        if not atributos:
+        pares = [(a, n, t) for a in atributos for n, t in enumerate(textos_de(a, representacion))]
+        if not pares:
             return 0
-        vectores = self._embedder.embed([a["descripcion"] for a in atributos])
+        vectores = self._embedder.embed([t for _, _, t in pares])
         puntos = [
-            PointStruct(id=_punto_id("atributo", a["id"]), vector=v, payload={
+            PointStruct(id=_punto_id(f"atributo:{n}", a["id"]), vector=v, payload={
                 "tipo": "atributo", "id": a["id"], "nombre": a["nombre"], "estado": a["estado"],
             })
-            for a, v in zip(atributos, vectores)
+            for (a, n, _), v in zip(pares, vectores)
         ]
         self._qdrant.upsert(collection_name=self._coleccion, points=puntos)
         return len(puntos)
@@ -78,8 +96,17 @@ class Catalogo:
 
     def _buscar(self, texto: str, condiciones: list, k: int) -> list[dict]:
         vector = self._embedder.embed([texto])[0]
+        # Un atributo puede tener varios puntos (descripcion + ejemplos): se piden de mas y se queda
+        # cada uno una sola vez, con su mejor puntuacion.
         puntos = self._qdrant.query_points(
-            collection_name=self._coleccion, query=vector, limit=k,
+            collection_name=self._coleccion, query=vector, limit=k * (MAX_EJEMPLOS + 2),
             query_filter=Filter(must=condiciones),
         ).points
-        return [{**p.payload, "score": p.score} for p in puntos]
+        vistos, candidatos = set(), []
+        for p in puntos:
+            clave = (p.payload["tipo"], p.payload["id"])
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+            candidatos.append({**p.payload, "score": p.score})
+        return candidatos[:k]

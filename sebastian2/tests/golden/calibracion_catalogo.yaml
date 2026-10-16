@@ -1,4 +1,5 @@
-# Calibracion de la resolucion semantica del catalogo (fase 2, H1, D35).
+# Calibracion de la resolucion semantica del catalogo (fase 2, H1, D35). Segunda version (H1-revision §2.2):
+# 25 negativas y tres representaciones del catalogo (a descripcion, b nombre: descripcion, c descripcion + 3 ejemplos).
 # `scripts/memoria/calibrar.py` embebe las descripciones del catalogo (los atributos semilla de la BD
 # mas `catalogo_extra`, que son atributos que un usuario real acabaria teniendo) y puntua cada
 # expresion contra ellos. Positivas: tienen una entrada correcta. Negativas: se parecen a una entrada
@@ -44,3 +45,33 @@ negativas:
   - {expresion: cuantos kilometros tiene el coche, parecida_a: matricula}
   - {expresion: el nombre del perro, parecida_a: parentesco}
   - {expresion: la talla de zapato, parecida_a: preferencia}
+  - {expresion: mi coche nuevo, parecida_a: matricula}
+  - {expresion: el coche de mi hermano, parecida_a: matricula}
+  - {expresion: la presion del agua en la ducha, parecida_a: presion_neumaticos}
+  - {expresion: la fecha de entrega del pedido, parecida_a: fecha_revision}
+  - {expresion: la direccion de correo electronico, parecida_a: direccion}
+  - {expresion: el numero de la cuenta bancaria, parecida_a: telefono}
+  - {expresion: la edad de Paco, parecida_a: cumpleanos}
+  - {expresion: el trabajo de fin de master, parecida_a: profesion}
+  - {expresion: el estado del trafico, parecida_a: estado}
+  - {expresion: el codigo postal, parecida_a: direccion}
+
+# Frases de ejemplo para la representacion (c): 3 por atributo (semillas y extras). Ninguna repite una
+# expresion del banco: si no, la calibracion mediria memoria y no generalizacion.
+ejemplos:
+  nota: [apunta esto por si acaso, ten en cuenta este dato, recuerda este detalle suelto]
+  alergia: [es alergico a la penicilina, le sienta mal el gluten, es intolerante a la lactosa]
+  cumpleanos: [nacio el tres de mayo, celebra su aniversario en agosto, el dia de su cumple]
+  parentesco: [es mi hermana, mi suegro, es primo mio]
+  preferencia: [prefiere el cafe sin azucar, le encanta el pescado, siempre pide la opcion vegetariana]
+  estado: [esta en produccion, el proyecto sigue en desarrollo, ya esta terminado y archivado]
+  host: [se despliega en seb01, corre en el servidor de casa, vive en la maquina de pruebas]
+  stack: [usa python y flask, esta escrito en typescript, frontend en react y backend en node]
+  repo: [el repositorio de github, esta en gitlab, la carpeta git del proyecto]
+  db: [guarda los datos en mariadb, usa postgres, su esquema de mysql]
+  presion_neumaticos: ["infla las ruedas a 2,3 bares", la presion de inflado, los neumaticos delanteros]
+  matricula: ["la matricula es 1234 ABC", el numero de placa, como se identifica el coche en trafico]
+  telefono: [su numero de telefono, "se le llama al 600 123 456", el contacto telefonico]
+  direccion: [vive en la calle Mayor, su domicilio, donde esta su casa]
+  profesion: [trabaja de enfermera, es ingeniero, su oficio]
+  fecha_revision: [la ITV caduca en marzo, cuando pasa la inspeccion, revision anual del vehiculo]
