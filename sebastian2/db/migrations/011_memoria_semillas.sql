@@ -45,3 +45,7 @@ JOIN (
   UNION ALL SELECT 'db', 'base de datos'
   UNION ALL SELECT 'db', 'bd'
 ) s ON s.nombre = a.nombre;
+
+-- El nombre canonico de cada semilla tambien es un alias (todos son una sola palabra, ya normalizada).
+INSERT IGNORE INTO mem_atributo_alias (atributo_id, alias_norm)
+SELECT id, nombre FROM mem_atributos WHERE fuente IN ('semilla', 'contrato_vault');

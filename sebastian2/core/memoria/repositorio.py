@@ -3,6 +3,7 @@
 H1 cubre el alta y la consulta de entidades, atributos y alias. Los hechos y las decisiones
 llegan en H2. Cada escritura hace commit; `valid_to`/`superseded_by` (H2) irán en una transaccion.
 """
+import json
 from datetime import datetime
 
 from logcentral_client import get_logger
@@ -72,7 +73,7 @@ class RepositorioMemoria:
         fila = cur.fetchone()
         if fila:
             return fila["id"]
-        nombre = username or user_id
+        nombre = username or "yo"   # sin username, un nombre neutro (no el id de Telegram)
         try:
             entidad_id = self.crear_entidad(user_id, nombre, "persona", estado="activo",
                                             origen="conversacion", es_usuario=True)
@@ -131,6 +132,115 @@ class RepositorioMemoria:
     def anadir_alias_atributo(self, atributo_id: int, texto: str) -> None:
         self._insertar_alias("mem_atributo_alias", "atributo_id", atributo_id, normalizar(texto))
         self._db.commit()
+
+    def alias_de_entidades(self, user_id: str) -> dict:
+        """{entidad_id: [alias_norm, ...]} de las entidades de ese usuario (para el prompt del extractor)."""
+        cur = self._db.cursor()
+        cur.execute(
+            "SELECT a.entidad_id, a.alias_norm FROM mem_entidad_alias a JOIN mem_entidades e"
+            " ON e.id = a.entidad_id WHERE e.user_id = %s ORDER BY a.id", (user_id,))
+        return self._agrupar(cur.fetchall(), "entidad_id")
+
+    def alias_de_atributos(self) -> dict:
+        cur = self._db.cursor()
+        cur.execute("SELECT atributo_id, alias_norm FROM mem_atributo_alias ORDER BY id")
+        return self._agrupar(cur.fetchall(), "atributo_id")
+
+    @staticmethod
+    def _agrupar(filas, clave: str) -> dict:
+        agrupado = {}
+        for f in filas:
+            agrupado.setdefault(f[clave], []).append(f["alias_norm"])
+        return agrupado
+
+    # --- Hechos con vigencia (D7: nada se borra) -----------------------------------------
+
+    def anadir_hecho(self, user_id: str, entidad_id: int, atributo_id: int, valor: str, *,
+                     origen: str = "conversacion", confianza: float | None = None) -> int:
+        cur = self._db.cursor()
+        try:
+            hecho_id = self._insertar_hecho(cur, user_id, entidad_id, atributo_id, valor, origen, confianza)
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            raise
+        return hecho_id
+
+    def sustituir_hecho(self, user_id: str, viejo_id: int, entidad_id: int, atributo_id: int,
+                        valor: str, *, origen: str = "conversacion",
+                        confianza: float | None = None) -> int:
+        """Cierra el hecho viejo y abre el nuevo en UNA transaccion: si el INSERT falla, el viejo sigue
+        vigente (D7). `superseded_by` del viejo apunta al nuevo."""
+        cur = self._db.cursor()
+        ahora = _ahora()
+        try:
+            cur.execute("UPDATE mem_hechos SET valid_to = %s WHERE id = %s AND user_id = %s"
+                        " AND valid_to IS NULL", (ahora, viejo_id, user_id))
+            if cur.rowcount != 1:
+                raise ValueError(f"el hecho {viejo_id} no esta vigente para ese usuario")
+            nuevo_id = self._insertar_hecho(cur, user_id, entidad_id, atributo_id, valor, origen,
+                                            confianza, valid_from=ahora)
+            cur.execute("UPDATE mem_hechos SET superseded_by = %s WHERE id = %s", (nuevo_id, viejo_id))
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            raise
+        return nuevo_id
+
+    def retirar_hecho(self, hecho_id: int) -> None:
+        """Retirar = poner `valid_to`. La fila se queda."""
+        cur = self._db.cursor()
+        cur.execute("UPDATE mem_hechos SET valid_to = %s WHERE id = %s AND valid_to IS NULL",
+                    (_ahora(), hecho_id))
+        self._db.commit()
+
+    def hecho(self, hecho_id: int) -> dict | None:
+        cur = self._db.cursor()
+        cur.execute("SELECT * FROM mem_hechos WHERE id = %s", (hecho_id,))
+        return cur.fetchone()
+
+    def hechos_vigentes(self, user_id: str, entidad_id: int, atributo_id: int) -> list[dict]:
+        cur = self._db.cursor()
+        cur.execute("SELECT * FROM mem_hechos WHERE user_id = %s AND entidad_id = %s AND atributo_id = %s"
+                    " AND valid_to IS NULL ORDER BY id", (user_id, entidad_id, atributo_id))
+        return list(cur.fetchall())
+
+    def hechos_historial(self, user_id: str, entidad_id: int, atributo_id: int) -> list[dict]:
+        cur = self._db.cursor()
+        cur.execute("SELECT * FROM mem_hechos WHERE user_id = %s AND entidad_id = %s AND atributo_id = %s"
+                    " ORDER BY id", (user_id, entidad_id, atributo_id))
+        return list(cur.fetchall())
+
+    def _insertar_hecho(self, cur, user_id, entidad_id, atributo_id, valor, origen, confianza,
+                        valid_from: str | None = None) -> int:
+        ahora = _ahora()
+        cur.execute(
+            "INSERT INTO mem_hechos (user_id, entidad_id, atributo_id, valor, valid_from, origen, confianza,"
+            " created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+            (user_id, entidad_id, atributo_id, valor, valid_from or ahora, origen, confianza, ahora))
+        return cur.lastrowid
+
+    # --- Registro de decisiones (D8: por que se hizo lo que se hizo) ----------------------
+
+    def registrar_decision(self, user_id: str, tipo: str, senales: dict, detalle: str, *,
+                           hecho_id: int | None = None) -> int:
+        """`detalle` lleva ids y nombres de regla, nunca el valor ni el texto del usuario."""
+        cur = self._db.cursor()
+        cur.execute(
+            "INSERT INTO mem_decisiones (user_id, tipo, hecho_id, senales, detalle, created_at)"
+            " VALUES (%s, %s, %s, %s, %s, %s)",
+            (user_id, tipo, hecho_id, json.dumps(senales, ensure_ascii=False), detalle[:255], _ahora()))
+        self._db.commit()
+        return cur.lastrowid
+
+    def decisiones(self, user_id: str) -> list[dict]:
+        cur = self._db.cursor()
+        cur.execute("SELECT * FROM mem_decisiones WHERE user_id = %s ORDER BY id", (user_id,))
+        filas = list(cur.fetchall())
+        for f in filas:
+            if isinstance(f["senales"], str):
+                f["senales"] = json.loads(f["senales"])
+        return filas
 
     # --- interno -------------------------------------------------------------------------
 

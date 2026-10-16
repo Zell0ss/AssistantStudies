@@ -74,6 +74,12 @@ def test_semillas_son_las_del_plan(repo):
     assert contrato == {"estado", "host", "stack", "repo", "db"}
 
 
+def test_cada_semilla_se_resuelve_por_su_nombre(repo):
+    for a in repo.listar_atributos():
+        if a["fuente"] in ("semilla", "contrato_vault"):
+            assert [x["id"] for x in repo.atributos_por_alias(a["nombre"])] == [a["id"]], a["nombre"]
+
+
 def test_semillas_sin_entidades(repo):
     cur = repo._db.cursor()
     cur.execute("SELECT COUNT(*) AS n FROM mem_entidades WHERE origen = 'semilla'")
