@@ -37,3 +37,9 @@ def test_alfred_tiene_la_linea_de_d16():
     assert "nuevos_pendientes" in texto           # lo dice en una frase si abrió categorías
     assert "sustituye" in texto                   # y cuenta lo que sustituyó
     assert "nota" in texto.lower()                # y no afirma una corrección que quedó como nota
+
+
+def test_alfred_no_ofrece_renombrar_lo_que_no_se_puede():
+    """H2-revision §2.2: confirmar o renombrar pendientes es de la fase 3; Alfred solo informa."""
+    assert "otro nombre" not in _ALFRED_SYSTEM.lower()
+    assert "he abierto la categoría" in _ALFRED_SYSTEM.lower()
