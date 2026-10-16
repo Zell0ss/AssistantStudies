@@ -227,6 +227,26 @@ def memory_fixtures(config_de_goldens):
     mem.store("A mi señor le gusta el vino tinto de Ribera del Duero", tags=["preferencias"])
     mem.store("El cumpleaños de Rebe es en marzo", tags=["familia", "fechas"])
 
+    # Fase 2 (D34): la memoria nueva vive en <base>_catalogo y <base>_notas. Se recrean en cada sesión
+    # y se indexan las descripciones de los atributos semilla (la BD de test ya los trae: migración 011).
+    from core.memoria.catalogo import Catalogo
+    from core.memoria.embedder import OpenAIEmbedder
+    from core.memoria.repositorio import RepositorioMemoria
+    from db.connection import close_connection, get_connection
+    from scripts.memoria.crear_colecciones import crear_colecciones, nombres
+
+    for nombre in nombres(TEST_MEMORY_COLLECTION):
+        client.delete_collection(nombre)
+    crear_colecciones(client, TEST_MEMORY_COLLECTION)
+    embedder = OpenAIEmbedder(config_de_goldens["openai_apikey"])
+    try:
+        repo = RepositorioMemoria(get_connection())
+        Catalogo(repo, embedder, client, TEST_MEMORY_COLLECTION).indexar_atributos()
+    finally:
+        close_connection()
+    from tests.golden.uso import USO
+    USO.registrar_embeddings(embedder.tokens)
+
     return {"memory_collection": TEST_MEMORY_COLLECTION}
 
 
@@ -239,6 +259,14 @@ def _historial_limpio(request, test_db):
         return
     cur = test_db.cursor()
     cur.execute("DELETE FROM conversations WHERE user_id = %s", (GOLDEN_USER_ID,))
+    # Fase 2: lo que mark_as_memorable escribió en un golden anterior (hechos, decisiones, entidades del
+    # usuario de goldens) no puede condicionar al siguiente. Los atributos creados se quedan: son catálogo.
+    cur.execute("DELETE FROM mem_decisiones WHERE user_id = %s", (GOLDEN_USER_ID,))
+    cur.execute("UPDATE mem_hechos SET superseded_by = NULL WHERE user_id = %s", (GOLDEN_USER_ID,))
+    cur.execute("DELETE FROM mem_hechos WHERE user_id = %s", (GOLDEN_USER_ID,))
+    cur.execute("DELETE FROM mem_entidad_alias WHERE entidad_id IN"
+                " (SELECT id FROM mem_entidades WHERE user_id = %s)", (GOLDEN_USER_ID,))
+    cur.execute("DELETE FROM mem_entidades WHERE user_id = %s", (GOLDEN_USER_ID,))
     test_db.commit()
     yield
 
