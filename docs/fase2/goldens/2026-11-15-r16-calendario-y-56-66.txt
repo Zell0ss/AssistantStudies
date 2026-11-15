@@ -1,0 +1,132 @@
+2026-11-15 21:42:42.629 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:42:42[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+.
+=========================== GOLDEN REGRESSION REPORT ===========================
+
+#07 [PASS] mode=exact
+  Frase:     qué citas tengo para hoy y ya está
+  Esperado:  calendar_list_events
+  Real:      calendar_list_events
+  Valida:    Contención: "y ya está" prohíbe encadenar de más (p.ej. no debe seguir con calendar_get_tickets por cada evento)
+  Alfred:    No tiene nada en la agenda para hoy, señor.
+
+#08 [PASS] mode=exact
+  Frase:     que tickets tengo para el teatro mañana?
+  Esperado:  calendar_search_events → calendar_get_tickets
+  Real:      calendar_search_events → calendar_get_tickets
+  Valida:    Filtro evento+fecha relativa. Encadenado obligatorio: calendar_get_tickets requiere event_id, solo se obtiene buscando primero
+  Alfred:    Tiene usted función de teatro mañana a las 20:00. Su entrada es un código QR:
+
+**GOLDEN-TEST-TICKET-001**
+
+#09 [PASS] mode=any_of
+  Frase:     lee mi cita de teatro de mañana
+  Esperado:  calendar_search_events  O  calendar_search_events → calendar_get_tickets  O  calendar_list_events
+  Real:      calendar_search_events
+  Valida:    Ambigua a propósito: lectura del evento vs lectura del ticket. Ambas aceptadas, se registra cuál elige. calendar_list_events (listar las citas de mañana) aceptada en la fase 3 (H3-revision §2.2): con la tool `salud` en el planner, el planner la elige a veces (4 de 15 con la descripción corta, 6 de 15 con la larga, 1 de 15 sin `salud` ampliada)
+  Alfred:    Mañana tiene función de teatro a las **20:00**.
+
+No consta ninguna nota adicional en la cita.
+
+#40 [PASS] mode=any_of
+  Frase:     recuérdame comer a las 2
+  Esperado:  calendar_add_event  O  (ninguna)
+  Real:      (ninguna)
+  Valida:    Fase 3 H3, negativa: recordatorio futuro, no una comida. Aceptado: lo que el planner hizo en el paso B (calendar_add_event) o nada; lo único que falla es llamar a salud
+  Alfred:    No he podido crear el recordatorio. ¿Lo intento de nuevo?
+
+#50 [PASS] mode=any_of
+  Frase:     ¿y mañana?
+  Esperado:  calendar_list_events  O  calendar_search_events
+  Real:      calendar_list_events
+  Valida:    Fase 1 H2 (D21): «¿y mañana?» solo se entiende con el turno anterior (calendario)
+  Alfred:    Mañana tiene teatro a las 20:00.
+
+#56 [PASS] mode=exact
+  Frase:     He decidido no publicar saxhero en GitHub de momento
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D31): una decisión sobre un proyecto es memoria, no una nota ni una tarea
+  Alfred:    Anotado, señor. He abierto la categoría *saxhero › publicación*. Lo tendré en cuenta.
+
+#57 [PASS] mode=exact
+  Frase:     Al final sí publico saxhero este finde
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D31): la corrección de una decisión previa también va a mark_as_memorable (sustituye)
+  Alfred:    Anotado. He abierto la categoría *Saxhero* en memoria.
+
+Un giro respecto a lo que me comentó antes, señor. Me alegra saberlo.
+
+#58 [PASS] mode=exact
+  Frase:     ¿Qué había decidido sobre publicar saxhero?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Fase 2 H3 (D36): pregunta por una decisión guardada va a search_memory
+  Alfred:    No me consta ninguna decisión anotada sobre publicar *saxhero*. ¿Desea que lo apunte ahora?
+
+#59 [PASS] mode=exact
+  Frase:     Me equivoqué: la presión de las ruedas es 2,4 bares
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D31): corrección explícita de un dato duradero
+  Alfred:    Anotado: 2,4 bares. He abierto la categoría *coche / presión de neumáticos*.
+
+#60 [PASS] mode=exact
+  Frase:     Apunta en mis notas: presión ruedas 2,4
+  Esperado:  notes_create
+  Real:      notes_create
+  Valida:    Fase 2 H3, negativa: «apunta en mis notas» es la tool de notas aunque el contenido sea memoria
+  Alfred:    Anotado, señor. «Presión ruedas 2,4», nota número 2443.
+
+#61 [PASS] mode=exact
+  Frase:     He desayunado tostadas con tomate
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 2 H3, negativa: una comida es salud, nunca mark_as_memorable
+  Alfred:    No he podido apuntarlo ahora mismo, señor. Pruébelo en un momento.
+
+#62 [PASS] mode=exact
+  Frase:     Olvida lo de las camisetas UV
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (R3): retirar algo es mark_as_memorable
+  Alfred:    No encuentro nada registrado sobre camisetas UV, señor. No hay nada que retirar.
+
+#63 [PASS] mode=exact
+  Frase:     ¿Qué alergias tiene Paco?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Fase 2 H3 (D36): lectura estructurada de un hecho
+  Alfred:    Paco tiene alergia a los frutos secos.
+
+#64 [PASS] mode=exact
+  Frase:     Tengo cita para la colonoscopia el 3 de diciembre a las 10
+  Esperado:  calendar_add_event
+  Real:      calendar_add_event
+  Valida:    Fase 2 H3 (D39), negativa: una cita con fecha es calendario, no memoria ni salud
+  Alfred:    Apuntado, señor. Colonoscopia el 3 de diciembre a las 10:00.
+
+#65 [PASS] mode=any_of
+  Frase:     Recuerda que el 3 de diciembre tengo la colonoscopia
+  Esperado:  calendar_add_event  O  request_clarification
+  Real:      calendar_add_event
+  Valida:    Fase 2 H3 (D39), negativa: «recuerda que» con una cita con fecha es calendario. Sin hora puede preguntar; lo único que falla es mark_as_memorable o salud
+  Alfred:    Anotado, señor. Colonoscopia el 3 de diciembre.
+
+#66 [PASS] mode=exact
+  Frase:     Olvida lo del marisco de Paco
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D43): con un historial que ya dice «Anotado…», olvidar sigue siendo mark_as_memorable; el historial es lo que se dijo, no lo que se hizo
+  Alfred:    Lo he intentado, pero el sistema no ha encontrado nada que retirar: la alergia al marisco de Paco no consta aún en la memoria permanente. Es posible que esté pendiente de guardarse.
+
+Si lo desea, pued
+= USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create) =
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001               293462            2191    0.3044
+claude-sonnet-4-6                        22603             499    0.0753
+text-embedding-3-small (OpenAI)             184               -    0.0000
+TOTAL                                                             0.3797
+============================= RESUMEN: 16/16 PASS ==============================
+16 passed, 50 deselected in 65.44s (0:01:05)

@@ -184,3 +184,120 @@ nuevo (E5, E9, #28) necesita otro «sí» de Josem. El paso 5 del despliegue (`i
    `sebastian_test`). El golden espera ninguna tool o `notes_create`. Ya era intermitente en H1; ¿lo dejamos como conocido o quieres una regla (un recordatorio sin hora no es un evento)?
 4. **Gasto:** ≈ 8,61 $ acumulados en la fase, sin autorización para más. Si quieres repasar 1–3 antes del despliegue, que Josem diga cuánto.
 5. **Para Josem, antes del despliegue:** el `--dry-run` del paso 4 es el control que no pude hacer yo (Desviaciones §2). Y el paso 5 es una adición mía (Desviaciones §1).
+
+
+---
+
+## Anexo — retoques de la revisión (R15 y R16, 2026-11-15, programador)
+
+Responde a: 6223100 (H4-revision, «Para el programador»). Buzón mirado antes de cada paso [API]: sin mensajes nuevos.
+
+### Hecho
+
+| Pedido | Commit | Resultado |
+|---|---|---|
+| **R15 (D44):** en un turno sin herramientas, `_synthesize` añade `_TURNO_SIN_HERRAMIENTAS` después del mensaje del usuario | `047f2aa` | 5 pruebas sin API (`test_sintesis_sin_herramientas_lleva_aviso`, `test_sintesis_con_herramientas_no_lleva_aviso`, la constante idéntica a la de la revisión, y el turno completo con y sin tool) |
+| **R16:** `calendar_add_event` no inventa día ni hora y pregunta con `request_clarification`; golden #28 ampliado (cambio del arquitecto, citado en el fichero) | `fb0cd6f` | 4 pruebas sin API |
+
+**Pruebas sin API: 683 en verde** (674 antes). `tomorrow.md` actualizado en `f4d256e`.
+
+### Pasadas [API] (salidas en `docs/fase2/goldens/2026-11-15-r15-*` y `-r16-*`)
+
+| Pasada | Resultado |
+|---|---|
+| E5 ×3 | **3/3**. Criterio de la revisión: en ningún caso Alfred afirma haber retirado algo que sigue vigente. En las tres se retira de verdad (hecho cerrado, valor `''`, fuentes purgadas) |
+| #66 ×2 | **2/2** |
+| #28 ×3 | **3/3**, las tres sin ninguna tool |
+| Goldens de calendario #7, #8, #9, #40, #50 y #56–#66 (ids exactos, una pasada) | **16/16** |
+
+**Lo que esta pasada demuestra y lo que no.** E5 pasó 3/3 **porque el planner llamó a la tool las tres veces**: el camino que corrige R15 (el planner no llama y Alfred
+afirmaba «He retirado…») **no se produjo ni una vez**, así que E5 no lo ejercita. Lo que sí lo ejercita es #28: las tres veces el planner no llamó a ninguna tool y Alfred
+contestó con honestidad («No he podido apuntarlo en este turno. ¿Lo intento de nuevo?»), en vez de inventar una hora. Para el camino de E5 solo tengo las pruebas sin API
+(el aviso llega a Alfred después del mensaje, y no llega cuando hay herramientas). Con la regla C, E5 va **6 de 7** en las pasadas reales (la que falló fue la de la pasada completa de H4,
+antes de R15).
+
+Las respuestas de E5, las tres pasadas:
+
+```
+-- pasada 1 --
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado. Paco: cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en mi memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco es alérgico también al marisco.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho. He retirado la alergia al marisco de Paco. Solo consta la de frutos secos.
+  BD:        mem_hechos #7761 · Paco · alergia · 'frutos secos' · vigente · fuente #2594
+  BD:        mem_hechos #7762 · Paco · parentesco · 'cuñado' · vigente · fuente #2594
+  BD:        mem_hechos #7763 · Paco · alergia · '' · cerrado · fuente #2595
+  BD:        mem_fuentes #2594 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #2595 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #2596 · texto=None · mensaje=None · purgada
+-- pasada 2 --
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco, cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en mi memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco también es alérgico al marisco.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho. He retirado la alergia al marisco de Paco. Solo queda anotada la alergia a los frutos secos.
+  BD:        mem_hechos #7764 · Paco · alergia · 'frutos secos' · vigente · fuente #2597
+  BD:        mem_hechos #7765 · Paco · parentesco · 'cuñado' · vigente · fuente #2597
+  BD:        mem_hechos #7766 · Paco · alergia · '' · cerrado · fuente #2598
+  BD:        mem_fuentes #2597 · texto='Paco, cuñado, es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #2598 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #2599 · texto=None · mensaje=None · purgada
+-- pasada 3 --
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en mi memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco es alérgico a los frutos secos, señor.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: alérgico también al marisco, además de a los frutos secos.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho, señor. He retirado la alergia al marisco de Paco. Solo consta la de los frutos secos.
+  BD:        mem_hechos #7767 · Paco · alergia · 'frutos secos' · vigente · fuente #2600
+  BD:        mem_hechos #7768 · Paco · parentesco · 'cuñado' · vigente · fuente #2600
+  BD:        mem_hechos #7769 · Paco · alergia · '' · cerrado · fuente #2601
+  BD:        mem_fuentes #2600 · texto='Paco, cuñado, es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #2601 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #2602 · texto=None · mensaje=None · purgada
+```
+
+### Gasto
+
+Autorizado por Josem el 2026-11-15, en esta ventana: «Si» a mi pregunta de si se usaba lo que quedaba o se añadía 1 $. Lo tomé como el tope que pedía la revisión: **≤ 1 $**.
+
+| Paso | Anthropic |
+|---|---|
+| E5 ×3 | 0,308 $ (Haiku 4.5 ≈ 0,247; Sonnet 4.6 ≈ 0,061) |
+| #66 ×2 y #28 ×3 | 0,096 $ |
+| Calendario y #56–#66 (16 goldens) | 0,380 $ (Haiku 293.462 / 2.191 → 0,304; Sonnet 22.603 / 499 → 0,075) |
+| **Total del anexo** | **0,783 $** (OpenAI < 0,001 $) |
+
+**Acumulado de la fase 2: ≈ 9,39 $** (8,61 $ + 0,78 $), por debajo de los 9,6 $ que preveía la revisión. **No queda autorización para más gasto [API].**
+
+### Desviaciones
+
+Ninguna. Los ids de `-k` van exactos (los de pytest llevan dos dígitos: `golden_07`, `golden_40`).
+
+### Decisiones que necesito
+
+1. **Ninguna que bloquee el despliegue.** Del lado del programador no queda nada pendiente: lo siguiente es el despliegue de Josem con `deploy/PASOS-CON-SUDO.md` («Fase 2») y `deploy/comprobar_fase2.sh`.
+2. **Observación sobre #28:** con R16 el planner **no llamó a `request_clarification`** ninguna de las tres veces; no hizo nada y Alfred dijo «no he podido apuntarlo». El golden lo da por bueno,
+   pero el usuario lee «no he podido» (un fallo técnico) cuando en realidad el recordatorio sin hora no es un evento. Si te importa la redacción, el sitio es la línea de D44; no gasto en ello sin tu decisión.
+3. **E5 sigue siendo intermitente** (6 de 7) y no tengo ninguna pasada real del camino de R15. Si quieres verlo con la API, hace falta forzar el caso (p. ej. un E5 con el planner parcheado para no llamar a la tool): gasto pequeño, pero nuevo.

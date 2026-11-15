@@ -1,0 +1,69 @@
+== E5 pasada 1
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado. Paco: cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en mi memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco es alérgico también al marisco.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho. He retirado la alergia al marisco de Paco. Solo consta la de frutos secos.
+  BD:        mem_hechos #7761 · Paco · alergia · 'frutos secos' · vigente · fuente #2594
+  BD:        mem_hechos #7762 · Paco · parentesco · 'cuñado' · vigente · fuente #2594
+  BD:        mem_hechos #7763 · Paco · alergia · '' · cerrado · fuente #2595
+  BD:        mem_fuentes #2594 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #2595 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #2596 · texto=None · mensaje=None · purgada
+claude-haiku-4-5-20251001                78180             854    0.0824
+claude-sonnet-4-6                         6122             114    0.0201
+TOTAL                                                             0.1025
+1 passed, 8 deselected in 25.99s
+== E5 pasada 2
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco, cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en mi memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco también es alérgico al marisco.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho. He retirado la alergia al marisco de Paco. Solo queda anotada la alergia a los frutos secos.
+  BD:        mem_hechos #7764 · Paco · alergia · 'frutos secos' · vigente · fuente #2597
+  BD:        mem_hechos #7765 · Paco · parentesco · 'cuñado' · vigente · fuente #2597
+  BD:        mem_hechos #7766 · Paco · alergia · '' · cerrado · fuente #2598
+  BD:        mem_fuentes #2597 · texto='Paco, cuñado, es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #2598 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #2599 · texto=None · mensaje=None · purgada
+claude-haiku-4-5-20251001                78154             794    0.0821
+claude-sonnet-4-6                         6110             121    0.0201
+TOTAL                                                             0.1023
+1 passed, 8 deselected in 24.19s
+== E5 pasada 3
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en mi memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco es alérgico a los frutos secos, señor.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: alérgico también al marisco, además de a los frutos secos.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho, señor. He retirado la alergia al marisco de Paco. Solo consta la de los frutos secos.
+  BD:        mem_hechos #7767 · Paco · alergia · 'frutos secos' · vigente · fuente #2600
+  BD:        mem_hechos #7768 · Paco · parentesco · 'cuñado' · vigente · fuente #2600
+  BD:        mem_hechos #7769 · Paco · alergia · '' · cerrado · fuente #2601
+  BD:        mem_fuentes #2600 · texto='Paco, cuñado, es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #2601 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #2602 · texto=None · mensaje=None · purgada
+claude-haiku-4-5-20251001                78234             819    0.0823
+claude-sonnet-4-6                         6149             137    0.0205
+TOTAL                                                             0.1028
+1 passed, 8 deselected in 22.30s

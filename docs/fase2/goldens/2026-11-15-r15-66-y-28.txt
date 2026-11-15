@@ -1,0 +1,20 @@
+== #66
+  Real:      mark_as_memorable
+  Alfred:    Lo he intentado, pero la alergia al marisco de Paco no consta en la memoria: no hubo nada que retirar. Es posible que no llegara a guardarse en el turno anterior.
+TOTAL                                                             0.0271
+== #66
+  Real:      mark_as_memorable
+  Alfred:    La memoria no ha encontrado nada que retirar, señor. El dato del marisco no estaba guardado formalmente —quedó solo en nuestra conversación—, así que no hay nada que borrar. Puede ignorarlo con tranqu
+TOTAL                                                             0.0269
+== #28
+  Real:      (ninguna)
+  Alfred:    No he podido apuntarlo en este turno. ¿Lo intento de nuevo?
+TOTAL                                                             0.0137
+== #28
+  Real:      (ninguna)
+  Alfred:    No he podido apuntar ese recordatorio. ¿Lo intento de nuevo?
+TOTAL                                                             0.0140
+== #28
+  Real:      (ninguna)
+  Alfred:    No he podido apuntarlo en este turno. ¿Quiere que lo intente de nuevo?
+TOTAL                                                             0.0138
