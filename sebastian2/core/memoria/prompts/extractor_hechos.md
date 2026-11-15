@@ -39,7 +39,8 @@ Un hecho es «a una entidad le corresponde un valor en un atributo»: (Paco, ale
 4. **No inventes.** Solo hechos que el texto dice. Nada de deducir, completar ni suponer.
 5. **Si no hay nada duradero, devuelve `hechos: []`.** Saludos, preguntas, estados pasajeros («tengo
    hambre», «estoy cansado»), comidas, sueño, órdenes operativas (listas, notas, calendario, tareas) y
-   cualquier dato de salud no son memoria.
+   los registros de salud del día (cómo ha dormido, qué ha comido, hambre, síntomas o dolores pasajeros) no
+   son memoria: son de Tristras. Las alergias sí son memoria.
 6. Un hecho por cada (entidad, atributo, valor): «Paco y Ana son hermanos» son dos hechos. Como mucho 8.
 
 ## Catálogo del usuario

@@ -119,3 +119,17 @@ def test_un_fallo_de_la_api_se_propaga():
         messages = SimpleNamespace(create=lambda **kw: (_ for _ in ()).throw(RuntimeError("api caida")))
     with pytest.raises(RuntimeError):
         Extractor(Roto()).extraer("x", "c", date(2026, 10, 16))
+
+
+# --- R6 (H3-encargo): la regla 5 del prompt dice lo que el plan ya decidio -----------------------------------
+
+def test_prompt_extractor_alergia_es_memoria():
+    """`alergia` es un atributo semilla (plan §2.1) y E1 guarda la de Paco: el prompt no puede decir que «cualquier
+    dato de salud» no es memoria. Lo de Tristras son los registros del día; la frontera completa es de la fase 3."""
+    from pathlib import Path
+    texto = (Path(__file__).parent.parent / "core" / "memoria" / "prompts" / "extractor_hechos.md").read_text(
+        encoding="utf-8").lower()
+    assert "alergias sí son memoria" in texto
+    assert "cualquier dato de salud" not in texto
+    for sigue_fuera in ("cómo ha dormido", "qué ha comido", "hambre", "síntomas", "tristras"):
+        assert sigue_fuera in texto, sigue_fuera                  # lo del día a día sigue sin ser memoria
