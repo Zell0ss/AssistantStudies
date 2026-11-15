@@ -10,6 +10,8 @@ import uuid
 from logcentral_client import get_logger
 from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
 
+from core.memoria.vault import proyecto_por_nombre
+
 logger = get_logger("sebastian")
 
 _ESPACIO_IDS = uuid.UUID("6f1e3a52-5b0a-4d0e-9a31-0c3f6c2d1b77")
@@ -29,6 +31,39 @@ def textos_de(atributo: dict, representacion: str) -> list[str]:
     if representacion == "con_ejemplos":
         return [atributo["descripcion"], *(atributo.get("ejemplos") or [])[:MAX_EJEMPLOS]]
     raise ValueError(f"representacion desconocida: {representacion!r}")
+
+
+MAX_LINEAS_INDICE = 40
+_CABECERA_INDICE = "Lo que me consta de ti (nombres, sin valores; usa search_memory para los valores):"
+
+
+def indice_memoria(repo, user_id: str, proyectos_vault: dict | None = None,
+                   maximo: int = MAX_LINEAS_INDICE) -> str:
+    """Indice para el prompt del planner (D36, plan §2.5): de que entidades y atributos hay algo vigente, **sin
+    valores** (los valores solo llegan por `search_memory`, D26). Una linea por entidad, la del hecho mas
+    reciente primero, cortado en `maximo`. Sin hechos vigentes devuelve «»: la seccion no se pone.
+
+    `proyectos_vault` (de `vault.leer_proyectos`, solo para el propietario del vault) marca con «vault» los
+    proyectos que tienen `proyecto.md`. Los proyectos del vault sin hechos no salen: para eso esta `consult_docs`."""
+    filas = repo.atributos_vigentes_por_entidad(user_id)
+    if not filas:
+        return ""
+    entidades = {}
+    for f in filas:
+        e = entidades.setdefault(f["entidad_id"], {"fila": f, "atributos": [], "ultimo": 0})
+        e["atributos"].append(f["atributo"])
+        e["ultimo"] = max(e["ultimo"], f["ultimo_id"])
+    lineas = []
+    for e in sorted(entidades.values(), key=lambda e: e["ultimo"], reverse=True)[:maximo]:
+        f = e["fila"]
+        if f["es_usuario"]:
+            etiqueta = "tú"
+        else:
+            etiqueta = f["tipo"]
+            if proyectos_vault and f["tipo"] == "proyecto" and proyecto_por_nombre(proyectos_vault, f["nombre"]):
+                etiqueta += ", vault"
+        lineas.append(f"- {f['nombre']} ({etiqueta}): {', '.join(sorted(e['atributos']))}")
+    return "\n".join([_CABECERA_INDICE, *lineas])
 
 
 def sufijo_catalogo(base: str) -> str:

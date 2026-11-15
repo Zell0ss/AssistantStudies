@@ -40,6 +40,14 @@ def test_messages_to_json_handles_sdk_objects():
     assert result[0]["content"][0]["text"] == "hi"
 
 
+@pytest.fixture(autouse=True)
+def _sin_indice_de_memoria():
+    """Estos tests usan SQLite sin tablas `mem_*`: sin esto el índice (D36) fallaría y dejaría un `warning`
+    que enmascararía los de los tests de historial. Los tests del índice lo sobrescriben con su `patch`."""
+    with patch('core.orchestrator.indice_memoria', return_value=""):
+        yield
+
+
 @pytest.fixture
 def db():
     conn = sqlite3.connect(':memory:')
@@ -813,3 +821,101 @@ def test_planner_cortado_por_max_tokens_deja_warning(mock_anthropic_cls, mock_lo
     Orchestrator(db, '99999').handle("hola")
 
     assert any("max_tokens" in str(c) for c in mock_logger.warning.call_args_list)
+
+
+# ── Fase 2 H3: índice de la memoria en el planner (D36) ───────────────────────────────────────
+
+_INDICE = "Lo que me consta de ti (nombres, sin valores; usa search_memory para los valores):\n- Paco (persona): alergia"
+
+
+def test_planner_system_lleva_el_indice_despues_de_las_capacidades():
+    texto = _planner_system(_INDICE)
+    assert build_capabilities_digest() in texto
+    assert texto.index(build_capabilities_digest()) < texto.index(_INDICE)
+    assert _INDICE not in _planner_system()                      # sin indice, el prompt no cambia
+    assert _INDICE not in _ALFRED_SYSTEM                         # D36: no va en la sintesis
+
+
+@patch('core.orchestrator.indice_memoria', return_value=_INDICE)
+@patch('core.orchestrator.Anthropic')
+def test_el_planner_recibe_el_indice_y_alfred_no(mock_anthropic_cls, mock_indice, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("¿qué alergias tiene Paco?")
+
+    planner, sintesis = mock_client.messages.create.call_args_list
+    assert _INDICE in planner.kwargs['system']
+    assert _INDICE not in sintesis.kwargs['system']
+
+
+@patch('core.orchestrator.indice_memoria', return_value=_INDICE)
+@patch('core.orchestrator.Anthropic')
+def test_el_indice_se_calcula_una_vez_por_turno(mock_anthropic_cls, mock_indice, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [
+        _make_tool_use_response("search_memory", "t1", {"query": "paco"}),
+        _make_text_response("ya"), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    orch._executor.execute = MagicMock(return_value={"hechos": []})
+    orch.handle("¿qué alergias tiene Paco?")
+
+    assert mock_indice.call_count == 1
+    planner_1, planner_2, _ = mock_client.messages.create.call_args_list
+    assert _INDICE in planner_1.kwargs['system'] and _INDICE in planner_2.kwargs['system']
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.indice_memoria', side_effect=RuntimeError("bd caída"))
+@patch('core.orchestrator.Anthropic')
+def test_indice_falla_y_turno_sigue(mock_anthropic_cls, mock_indice, mock_logger, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok, señor")]
+
+    from core.orchestrator import Orchestrator
+    result = Orchestrator(db, '99999').handle("hola")
+
+    assert result["text"] == "ok, señor"
+    planner = mock_client.messages.create.call_args_list[0]
+    assert "Lo que me consta de ti" not in planner.kwargs['system']
+    avisos = " ".join(str(c) for c in mock_logger.warning.mock_calls)
+    assert "índice" in avisos and "RuntimeError" in avisos       # el aviso lleva el tipo del error, no su texto
+    assert "bd caída" not in avisos
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.indice_memoria', return_value="Lo que me consta de ti:\n- Persona-secreta-123 (persona): alergia")
+@patch('core.orchestrator.Anthropic')
+def test_el_log_no_lleva_el_indice(mock_anthropic_cls, mock_indice, mock_logger, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("hola")
+
+    volcado = " ".join(str(c) for log in (mock_logger.info, mock_logger.debug, mock_logger.warning)
+                       for c in log.mock_calls)
+    assert "Persona-secreta-123" not in volcado
+
+
+@patch('core.orchestrator.leer_proyectos', return_value={"proyecto-prueba": {"estado": "stable"}})
+@patch('core.orchestrator.indice_memoria', return_value="")
+@patch('core.orchestrator.Anthropic')
+def test_el_vault_solo_se_pasa_al_indice_del_propietario(mock_anthropic_cls, mock_indice, mock_leer, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")] * 2
+    config = {'anthropic_apikey': 'k', 'vault_docs_path': '/vault/30-projects', 'cuaderno_chat_id': 99999}
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999', config=config).handle("hola")           # el propietario
+    assert mock_indice.call_args.args[2] == {"proyecto-prueba": {"estado": "stable"}}
+    Orchestrator(db, '12345', config=config).handle("hola")           # otro usuario autorizado
+    assert mock_indice.call_args.args[2] is None

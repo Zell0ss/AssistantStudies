@@ -13,6 +13,10 @@ import time
 from datetime import datetime
 from logcentral_client import get_logger
 from anthropic import Anthropic, APIError, APIConnectionError, RateLimitError
+from core.memoria.ajustes import propietario_vault
+from core.memoria.catalogo import indice_memoria
+from core.memoria.repositorio import RepositorioMemoria
+from core.memoria.vault import leer_proyectos
 from core.tools import ALL_TOOLS, build_capabilities_digest
 from core.tool_executor import ToolExecutor, _TOOLS_SIN_LOG_DE_CONTENIDO
 from db.conversation_repo import ConversationRepository
@@ -93,8 +97,11 @@ def _now_str() -> str:
     return f"Hoy es {now.strftime('%Y-%m-%d')} y son las {now.strftime('%H:%M')}."
 
 
-def _planner_system() -> str:
-    """Return planner system prompt with today's date and current time injected."""
+def _planner_system(indice_memoria: str = "") -> str:
+    """Return planner system prompt with today's date and current time injected.
+
+    `indice_memoria` (D36): lo que consta del usuario, sin valores, después de las capacidades. No va en
+    `_ALFRED_SYSTEM`: la síntesis solo afirma lo que trajeron las herramientas de este turno (D26)."""
     return (
         f"{_now_str()}\n"
         "Eres el núcleo de razonamiento de Sebastian, asistente personal.\n"
@@ -111,6 +118,7 @@ def _planner_system() -> str:
         "consta de él. No las des por respondidas sin consultar la memoria.\n\n"
         "Estas son tus capacidades actuales:\n"
         f"{_CAPABILITIES_DIGEST}"
+        + (f"\n\n{indice_memoria}" if indice_memoria else "")
     )
 
 # D26: regla de honestidad sobre el usuario (ver también _planner_system).
@@ -157,6 +165,22 @@ class Orchestrator:
         self._historial_limite = historial_cfg.get("intercambios", 6)
         self._historial_ventana_min = historial_cfg.get("ventana_min", 120)
         self._turn_usage = {"tokens_in": 0, "tokens_out": 0, "models": set()}
+        self._vault_path = config.get("vault_docs_path")
+        self._propietario_vault = propietario_vault(config)
+        self._indice_turno = None   # el índice de la memoria se calcula una vez por turno (D36)
+
+    def _indice_del_turno(self) -> str:
+        """D36: lo que consta del usuario, sin valores. Si falla, el turno sigue sin índice (patrón D22)."""
+        if self._indice_turno is None:
+            try:
+                proyectos = leer_proyectos(self._vault_path) if self._user_id == self._propietario_vault else None
+                self._indice_turno = indice_memoria(RepositorioMemoria(self._db), self._user_id, proyectos)
+            except Exception as e:
+                logger.warning(
+                    f"No se pudo construir el índice de la memoria | user={self._user_id} | error={type(e).__name__}"
+                )
+                self._indice_turno = ""
+        return self._indice_turno
 
     def _track_usage(self, response, model: str) -> None:
         """Accumulate model + token usage for the current turn (telemetry only)."""
@@ -171,7 +195,7 @@ class Orchestrator:
         response = self._client.messages.create(
             model=_MODELO_PLANNER,
             max_tokens=_PLANNER_MAX_TOKENS,
-            system=_planner_system(),
+            system=_planner_system(self._indice_del_turno()),
             tools=ALL_TOOLS,
             messages=messages,
             **_PLANNER_EXTRA,
@@ -398,6 +422,7 @@ class Orchestrator:
         """Core message handling logic (API errors propagate to handle())."""
         turn_start = time.perf_counter()
         self._turn_usage = {"tokens_in": 0, "tokens_out": 0, "models": set()}
+        self._indice_turno = None
         logger.bind(user_id=self._user_id).info(
             f"Turn start | user={self._user_id} | message={user_message[:200]!r}"
         )

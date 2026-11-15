@@ -233,6 +233,18 @@ class RepositorioMemoria:
         cur.execute(sql + " ORDER BY h.id", params)
         return list(cur.fetchall())
 
+    def atributos_vigentes_por_entidad(self, user_id: str) -> list[dict]:
+        """Una fila por (entidad, atributo) con algun hecho vigente, y el id de su ultimo hecho (los ids
+        crecen con el tiempo). Solo nombres: para el indice del planner (D36), que nunca lleva valores."""
+        cur = self._db.cursor()
+        cur.execute(
+            "SELECT e.id AS entidad_id, e.nombre, e.tipo, e.es_usuario, a.nombre AS atributo,"
+            " MAX(h.id) AS ultimo_id FROM mem_hechos h"
+            " JOIN mem_entidades e ON e.id = h.entidad_id JOIN mem_atributos a ON a.id = h.atributo_id"
+            " WHERE h.user_id = %s AND h.valid_to IS NULL"
+            " GROUP BY e.id, e.nombre, e.tipo, e.es_usuario, a.nombre", (user_id,))
+        return list(cur.fetchall())
+
     def _insertar_hecho(self, cur, user_id, entidad_id, atributo_id, valor, origen, confianza,
                         valid_from: str | None = None) -> int:
         ahora = _ahora()
