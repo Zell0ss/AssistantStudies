@@ -208,6 +208,114 @@ def test_retirar_algo_que_no_existe_no_crea_nada_y_avisa(entorno):
     assert entorno.repo.atributos_por_alias(f"inventado{SUFIJO}") == []   # no crea atributos para olvidar
 
 
+# --- retirar una nota de texto libre (H2-revision §2.3, R3) -----------------------------------------
+#
+# Una «nota» es cualquier hecho con atributo `nota`, sea cual sea el camino por el que llego (el extractor
+# la usa para lo que no encaja en otro atributo; la resolucion debil tambien). Todas se embeben en
+# <base>_notas con {hecho_id, user_id}; si no, retirar por similitud no las encontraria.
+
+def _nota(valor, entidad="yo", tipo="persona"):
+    return _hecho(entidad=entidad, tipo_entidad=tipo, atributo="nota", cardinalidad="varios", valor=valor)
+
+
+def _olvida(valor="camisetas UV"):
+    # Caso 3 del extractor: «Olvida lo de las camisetas UV» -> entidad inexistente «camisetas UV», atributo `nota`.
+    return _hecho(entidad="camisetas UV", tipo_entidad="objeto", atributo="nota", cardinalidad="varios",
+                  valor=valor, operacion="retirar")
+
+
+def _notas_vigentes(entorno, user=USER):
+    yo = entorno.repo.entidad_usuario(user)
+    nota = entorno.repo.atributos_por_alias("nota")[0]["id"]
+    return [h["valor"] for h in entorno.repo.hechos_vigentes(user, yo, nota)]
+
+
+def test_un_hecho_con_atributo_nota_se_embebe_en_notas(entorno):
+    servicio, _ = entorno.servicio([_nota("Uso camisetas UV")])
+    servicio.guardar(USER, "Uso camisetas UV")
+
+    assert _notas_vigentes(entorno) == ["Uso camisetas UV"]
+    puntos, _ = entorno.cliente.scroll("svc_test_notas", limit=10, with_payload=True)
+    assert len(puntos) == 1 and set(puntos[0].payload) == {"hecho_id", "user_id"}
+    assert puntos[0].payload["user_id"] == USER
+
+
+def test_retirar_nota_por_similitud(entorno):
+    entorno.servicio([_nota("Uso camisetas UV"), _nota("Me gusta el cine mudo")])[0].guardar(USER, "dos notas")
+    servicio, _ = entorno.servicio([_olvida()])
+
+    salida = servicio.guardar(USER, "Olvida lo de las camisetas UV")
+
+    [g] = salida["data"]["guardados"]
+    assert g["operacion"] == "retirar" and g["atributo"] == "nota" and g["valor"] == "Uso camisetas UV"
+    assert salida["data"]["sin_cambio"] == []
+    assert _notas_vigentes(entorno) == ["Me gusta el cine mudo"]          # solo se cierra la que encaja
+    yo = entorno.repo.entidad_usuario(USER)
+    nota = entorno.repo.atributos_por_alias("nota")[0]["id"]
+    cerrada = [h for h in entorno.repo.hechos_historial(USER, yo, nota) if h["valid_to"] is not None]
+    assert len(cerrada) == 1 and cerrada[0]["superseded_by"] is None       # retirar no sustituye
+    retiros = [d for d in entorno.repo.decisiones(USER) if d["tipo"] == "retirar"]
+    assert len(retiros) == 1 and retiros[0]["senales"]["regla"] == "retirar_nota"
+    assert retiros[0]["hecho_id"] == cerrada[0]["id"]
+
+
+def test_retirar_nota_debil_no_toca(entorno):
+    entorno.servicio([_nota("Uso camisetas UV")])[0].guardar(USER, "una nota")
+    servicio, _ = entorno.servicio([_olvida("bicicleta roja")])
+
+    salida = servicio.guardar(USER, "Olvida lo de la bicicleta roja")
+
+    assert salida["data"]["guardados"] == []
+    assert any("no he encontrado" in s.lower() for s in salida["data"]["sin_cambio"])
+    assert _notas_vigentes(entorno) == ["Uso camisetas UV"]
+    assert "retirar" not in _tipos(entorno.repo)
+
+
+def test_retirar_nota_ya_cerrada_no_cuenta(entorno):
+    entorno.servicio([_nota("Uso camisetas UV")])[0].guardar(USER, "una nota")
+    entorno.servicio([_olvida()])[0].guardar(USER, "Olvida lo de las camisetas UV")
+    assert _notas_vigentes(entorno) == []
+
+    salida = entorno.servicio([_olvida()])[0].guardar(USER, "Olvida lo de las camisetas UV")
+
+    assert salida["data"]["guardados"] == []                               # su punto sigue en Qdrant, pero cerrada
+    assert any("no he encontrado" in s.lower() for s in salida["data"]["sin_cambio"])
+
+
+def test_retirar_nota_nunca_cierra_mas_de_una_por_turno(entorno):
+    entorno.servicio([_nota("Uso camisetas UV"), _nota("Uso camisetas UV de manga larga")])[0].guardar(USER, "dos")
+    servicio, _ = entorno.servicio([_olvida("camisetas UV"), _olvida("camisetas UV manga larga")])
+
+    salida = servicio.guardar(USER, "Olvida lo de las camisetas UV y las de manga larga")
+
+    assert len(salida["data"]["guardados"]) == 1
+    assert len(salida["data"]["sin_cambio"]) == 1
+    assert len(_notas_vigentes(entorno)) == 1
+
+
+def test_retirar_nota_no_toca_las_de_otro_usuario(entorno):
+    entorno.servicio([_nota("Uso camisetas UV")])[0].guardar(OTRO, "nota ajena")
+    servicio, _ = entorno.servicio([_olvida()])
+
+    salida = servicio.guardar(USER, "Olvida lo de las camisetas UV")
+
+    assert salida["data"]["guardados"] == []
+    assert _notas_vigentes(entorno, OTRO) == ["Uso camisetas UV"]
+
+
+def test_retirar_con_entidad_y_atributo_fuertes_no_busca_en_notas(entorno):
+    """R3 solo se dispara cuando la entidad o el atributo no se resuelven con fuerza: un `retirar` de
+    («yo», alergia), ambos por alias exacto, que no encuentra ese valor sigue avisando y no toca las notas,
+    aunque una nota coincidiera al 100 %."""
+    entorno.servicio([_nota("alergia al polen")])[0].guardar(USER, "una nota")
+    fuerte = _hecho(entidad="yo", atributo="alergia", valor="alergia al polen", operacion="retirar")
+    salida = entorno.servicio([fuerte])[0].guardar(USER, "Ya no soy alérgico al polen")
+
+    assert salida["data"]["guardados"] == []
+    assert any("no he encontrado" in s.lower() for s in salida["data"]["sin_cambio"])
+    assert _notas_vigentes(entorno) == ["alergia al polen"]
+
+
 def test_parentesco_varios_no_sustituye(entorno):
     """H2-revision §2.1: una persona puede tener varias relaciones; la segunda no sustituye a la primera."""
     parentesco = lambda valor: _hecho(entidad="Paco", atributo="parentesco", cardinalidad="uno", valor=valor)

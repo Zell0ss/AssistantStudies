@@ -11,15 +11,18 @@ import uuid
 from datetime import date, datetime
 
 from logcentral_client import get_logger
-from qdrant_client.models import PointStruct
+from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
 
 from core.memoria.normalizar import normalizar
-from core.memoria.resolucion import decidir_hecho, resolver_atributo, resolver_entidad
+from core.memoria.resolucion import (
+    decidir_hecho, decidir_retirar_nota, resolver_atributo, resolver_entidad,
+)
 
 logger = get_logger("sebastian")
 
 _ESPACIO_NOTAS = uuid.UUID("a4c1d7e0-3b52-4f6a-8d19-5e2f9c0b7a31")
 _MAX_ENTIDADES_EN_PROMPT = 60
+_NOTAS_CANDIDATAS = 8       # R3: de mas, porque las cerradas siguen en Qdrant y se descartan despues
 _OPERACION_DE = {"anadir": "afirmar", "sustituir": "corregir", "retirar": "retirar"}
 
 
@@ -52,8 +55,9 @@ class ServicioMemoria:
         yo = self._repo.entidad_usuario(user_id, username)
         data = {"guardados": [], "nuevos_pendientes": {"entidades": [], "atributos": []},
                 "notas": [], "sin_cambio": []}
+        turno = {"notas_cerradas": 0}   # R3: como mucho una nota cerrada por similitud en cada turno
         for hecho in hechos:
-            self._procesar(user_id, texto, hecho, data)
+            self._procesar(user_id, texto, hecho, data, turno)
         logger.info(f"memoria.guardar: user={user_id} hechos={len(hechos)} guardados={len(data['guardados'])} "
                     f"notas={len(data['notas'])} sin_cambio={len(data['sin_cambio'])} yo={yo}")
         return {"success": True, "result": self._resumen(hechos, data), "data": data}
@@ -79,15 +83,16 @@ class ServicioMemoria:
 
     # --- un hecho -------------------------------------------------------------------------
 
-    def _procesar(self, user_id: str, texto: str, hecho: dict, data: dict) -> None:
+    def _procesar(self, user_id: str, texto: str, hecho: dict, data: dict, turno: dict) -> None:
         retirar = hecho["operacion"] == "retirar"
         ent = self._resolver_entidad(user_id, hecho)
         attr = self._resolver_atributo(hecho)
 
         if retirar and "crear" in (ent.accion, attr.accion):
-            # Olvidar algo que no existe no crea entidades ni atributos.
-            self._decidir_sin_cambio(user_id, ent, attr, "retirar_sin_coincidencia", data,
-                                     "No he encontrado qué olvidar.")
+            # Olvidar algo que no existe no crea entidades ni atributos. Puede ser una nota de texto libre.
+            if not self._retirar_nota(user_id, hecho, texto, ent, attr, data, turno):
+                self._decidir_sin_cambio(user_id, ent, attr, "retirar_sin_coincidencia", data,
+                                         "No he encontrado qué olvidar.")
             return
 
         entidad_id = self._materializar_entidad(user_id, hecho, ent, data)
@@ -98,6 +103,8 @@ class ServicioMemoria:
         vigentes = self._repo.hechos_vigentes(user_id, entidad_id, atributo_id)
         fuerte = ent.fuerte and attr.fuerte
         decision = decidir_hecho(hecho["operacion"], atributo["cardinalidad"], vigentes, hecho["valor"], fuerte)
+        if decision.regla == "retirar_debil" and self._retirar_nota(user_id, hecho, texto, ent, attr, data, turno):
+            return
         senales = self._senales(ent, attr, fuerte, decision.regla)
         confianza = self._confianza(ent, attr)
         detalle = f"entidad={entidad_id} atributo={atributo_id} regla={decision.regla}"
@@ -105,6 +112,8 @@ class ServicioMemoria:
         if decision.tipo == "anadir":
             hid = self._repo.anadir_hecho(user_id, entidad_id, atributo_id, hecho["valor"], confianza=confianza)
             self._repo.registrar_decision(user_id, "anadir", senales, detalle, hecho_id=hid)
+            if atributo["nombre"] == "nota":
+                self._embeber_nota(user_id, hid, hecho["valor"])   # R3: toda nota se puede encontrar despues
             data["guardados"].append(self._guardado(entidad, atributo, hecho["valor"], "anadir", None))
         elif decision.tipo == "sustituir":
             viejo = self._repo.hecho(decision.hecho_id)
@@ -203,15 +212,61 @@ class ServicioMemoria:
         atributo_nota = self._repo.atributos_por_alias("nota")[0]["id"]
         hid = self._repo.anadir_hecho(user_id, entidad_id, atributo_nota, texto)
         self._repo.registrar_decision(user_id, "nota", senales, detalle, hecho_id=hid)
+        self._embeber_nota(user_id, hid, texto)
+        if texto not in data["notas"]:
+            data["notas"].append(texto)
+
+    def _embeber_nota(self, user_id: str, hecho_id: int, texto: str) -> None:
+        """Despues de confirmar en SQL: si falla el embedding la nota queda guardada, sin vector."""
         try:
             vector = self._embedder.embed([texto])[0]
             self._qdrant.upsert(collection_name=self._coleccion_notas, points=[PointStruct(
-                id=str(uuid.uuid5(_ESPACIO_NOTAS, f"nota:{hid}")), vector=vector,
-                payload={"hecho_id": hid, "user_id": user_id})])
+                id=str(uuid.uuid5(_ESPACIO_NOTAS, f"nota:{hecho_id}")), vector=vector,
+                payload={"hecho_id": hecho_id, "user_id": user_id})])
         except Exception as e:
-            logger.warning(f"memoria: la nota {hid} se guardo sin embeber: {type(e).__name__}")
-        if texto not in data["notas"]:
-            data["notas"].append(texto)
+            logger.warning(f"memoria: la nota {hecho_id} se guardo sin embeber: {type(e).__name__}")
+
+    def _retirar_nota(self, user_id, hecho, texto, ent, attr, data, turno) -> bool:
+        """R3 (H2-revision §2.3): un `retirar` cuya entidad o atributo no se resuelve con fuerza busca entre
+        las notas vigentes **del usuario** y cierra la que encaje, con el mismo liston que una sustitucion.
+        Nunca mas de una por turno. Devuelve True si cerro una; si no, el llamador deja su `sin_cambio`."""
+        if turno["notas_cerradas"] >= 1:
+            return False
+        candidatas = self._notas_vigentes_parecidas(user_id, hecho["valor"].strip() or texto)
+        decision = decidir_retirar_nota(candidatas, self._umbrales)
+        if decision.tipo != "retirar":
+            return False
+        nota = self._repo.hecho(decision.hecho_id)
+        self._repo.retirar_hecho(nota["id"])
+        senales = {**self._senales(ent, attr, False, decision.regla),
+                   "nota": {"puntuacion": round(candidatas[0]["score"], 3),
+                            "margen": round(self._catalogo.margen(candidatas), 3)}}
+        self._repo.registrar_decision(user_id, "retirar", senales,
+                                      f"hecho={nota['id']} regla={decision.regla}", hecho_id=nota["id"])
+        data["guardados"].append(self._guardado(self._repo.entidad(nota["entidad_id"]),
+                                                self._repo.atributo(nota["atributo_id"]),
+                                                nota["valor"], "retirar", None))
+        turno["notas_cerradas"] += 1
+        return True
+
+    def _notas_vigentes_parecidas(self, user_id: str, consulta: str) -> list[dict]:
+        """[{hecho_id, score}] de mayor a menor. El filtro por `user_id` va en la consulta (D33) y las notas
+        cerradas se descartan **antes** de calcular el margen: una cerrada no puede restarselo a la vigente."""
+        try:
+            vector = self._embedder.embed([consulta])[0]
+            puntos = self._qdrant.query_points(
+                collection_name=self._coleccion_notas, query=vector, limit=_NOTAS_CANDIDATAS,
+                query_filter=Filter(must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]),
+            ).points
+        except Exception as e:
+            logger.warning(f"memoria: busqueda de notas no disponible: {type(e).__name__}")
+            return []
+        candidatas = []
+        for p in puntos:
+            fila = self._repo.hecho(p.payload["hecho_id"])
+            if fila and fila["user_id"] == user_id and fila["valid_to"] is None:
+                candidatas.append({"hecho_id": fila["id"], "score": p.score})
+        return candidatas
 
     # --- salida y señales -----------------------------------------------------------------------
 

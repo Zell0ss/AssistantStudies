@@ -1,7 +1,7 @@
 """H2 (fase 2, plan §3 H2.2): reglas de resolucion y de decision del hecho. Funciones puras: sin BD ni API."""
 from core.memoria.ajustes import umbrales
 from core.memoria.resolucion import (
-    compatible, decidir_hecho, resolver_atributo, resolver_entidad,
+    compatible, decidir_hecho, decidir_retirar_nota, resolver_atributo, resolver_entidad,
 )
 
 U = umbrales({})   # reutilizar 0.58 / 0.03, sustituir 0.68 / 0.05 (calibrados en H1)
@@ -127,3 +127,32 @@ def test_entidad_semantica_y_nueva():
     r = resolver_entidad([], cands, U, tipo="persona")
     assert (r.accion, r.id, r.via) == ("reutilizar", 9, "semantica")
     assert resolver_entidad([], [], U, tipo="persona").accion == "crear"
+
+
+# --- retirar una nota por similitud (H2-revision §2.3, R3) -------------------------------------
+
+def _cand(hecho_id, score):
+    return {"hecho_id": hecho_id, "score": score}
+
+
+def test_retirar_nota_cierra_la_que_supera_sustituir_con_margen():
+    d = decidir_retirar_nota([_cand(4, 0.80), _cand(9, 0.55)], U)
+    assert d.tipo == "retirar" and d.hecho_id == 4 and d.regla == "retirar_nota"
+
+
+def test_retirar_nota_con_una_sola_candidata_basta_su_puntuacion():
+    assert decidir_retirar_nota([_cand(4, 0.70)], U).tipo == "retirar"
+
+
+def test_retirar_nota_bajo_el_umbral_no_toca():
+    d = decidir_retirar_nota([_cand(4, 0.67), _cand(9, 0.30)], U)    # sustituir.puntuacion = 0,68
+    assert d.tipo == "sin_cambio" and d.hecho_id is None and "no he encontrado" in d.aviso.lower()
+
+
+def test_retirar_nota_sin_margen_no_toca():
+    d = decidir_retirar_nota([_cand(4, 0.80), _cand(9, 0.78)], U)    # sustituir.margen = 0,05: ambigua
+    assert d.tipo == "sin_cambio" and d.regla == "retirar_nota_ambigua"
+
+
+def test_retirar_nota_sin_candidatas_no_toca():
+    assert decidir_retirar_nota([], U).tipo == "sin_cambio"

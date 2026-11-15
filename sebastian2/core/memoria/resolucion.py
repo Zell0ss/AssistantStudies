@@ -86,6 +86,24 @@ def resolver_entidad(por_alias: list[dict], semanticos: list[dict], umbrales: di
     return Resolucion("reutilizar", mejor["id"], fuerte, "semantica", mejor["score"], margen)
 
 
+def decidir_retirar_nota(candidatas: list[dict], umbrales: dict) -> DecisionHecho:
+    """Retirar una nota de texto libre por similitud (H2-revision §2.3, R3).
+
+    `candidatas`: [{hecho_id, score}] de las notas **vigentes** del usuario, de mayor a menor puntuacion
+    (las cerradas ya vienen fuera: una nota cerrada no puede restar margen a la que queda). Solo se cierra
+    con el mismo listón que una sustitucion (D35): puntuacion y margen de `umbrales["sustituir"]`.
+    """
+    sin_cambio = {"aviso": "No he encontrado qué olvidar."}
+    if not candidatas:
+        return DecisionHecho("sin_cambio", regla="retirar_nota_sin_candidatas", **sin_cambio)
+    s = umbrales["sustituir"]
+    if candidatas[0]["score"] < s["puntuacion"]:
+        return DecisionHecho("sin_cambio", regla="retirar_nota_debil", **sin_cambio)
+    if _margen(candidatas) < s["margen"]:
+        return DecisionHecho("sin_cambio", regla="retirar_nota_ambigua", **sin_cambio)
+    return DecisionHecho("retirar", candidatas[0]["hecho_id"], "retirar_nota")
+
+
 def decidir_hecho(operacion: str, cardinalidad: str, vigentes: list[dict], valor: str,
                   fuerte: bool) -> DecisionHecho:
     """Que hacer con el hecho, segun las reglas del plan §3 H2.2. `vigentes`: [{id, valor}]."""
