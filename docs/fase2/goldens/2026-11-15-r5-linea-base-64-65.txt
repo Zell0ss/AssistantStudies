@@ -1,0 +1,62 @@
+F
+=================================== FAILURES ===================================
+____________________________ test_golden[golden_65] ____________________________
+
+golden = {'expected': [['calendar_add_event'], ['request_clarification']], 'id': 65, 'mode': 'any_of', 'phrase': 'Recuerda que el 3 de diciembre tengo la colonoscopia', ...}
+orchestrator_runner = <function _hacer_runner.<locals>._run at 0x7ff5df72a2a0>
+
+    @pytest.mark.golden
+    @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
+    def test_golden(golden, orchestrator_runner):
+        actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"))
+        passed = _matches(actual, golden["mode"], golden["expected"])
+        response_text = response.get("text", "") if isinstance(response, dict) else str(response)
+    
+        GOLDEN_RESULTS.append({
+            "id": golden["id"],
+            "phrase": golden["phrase"],
+            "mode": golden["mode"],
+            "expected": _fmt_expected(golden["mode"], golden["expected"]),
+            "actual": _fmt_sequence(actual),
+            "passed": passed,
+            "validates": golden.get("validates", ""),
+            "response_text": response_text,
+        })
+    
+>       assert passed, (
+            f"Golden #{golden['id']} ({golden['mode']}) — "
+            f"esperado {golden['expected']!r}, real {actual!r}. "
+            f"Respuesta de Alfred: {response_text!r}"
+        )
+E       AssertionError: Golden #65 (any_of) — esperado [['calendar_add_event'], ['request_clarification']], real ['mark_as_memorable']. Respuesta de Alfred: 'Lo anotaré en el calendario, que es donde corresponde un evento así. Aunque le advierto que la memoria no ha recogido el dato esta vez —lo haré directamente como cita el 3 de diciembre.\n\n¿A qué hora está prevista la colonoscopia?'
+E       assert False
+
+tests/golden/test_goldens.py:64: AssertionError
+=========================== GOLDEN REGRESSION REPORT ===========================
+
+#64 [PASS] mode=exact
+  Frase:     Tengo cita para la colonoscopia el 3 de diciembre a las 10
+  Esperado:  calendar_add_event
+  Real:      calendar_add_event
+  Valida:    Fase 2 H3 (D39), negativa: una cita con fecha es calendario, no memoria ni salud
+  Alfred:    Anotado, señor. Colonoscopia el 3 de diciembre a las 10:00.
+
+#65 [FAIL] mode=any_of
+  Frase:     Recuerda que el 3 de diciembre tengo la colonoscopia
+  Esperado:  calendar_add_event  O  request_clarification
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D39), negativa: «recuerda que» con una cita con fecha es calendario. Sin hora puede preguntar; lo único que falla es mark_as_memorable o salud
+  Alfred:    Lo anotaré en el calendario, que es donde corresponde un evento así. Aunque le advierto que la memoria no ha recogido el dato esta vez —lo haré directamente como cita el 3 de diciembre.
+
+¿A qué hora e
+= USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create) =
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001                36561             305    0.0381
+claude-sonnet-4-6                         2514             100    0.0090
+text-embedding-3-small (OpenAI)             129               -    0.0000
+TOTAL                                                             0.0471
+latencia por turno (misma medida que 'Turn end'): n=2 mediana=4.40s p90=5.24s min=3.3s max=5.5s
+============================== RESUMEN: 1/2 PASS ===============================
+=========================== short test summary info ============================
+FAILED tests/golden/test_goldens.py::test_golden[golden_65] - AssertionError:...
+1 failed, 1 passed, 63 deselected in 13.50s

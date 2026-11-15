@@ -74,3 +74,13 @@ def test_alfred_no_cree_que_puede_consultar_la_memoria():
     texto = _ALFRED_SYSTEM.lower()
     assert "tú no ejecutas herramientas" in texto
     assert "permítame consultarlo" in texto          # citado como lo que NO hay que decir
+
+
+def test_la_descripcion_excluye_las_citas_con_fecha_aunque_diga_recuerda_que():
+    """R5 (H3-encargo, D39): «recuerda que» choca con la exclusión del calendario. Una cita con fecha es calendario.
+    Hallado por el golden #65, que el planner resolvía con mark_as_memorable."""
+    d = _tool("mark_as_memorable")["description"].lower()
+    parte_no = d[d.index("no la uses"):]
+    assert "citas" in parte_no and "eventos con fecha" in parte_no
+    assert "aunque" in parte_no and "recuerda que" in parte_no
+    assert "recuerda que" in d[:d.index("no la uses")]          # el «sí» de «recuerda que» sigue donde estaba

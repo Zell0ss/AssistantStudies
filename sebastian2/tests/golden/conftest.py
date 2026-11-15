@@ -271,6 +271,9 @@ def _historial_limpio(request, test_db):
     # usuarios de goldens) no puede condicionar al siguiente. Los atributos creados se quedan: son catálogo.
     limpiar_memoria(test_db, GOLDEN_USER_ID, USUARIO_B)
     yield
+    # Y también al terminar: lo que deja un golden (entidades del usuario de goldens) no puede ver el siguiente
+    # `pytest` sin API, cuyas pruebas del catálogo cuentan entidades en toda la BD de test.
+    limpiar_memoria(test_db, GOLDEN_USER_ID, USUARIO_B)
 
 
 @pytest.fixture

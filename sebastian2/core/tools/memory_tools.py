@@ -16,7 +16,8 @@ MEMORY_TOOLS = [
             "dato duradero sobre él, su gente, sus cosas o sus proyectos; cuando tome decisiones ('he "
             "decidido...'); cuando corrija algo dicho antes ('no, es...', 'me equivoqué', 'ya no...'); o "
             "cuando pida olvidar ('olvida lo de...'). NO la uses para lo operativo que ya tiene su propia "
-            "tool (notas, listas, calendario, tareas, inventario) ni para lo de salud (comidas, hambre, "
+            "tool (notas, listas, calendario, tareas, inventario), ni para citas y eventos con fecha (son "
+            "del calendario, aunque el usuario diga 'recuerda que...'), ni para lo de salud (comidas, hambre, "
             "sueño, dolores: eso es la tool `salud`). Devuelve qué guardó, qué sustituyó y qué categorías "
             "nuevas abrió."
         ),
