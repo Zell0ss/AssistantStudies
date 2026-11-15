@@ -83,4 +83,5 @@ def test_la_descripcion_excluye_las_citas_con_fecha_aunque_diga_recuerda_que():
     parte_no = d[d.index("no la uses"):]
     assert "citas" in parte_no and "eventos con fecha" in parte_no
     assert "aunque" in parte_no and "recuerda que" in parte_no
+    assert "calendar_add_event" in parte_no          # dice a dónde va, no solo adónde no (golden #65)
     assert "recuerda que" in d[:d.index("no la uses")]          # el «sí» de «recuerda que» sigue donde estaba

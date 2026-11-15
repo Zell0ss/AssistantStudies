@@ -1,0 +1,26 @@
+            f"Respuesta de Alfred: {response_text!r}"
+E       AssertionError: Golden #65 (any_of) — esperado [['calendar_add_event'], ['request_clarification']], real ['mark_as_memorable']. Respuesta de Alfred: 'Anotado, señor. Colonoscopia el 3 de diciembre.'
+  Real:      mark_as_memorable
+  Alfred:    Anotado, señor. Colonoscopia el 3 de diciembre.
+TOTAL                                                             0.0250
+---
+            f"Respuesta de Alfred: {response_text!r}"
+E       AssertionError: Golden #65 (any_of) — esperado [['calendar_add_event'], ['request_clarification']], real ['mark_as_memorable']. Respuesta de Alfred: 'Anotado, señor. Colonoscopia el 3 de diciembre.'
+  Real:      mark_as_memorable
+  Alfred:    Anotado, señor. Colonoscopia el 3 de diciembre.
+TOTAL                                                             0.0251
+---
+            f"Respuesta de Alfred: {response_text!r}"
+E       AssertionError: Golden #65 (any_of) — esperado [['calendar_add_event'], ['request_clarification']], real ['mark_as_memorable']. Respuesta de Alfred: 'Anotado, señor. Colonoscopia el 3 de diciembre.'
+  Real:      mark_as_memorable
+  Alfred:    Anotado, señor. Colonoscopia el 3 de diciembre.
+TOTAL                                                             0.0248
+---
+  Real:      calendar_add_event
+  Alfred:    Anotado, señor. La colonoscopia queda en el calendario para el 3 de diciembre.
+TOTAL                                                             0.0218
+---
+  Real:      calendar_add_event
+  Alfred:    Anotado en el calendario para el 3 de diciembre, señor: colonoscopia.
+TOTAL                                                             0.0218
+---
