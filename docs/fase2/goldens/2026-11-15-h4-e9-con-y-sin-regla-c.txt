@@ -1,0 +1,8 @@
+SCRATCH_E9 regla_C=True n=1 tools=['mark_as_memorable']
+SCRATCH_E9 regla_C=False n=1 tools=['mark_as_memorable']
+SCRATCH_E9 regla_C=True n=2 tools=['mark_as_memorable']
+SCRATCH_E9 regla_C=False n=2 tools=['mark_as_memorable']
+SCRATCH_E9 regla_C=True n=3 tools=['salud']
+SCRATCH_E9 regla_C=False n=3 tools=['mark_as_memorable']
+TOTAL                                                             0.1495
+6 passed in 30.70s
