@@ -398,3 +398,119 @@ def test_texto_catalogo_lleva_semillas_y_entidades_propias_pero_no_ajenas(entorn
     assert "Paco" in texto and "Marisol" not in texto
     assert "alergia" in texto and "Sustancia o alimento" in texto   # atributo con su descripcion
     assert "alergias" in texto                                      # y sus alias
+
+
+# --- R10 (H3-revision): el extractor no supo de quién hablaba ------------------------------------------------------
+
+def test_si_el_extractor_solo_dio_marcadores_se_dice_que_no_se_sabe_de_quien_se_habla(entorno):
+    servicio, extractor = entorno.servicio([])
+    extractor.marcadores_descartados = 1            # lo que deja el Extractor real al descartar `<UNKNOWN>`
+    salida = servicio.guardar(USER, "Me equivoqué, es 2,4")
+
+    assert salida["success"] is True and salida["data"]["guardados"] == []
+    assert any("de quién" in s for s in salida["data"]["sin_cambio"])
+    assert "de quién" in salida["result"]
+    assert entorno.repo.listar_entidades(USER) == [] or all(e["es_usuario"] for e in entorno.repo.listar_entidades(USER))
+
+
+def test_si_ademas_hay_hechos_validos_se_guardan_y_se_avisa_de_lo_que_no(entorno):
+    servicio, extractor = entorno.servicio([_hecho()])
+    extractor.marcadores_descartados = 1
+    salida = servicio.guardar(USER, "Paco es alérgico a los frutos secos y alguien más a algo")
+    assert len(salida["data"]["guardados"]) == 1
+    assert any("de quién" in s for s in salida["data"]["sin_cambio"])
+
+
+# --- R9 (H3-revision): retirar por el valor, entre los hechos vigentes ------------------------------------------------
+
+def _pref(valor, atributo="preferencia"):
+    return _hecho(entidad="yo", tipo_entidad="persona", atributo=atributo, cardinalidad="varios", valor=valor)
+
+
+def _hechos_del_yo(entorno, user=USER):
+    return entorno.repo.hechos_con_nombres(user, solo_vigentes=False)
+
+
+def test_retirar_por_valor_unico(entorno):
+    entorno.servicio([_pref("camisetas UV para bañarme")])[0].guardar(USER, "Uso camisetas UV para bañarme", mensaje="m")
+    salida = entorno.servicio([_olvida()])[0].guardar(USER, "Olvida lo de las camisetas UV")
+
+    [g] = salida["data"]["guardados"]
+    assert (g["operacion"], g["atributo"], g["valor"]) == ("retirar", "preferencia", "camisetas UV para bañarme")
+    [h] = _hechos_del_yo(entorno)
+    assert h["valid_to"] is not None and h["valor"] == ""                   # cerrado y purgado (D42)
+    retiros = [d for d in entorno.repo.decisiones(USER) if d["tipo"] == "retirar"]
+    assert [d["senales"]["regla"] for d in retiros] == ["retirar_valor"] and retiros[0]["hecho_id"] == h["id"]
+
+
+def test_E9b_olvidar_algo_guardado_como_preferencia(entorno):
+    """El escenario E9b (sin API: el extractor falso fuerza `preferencia`): tiene que quedar cerrado y purgado."""
+    entorno.servicio([_pref("camisetas UV para bañarme")])[0].guardar(USER, "Uso camisetas UV para bañarme", mensaje="m1")
+    entorno.servicio([_olvida()])[0].guardar(USER, "Olvida lo de las camisetas UV", mensaje="m2")
+
+    assert all(h["valid_to"] is not None and h["valor"] == "" for h in _hechos_del_yo(entorno))
+    cur = entorno.repo._db.cursor()
+    cur.execute("SELECT texto, mensaje, purgada_at FROM mem_fuentes WHERE user_id = %s", (USER,))
+    fuentes = list(cur.fetchall())
+    assert len(fuentes) == 2 and all(f["texto"] is None and f["mensaje"] is None and f["purgada_at"] for f in fuentes)
+
+
+def test_retirar_por_valor_ambiguo_no_toca(entorno):
+    entorno.servicio([_pref("camisetas UV para bañarme"), _pref("camisetas UV de manga larga")])[0].guardar(USER, "dos")
+    salida = entorno.servicio([_olvida()])[0].guardar(USER, "Olvida lo de las camisetas UV")
+
+    assert salida["data"]["guardados"] == []
+    [aviso] = salida["data"]["sin_cambio"]
+    assert "cuál" in aviso.lower() and "para bañarme" in aviso and "manga larga" in aviso      # se pregunta cuál
+    assert [h["valor"] for h in _hechos_del_yo(entorno) if h["valid_to"] is None] == [
+        "camisetas UV para bañarme", "camisetas UV de manga larga"]
+    assert "retirar" not in [d["tipo"] for d in entorno.repo.decisiones(USER)]
+
+
+def test_retirar_por_valor_sin_candidatos_avisa_como_siempre(entorno):
+    entorno.servicio([_pref("el cine mudo")])[0].guardar(USER, "Me gusta el cine mudo")
+    salida = entorno.servicio([_olvida()])[0].guardar(USER, "Olvida lo de las camisetas UV")
+    assert salida["data"]["guardados"] == []
+    assert any("no he encontrado" in s.lower() for s in salida["data"]["sin_cambio"])
+
+
+def test_retirar_por_valor_respeta_uno_por_turno(entorno):
+    entorno.servicio([_pref("camisetas UV para bañarme"), _pref("el cine mudo")])[0].guardar(USER, "dos")
+    salida = entorno.servicio([_olvida("camisetas UV"), _olvida("cine mudo")])[0].guardar(USER, "Olvida las dos cosas")
+
+    assert len(salida["data"]["guardados"]) == 1 and len(salida["data"]["sin_cambio"]) == 1
+    assert len([h for h in _hechos_del_yo(entorno) if h["valid_to"] is None]) == 1
+
+
+def test_el_limite_de_uno_por_turno_es_compartido_con_r3(entorno):
+    entorno.servicio([_nota("Uso camisetas UV"), _pref("el cine mudo")])[0].guardar(USER, "dos")
+    salida = entorno.servicio([_olvida("camisetas UV"), _olvida("cine mudo")])[0].guardar(USER, "Olvida las dos cosas")
+    assert len(salida["data"]["guardados"]) == 1                    # la nota (R3); el cine ya no entra en este turno
+    assert [h["valor"] for h in _hechos_del_yo(entorno) if h["valid_to"] is None] == ["el cine mudo"]
+
+
+def test_una_nota_que_supera_el_umbral_va_antes_que_el_valor(entorno):
+    entorno.servicio([_nota("Uso camisetas UV"), _pref("camisetas UV para bañarme")])[0].guardar(USER, "dos")
+    entorno.servicio([_olvida()])[0].guardar(USER, "Olvida lo de las camisetas UV")
+    assert [h["valor"] for h in _hechos_del_yo(entorno) if h["valid_to"] is None] == ["camisetas UV para bañarme"]
+    assert [d["senales"]["regla"] for d in entorno.repo.decisiones(USER) if d["tipo"] == "retirar"] == ["retirar_nota"]
+
+
+def test_retirar_por_valor_sin_valor_no_toca_nada(entorno):
+    entorno.servicio([_pref("camisetas UV para bañarme")])[0].guardar(USER, "uno")
+    entorno.servicio([_olvida("")])[0].guardar(USER, "Olvida algo")
+    assert [h["valor"] for h in _hechos_del_yo(entorno) if h["valid_to"] is None] == ["camisetas UV para bañarme"]
+
+
+def test_retirar_por_valor_no_confunde_una_letra_con_una_palabra_larga(entorno):
+    """Contiene = como palabras completas: «M» (una talla) no puede cerrar «marzo»."""
+    entorno.servicio([_pref("el cumpleaños es en marzo")])[0].guardar(USER, "uno")
+    salida = entorno.servicio([_olvida("M")])[0].guardar(USER, "Olvida la M")
+    assert salida["data"]["guardados"] == []
+
+
+def test_retirar_por_valor_solo_mira_los_hechos_del_usuario(entorno):
+    entorno.servicio([_pref("camisetas UV para bañarme")])[0].guardar(OTRO, "de otro")
+    salida = entorno.servicio([_olvida()])[0].guardar(USER, "Olvida lo de las camisetas UV")
+    assert salida["data"]["guardados"] == []
+    assert [h["valor"] for h in _hechos_del_yo(entorno, OTRO) if h["valid_to"] is None] == ["camisetas UV para bañarme"]

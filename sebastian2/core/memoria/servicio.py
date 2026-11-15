@@ -62,16 +62,23 @@ class ServicioMemoria:
         yo = self._repo.entidad_usuario(user_id, username)
         data = {"guardados": [], "nuevos_pendientes": {"entidades": [], "atributos": []},
                 "notas": [], "sin_cambio": []}
-        # Una fuente por llamada, aunque la frase de varios hechos o ninguno (D41). R3: como mucho una nota
-        # cerrada por similitud en cada turno.
-        turno = {"notas_cerradas": 0, "fuente_id": self._repo.crear_fuente(user_id, texto, mensaje)}
+        # Una fuente por llamada, aunque la frase de varios hechos o ninguno (D41). R3 y R9: como mucho UN cierre
+        # indirecto (por similitud con una nota, o por el valor) en cada turno, compartido.
+        turno = {"cierres_indirectos": 0, "fuente_id": self._repo.crear_fuente(user_id, texto, mensaje)}
         for hecho in hechos:
             self._procesar(user_id, texto, hecho, data, turno)
         # Si no dejo ningun hecho (frase vacia, o todo «ya constaba»), no queda texto sin hecho (D42).
         self._repo.purgar_fuente_sin_hechos(turno["fuente_id"])
+        # R10: el extractor descarto hechos cuya entidad era un marcador (`<UNKNOWN>`): no supo de quien hablaba.
+        sin_entidad = getattr(self._extractor, "marcadores_descartados", 0)
+        if sin_entidad:
+            data["sin_cambio"].append("No he sabido de quién o de qué se hablaba en parte de lo dicho: ¿de quién se trata?")
         logger.info(f"memoria.guardar: user={user_id} hechos={len(hechos)} guardados={len(data['guardados'])} "
                     f"notas={len(data['notas'])} sin_cambio={len(data['sin_cambio'])} yo={yo}")
-        return {"success": True, "result": self._resumen(hechos, data), "data": data}
+        resumen = self._resumen(hechos, data)
+        if sin_entidad and not hechos:
+            resumen = "No sé de quién o de qué se habla."
+        return {"success": True, "result": resumen, "data": data}
 
     def consultar(self, user_id: str, query: str, entidad: str | None = None, atributo: str | None = None,
                   historial: bool = False) -> dict:
@@ -180,7 +187,8 @@ class ServicioMemoria:
 
         if retirar and "crear" in (ent.accion, attr.accion):
             # Olvidar algo que no existe no crea entidades ni atributos. Puede ser una nota de texto libre.
-            if not self._retirar_nota(user_id, hecho, texto, ent, attr, data, turno):
+            if not (self._retirar_nota(user_id, hecho, texto, ent, attr, data, turno)
+                    or self._retirar_por_valor(user_id, hecho, ent, attr, data, turno)):
                 self._decidir_sin_cambio(user_id, ent, attr, "retirar_sin_coincidencia", data,
                                          "No he encontrado qué olvidar.")
             return
@@ -193,7 +201,8 @@ class ServicioMemoria:
         vigentes = self._repo.hechos_vigentes(user_id, entidad_id, atributo_id)
         fuerte = ent.fuerte and attr.fuerte
         decision = decidir_hecho(hecho["operacion"], atributo["cardinalidad"], vigentes, hecho["valor"], fuerte)
-        if decision.regla == "retirar_debil" and self._retirar_nota(user_id, hecho, texto, ent, attr, data, turno):
+        if decision.regla == "retirar_debil" and (self._retirar_nota(user_id, hecho, texto, ent, attr, data, turno)
+                                                  or self._retirar_por_valor(user_id, hecho, ent, attr, data, turno)):
             return
         senales = self._senales(ent, attr, fuerte, decision.regla)
         confianza = self._confianza(ent, attr)
@@ -343,7 +352,7 @@ class ServicioMemoria:
         """R3 (H2-revision §2.3): un `retirar` cuya entidad o atributo no se resuelve con fuerza busca entre
         las notas vigentes **del usuario** y cierra la que encaje, con el mismo liston que una sustitucion.
         Nunca mas de una por turno. Devuelve True si cerro una; si no, el llamador deja su `sin_cambio`."""
-        if turno["notas_cerradas"] >= 1:
+        if turno["cierres_indirectos"] >= 1:
             return False
         candidatas = self._notas_vigentes_parecidas(user_id, hecho["valor"].strip() or texto)
         decision = decidir_retirar_nota(candidatas, self._umbrales)
@@ -359,7 +368,36 @@ class ServicioMemoria:
         data["guardados"].append(self._guardado(self._repo.entidad(nota["entidad_id"]),
                                                 self._repo.atributo(nota["atributo_id"]),
                                                 nota["valor"], "retirar", None))
-        turno["notas_cerradas"] += 1
+        turno["cierres_indirectos"] += 1
+        return True
+
+    def _retirar_por_valor(self, user_id, hecho, ent, attr, data, turno) -> bool:
+        """R9 (H3-revision): un `retirar` sin entidad resuelta con fuerza, y sin nota que supere el umbral de R3, busca
+        entre los hechos vigentes **del usuario** los que **contienen** el valor que se quiere olvidar (normalizado,
+        como palabras completas: «M» no cierra «marzo»). Uno solo: se retira, con purga. Varios: no se toca y se
+        pregunta cuál. Ninguno: devuelve False y queda el aviso de siempre. Comparte con R3 el limite de uno por turno.
+        Devuelve True si lo ha resuelto el (cerrando uno o preguntando)."""
+        buscado = normalizar(hecho["valor"])
+        if turno["cierres_indirectos"] >= 1 or not buscado:
+            return False
+        patron = f" {buscado} "
+        candidatos = [h for h in self._repo.hechos_con_nombres(user_id) if h["valor"]
+                      and patron in f" {normalizar(h['valor'])} "]
+        if not candidatos:
+            return False
+        if len(candidatos) > 1:
+            opciones = "; ".join(f"«{c['valor']}» ({c['entidad']} · {c['atributo']})" for c in candidatos)
+            self._repo.registrar_decision(user_id, "sin_cambio", self._senales(ent, attr, False, "retirar_valor_ambiguo"),
+                                          f"regla=retirar_valor_ambiguo candidatos={len(candidatos)}")
+            data["sin_cambio"].append(f"Hay varios datos que encajan con lo que quiere olvidar: {opciones}. ¿Cuál olvido?")
+            return True
+        h = candidatos[0]
+        self._retirar(user_id, h["id"])
+        self._repo.registrar_decision(user_id, "retirar", self._senales(ent, attr, False, "retirar_valor"),
+                                      f"hecho={h['id']} regla=retirar_valor", hecho_id=h["id"])
+        data["guardados"].append({"entidad": h["entidad"], "atributo": h["atributo"], "valor": h["valor"],
+                                  "operacion": "retirar", "sustituye": None})
+        turno["cierres_indirectos"] += 1
         return True
 
     def _notas_vigentes_parecidas(self, user_id: str, consulta: str) -> list[dict]:
