@@ -143,3 +143,68 @@ cuando Josem suba el tope (§3) y diga «sí» en tu ventana, y mirando el buzó
 6. **Para** con un anexo en `H3-informe.md`: resultados, gasto por modelo y las respuestas de E5
    pegadas. Si Josem dice «sí» al punto 2 de §4, añade el cambio del log de turno como **R12**, con
    la prueba de que el log no contiene el mensaje.
+
+## 5. Revisión del anexo (2026-11-15)
+
+Responde a: d4b3054 (H3-informe, anexo). La revisé contra `2ec6667` y los commits anteriores.
+
+**Veredicto: H3 aprobado y cerrado.** Quedan dos retoques sin API, que van al principio de H4.
+
+### 5.1 Lo que comprobé
+
+- **Pruebas sin API:** **655 en verde**, lo mismo que dice el anexo.
+- **Regla del planner:** `_REGLA_ACCIONES_CON_HISTORIAL` (`orchestrator.py:104`) va al final del
+  prompt (`:134`), después del índice.
+- **Regla de Alfred:** `orchestrator.py:161`.
+- **R12:** el log de inicio de turno ya no lleva el texto. Siguen con él los tres logs de error de
+  `handle()` (`:419`, `:424` y `:430`), como dices.
+- **E5, de punta a punta:** 3/3, y la BD queda exactamente como pide D42.
+
+### 5.2 Decisiones del anexo
+
+| # | Decisión |
+|---|---|
+| 1 | **Confirmo la regla C.** Mi texto, en mitad del prompt, daba 0/6: el hueco era mío. Acotarla a «dato de memoria» fue lo correcto, y la verificación de 27 goldens lo respalda. La lección (una regla de comportamiento con historial va al final del prompt, justo antes de decidir) queda en D43 |
+| 2 | **No se gasta en esto ahora.** E9 entra en la pasada completa de H4. Si allí vuelve a ir a `salud`, se repite ×3 con y sin la regla C para separar las dos causas, y se informa. No se arregla nada por tu cuenta |
+| 3 | **Sí, en llano (R13).** Texto para Alfred: «Si el usuario pidió guardar, corregir u olvidar y en este turno no hay resultado, dile en llano que no lo has hecho y ofrécete a intentarlo de nuevo. No menciones herramientas, resultados ni reglas.» Lleva prueba de contenido, que también compruebe que la regla no contiene «resultado de herramienta» en la frase que se le pide decir |
+| 4 | **Sí (R14).** Es el mismo caso que D42 y entra en el «sí» de Josem al log de turno: los tres logs de error guardan la longitud, no el texto. Lleva prueba |
+| 5 | Es de Josem (§5.3) |
+| 6 | **Sí,** #62 se apunta como intermitente conocido, con #43 y #28 |
+| desv. 2 | **Bien visto**, con palabras completas. Mi «contiene» habría cerrado «marzo» al olvidar «M» |
+| desv. 4 | Anotado. Para no repetirlo, en `-k` usa los ids exactos (`golden_1 and not golden_1[0-9]`, o el patrón que tenga el harness) |
+
+### 5.3 Gasto
+
+Josem autorizó «hasta 2 €» y se gastaron 1,95 $, así que bien. Lo de subirlo a 8 $ era mi
+propuesta, no su «sí», e hiciste bien en no usarlo.
+
+**Acumulado: ≈ 6,46 $.** H4 necesita unos 2,3 $: la pasada completa de 66 goldens (≈ 1,8 $) y
+E1–E9 (≈ 0,5 $). **Pido a Josem ≈ 2,5 $ para H4**, con lo que la fase llegaría a unos 9 $. Sin ese
+«sí» en tu ventana, H4 se prepara entero pero no se lanza ninguna pasada.
+
+### 5.4 Lo que añado a H4 (arquitecto: el plan es anterior a D41)
+
+- **Paso 4.2 del plan:** se aplican **010, 011 y 012**, en ese orden.
+- **Hechos migrados** (`migrar_sprint3.py`): llevan `fuente_id = NULL` y `origen='migracion'`. No
+  se inventa una fuente.
+- **`deploy/comprobar_fase2.sh`:** comprueba también que existen `mem_fuentes` y
+  `mem_hechos.fuente_id`.
+- **`test_migrar_sprint3_mapa`:** además comprueba que la alergia al ácido acetilsalicílico queda
+  como `alergia`. Con R6 es memoria.
+
+## Para el programador
+
+Responde a: d4b3054 (H3-informe, anexo)
+
+H3 aprobado y cerrado. **Adelante con H4**, en este orden:
+
+1. **R13** (la redacción de Alfred, §5.2-3) y **R14** (los logs de error, §5.2-4), sin API, con
+   sus pruebas y en commits propios.
+2. **H4** según el plan §3, con lo añadido en §5.4. Todo lo que no gasta va primero: migración,
+   cuaderno, borrar `modules/memory.py`, `PASOS-CON-SUDO.md`, `comprobar_fase2.sh` y las pruebas
+   normativas.
+3. **[API]**, solo con el «sí» de Josem a ≈ 2,5 $ en tu ventana y mirando antes el buzón: la
+   pasada completa de 66 goldens y E1–E9. Si E9 vuelve a ir a `salud`, aplica §5.2-2 dentro del
+   mismo tope.
+4. **Para** en `docs/fase2/H4-informe.md`, listo para el despliegue de Josem. No despliegues, no
+   fusiones y no reinicies nada.
