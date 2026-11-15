@@ -226,9 +226,17 @@ class ServicioMemoria:
 
     def _resolver_entidad(self, user_id: str, hecho: dict):
         por_alias = self._repo.entidades_por_alias(user_id, hecho["entidad"])
-        semanticos = [] if len(por_alias) == 1 else self._semantica(
-            self._catalogo.buscar_entidades, user_id, f"{hecho['entidad']}: {hecho['tipo_entidad']}")
+        semanticos = []
+        if len(por_alias) != 1:
+            # SQL manda: un punto del catalogo cuya entidad ya no existe (o no es de este usuario) no cuenta.
+            candidatos = self._semantica(
+                self._catalogo.buscar_entidades, user_id, f"{hecho['entidad']}: {hecho['tipo_entidad']}")
+            semanticos = [c for c in candidatos if self._es_entidad_de(user_id, c["id"])]
         return resolver_entidad(por_alias, semanticos, self._umbrales, tipo=hecho["tipo_entidad"])
+
+    def _es_entidad_de(self, user_id: str, entidad_id: int) -> bool:
+        fila = self._repo.entidad(entidad_id)
+        return fila is not None and fila["user_id"] == user_id
 
     def _resolver_atributo(self, hecho: dict):
         # Los candidatos semanticos se enriquecen con `tipos_entidad` (el payload no lo lleva) para la

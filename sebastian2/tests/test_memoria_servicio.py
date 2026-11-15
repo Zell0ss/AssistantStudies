@@ -208,6 +208,27 @@ def test_retirar_algo_que_no_existe_no_crea_nada_y_avisa(entorno):
     assert entorno.repo.atributos_por_alias(f"inventado{SUFIJO}") == []   # no crea atributos para olvidar
 
 
+# --- un punto huerfano del catalogo no puede romper el guardado ------------------------------------------------
+
+def test_una_entidad_del_catalogo_que_ya_no_existe_en_sql_no_se_reutiliza(entorno):
+    """Hallado en la pasada de H3: `<base>_catalogo` devolvia una entidad cuya fila SQL ya no estaba (el harness
+    de goldens las borra entre pruebas) y el INSERT del hecho fallaba por la clave ajena. SQL manda: un candidato
+    semantico que no existe, o que no es de ese usuario, no cuenta (igual que ya se hace con los atributos)."""
+    paco = entorno.repo.crear_entidad(USER, "Paco", "persona", estado="activo")
+    entorno.catalogo.indexar_entidad(entorno.repo.entidad(paco))          # el punto queda en Qdrant...
+    cur = entorno.repo._db.cursor()
+    cur.execute("DELETE FROM mem_entidad_alias WHERE entidad_id = %s", (paco,))
+    cur.execute("DELETE FROM mem_entidades WHERE id = %s", (paco,))       # ...y la fila desaparece de SQL
+    entorno.repo._db.commit()
+
+    servicio, _ = entorno.servicio([_hecho()])
+    salida = servicio.guardar(USER, "Mi cuñado Paco es alérgico a los frutos secos")
+
+    assert salida["success"] is True and len(salida["data"]["guardados"]) == 1
+    nuevo = entorno.repo.entidades_por_alias(USER, "paco")
+    assert len(nuevo) == 1 and nuevo[0]["id"] != paco
+
+
 # --- retirar una nota de texto libre (H2-revision §2.3, R3) -----------------------------------------
 #
 # Una «nota» es cualquier hecho con atributo `nota`, sea cual sea el camino por el que llego (el extractor

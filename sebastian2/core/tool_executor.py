@@ -336,9 +336,11 @@ class ToolExecutor:
 
     def _search_memory(self, inputs: dict):
         # Contrato nuevo (fase 2, plan §2.3): alias exacto + historial + notas + vault; sin `k`.
+        entidad, atributo = inputs.get('entidad'), inputs.get('atributo')
+        # El esquema pide `query`, pero el planner a veces da solo entidad y atributo: se busca con ellos.
+        query = inputs.get('query') or " ".join(x for x in (entidad, atributo) if x)
         return self._servicio_memoria().consultar(
-            self._user_id, inputs['query'], entidad=inputs.get('entidad'), atributo=inputs.get('atributo'),
-            historial=bool(inputs.get('historial', False)))
+            self._user_id, query, entidad=entidad, atributo=atributo, historial=bool(inputs.get('historial', False)))
 
     # ── YouTube ───────────────────────────────────────────────────────────────
 

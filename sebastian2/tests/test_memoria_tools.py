@@ -66,3 +66,11 @@ def test_alfred_sabe_leer_la_salida_de_search_memory():
         assert clave in texto, clave
     assert "gana el vault" in texto.lower()          # D37: si chocan, el vault y se avisa
     assert "no me consta" in texto.lower()           # D26: todo vacio = no le consta
+
+
+def test_alfred_no_cree_que_puede_consultar_la_memoria():
+    """Hallado en la pasada de H3 (honestidad H1): con la linea de search_memory, sin datos de herramientas Alfred
+    contestaba «Permítame consultarlo». Solo lee lo que ya trajo la herramienta; no ejecuta ninguna."""
+    texto = _ALFRED_SYSTEM.lower()
+    assert "tú no ejecutas herramientas" in texto
+    assert "permítame consultarlo" in texto          # citado como lo que NO hay que decir

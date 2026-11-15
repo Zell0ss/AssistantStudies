@@ -489,6 +489,25 @@ def test_search_memory_solo_con_query_el_resto_por_defecto(mock_desde_config, db
         '99999', "algo", entidad=None, atributo=None, historial=False)
 
 
+@patch('core.memoria.servicio.ServicioMemoria.desde_config')
+def test_search_memory_sin_query_usa_entidad_y_atributo(mock_desde_config, db):
+    """Hallado en la pasada de H3: el planner a veces da `entidad` y `atributo` y se deja `query`, que el
+    esquema pide. Un KeyError ahi dejaba al planner sin respuesta de la memoria."""
+    from core.tool_executor import ToolExecutor
+    ToolExecutor(db, '99999', config={'memory_collection': 'x'}).execute(
+        "search_memory", {"entidad": "Paco", "atributo": "alergia"})
+    mock_desde_config.return_value.consultar.assert_called_once_with(
+        '99999', "Paco alergia", entidad="Paco", atributo="alergia", historial=False)
+
+
+@patch('core.memoria.servicio.ServicioMemoria.desde_config')
+def test_search_memory_sin_nada_no_revienta(mock_desde_config, db):
+    from core.tool_executor import ToolExecutor
+    ToolExecutor(db, '99999', config={'memory_collection': 'x'}).execute("search_memory", {})
+    mock_desde_config.return_value.consultar.assert_called_once_with(
+        '99999', "", entidad=None, atributo=None, historial=False)
+
+
 # ── YouTube ───────────────────────────────────────────────────────────────────
 
 @pytest.fixture
