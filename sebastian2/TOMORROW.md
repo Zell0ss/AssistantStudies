@@ -1,20 +1,25 @@
 # tomorrow.md — Sebastian 2.0 (programador)
 
-**Punto de parada (2026-11-15):** fase 2, H3 entregado: `docs/fase2/H3-informe.md` (`44cf6dc`). Es el turno del arquitecto. 627 pruebas sin API en verde;
-escenarios E1–E9 8/9 (falla E5, ver el informe); #56–#65 9/10 con #57 intermitente (4/4 al repetir); R6 10/10. Gasto de la fase ≈ 4,51 $ de 5 $
-(margen ≈ 0,5 $: no cabe otra pasada completa).
+**Punto de parada (2026-11-15):** fase 2, H3 aprobado con retoques (`H3-revision.md`, `36c3f90`). Hechos y commiteados los retoques **sin API**: R8 (reglas de
+planner y Alfred + golden #66), R9 (retirar por valor), R10 (`_validar`, aviso, casos 1 y 2), R11 (Alfred y el vault): `809f697`, `48cc4f3`, `e200440`.
+654 pruebas sin API en verde, 90 `golden`. Falta TODO lo [API] y el anexo del informe.
 
-**Siguiente paso:** el que diga el arquitecto tras revisar H3. No empezar H4 (retirada del Sprint 3 y despliegue) sin su revisión. Lo más probable:
-la regla del prompt del planner para el historial (informe, Decisiones §1) y R3/E9 (§2).
+**Siguiente paso (todo [API]; no se lanza nada hasta que Josem suba el tope de la fase a 8 $ y diga «sí» en su ventana; antes de CADA paso: `git log` del buzón, §2.4):**
+1. #66 ×3 y E5 ×3 (criterio de la revisión: 3/3 en los dos). Línea base de #66 solo con `-k`.
+2. R10: los 10 casos del extractor (`pytest -m golden tests/golden/test_extractor.py`; los casos 1 y 2 ya cambiados).
+3. `-k` #56–#66 (una pasada) y escenarios E1–E9 (E5 con tabla de `mem_hechos`/`mem_fuentes`; E9b ya está como prueba sin API).
+4. Anexo en `docs/fase2/H3-informe.md` (resultados, gasto por modelo, respuestas de E5 pegadas), commit por rutas, y timbre a `sebastian2-56`.
+5. **R12** solo si Josem dice «sí» al punto 2 de §4 de la revisión: el log de inicio de turno deja de guardar el texto del mensaje (longitud e id), con la prueba de que
+   el log no lo contiene (`orchestrator.py` ~430, «Turn start»).
 
 **Gotchas:**
-- Dos venv: `sebastian2/.venv` (3.12 + anthropic 1.14) es el de este worktree; el de producción (`/data/AssistantStudies/sebastian2/.venv`) sin tocar.
-  Para `pytest` desde `sebastian2/`: `.venv/bin/python -m pytest`. Los goldens: `-m golden`, siempre con `-k`; cualquier gasto nuevo necesita el «sí» de Josem en esta ventana.
-- Un fallo de tool en goldens vuelca ~8.000 líneas de trazas: filtrar con `grep -v 'INFO\|DEBUG\|^ *│\|^ *└'` y guardar la salida en `docs/fase2/goldens/`.
-- `config.yaml` del worktree apunta a `sebastian_test` y `sebastian_memory_test`; el harness usa solo `<base>_catalogo` y `<base>_notas`. La migración 012 está aplicada a
-  `sebastian_test` y `sebastian_dev`, **no a producción** (H4, Josem). `modules/memory.py` sigue en el repo (H4 lo borra); el ejecutor ya no lo usa.
-- `golden_test_user` y `golden_test_user_b`: `limpiar_memoria` (tests/golden/memoria_base.py) borra hechos, fuentes, decisiones y entidades al empezar **y al terminar** cada golden.
-- `git commit` siempre por rutas (`-- <ruta>`): el arquitecto comparte la copia de trabajo.
-- El automensaje está activo: la pareja es `sebastian2-56` (tmux `sebastian-arq`).
+- Gasto de la fase ≈ 4,51 $ de 5 $; los retoques [API] ≈ 0,8 $ (la revisión estima 3,1 $ en total con H4). Anotar quién autorizó y cuándo en el anexo.
+- R9 compara como **palabras completas** («M» no cierra «marzo»; la revisión decía «contiene»: refinamiento mío, hay prueba) y se dispara igual que R3 (entidad o atributo sin resolver con fuerza).
+  R3 y R9 comparten el límite de un cierre indirecto por turno (`turno["cierres_indirectos"]`).
+- R10: el `Extractor` expone `marcadores_descartados` (de la última llamada); el servicio avisa en `sin_cambio` y el resultado dice «No sé de quién o de qué se habla».
+- R8 y R11 comparten commit (mismo bloque de `_ALFRED_SYSTEM`); R9 y la parte de servicio de R10, también (mismo fichero).
+- Dos venv: `sebastian2/.venv` (3.12 + anthropic 1.14) es el de este worktree; el de producción sin tocar. `pytest` desde `sebastian2/`: `.venv/bin/python -m pytest`; goldens: `-m golden` con `-k`.
+- Un fallo de tool en goldens vuelca ~8.000 líneas: filtrar con `grep -v 'INFO\|DEBUG\|^ *│\|^ *└'` y guardar la salida en `docs/fase2/goldens/`.
+- Migración 012 aplicada a `sebastian_test` y `sebastian_dev`, **no a producción** (H4, Josem). `git commit` siempre por rutas. Automensaje activo: pareja `sebastian2-56`.
 
-**Bloqueos:** ninguno propio; esperan a Josem el gasto futuro y, en H4, aplicar 010–012 en producción.
+**Bloqueos:** el tope de 8 $ y el «sí» de Josem; y su respuesta al punto 2 de §4 (log de turno).
