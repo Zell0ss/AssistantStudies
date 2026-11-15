@@ -6,10 +6,11 @@ fixture asserts the connected schema is exactly TEST_DB_NAME before yielding a
 connection to anything — if that assertion fails, the whole session aborts
 immediately. This is a hard assert, not a naming convention.
 
-Same guardrail extends to memory (Sprint 3): golden #20 writes a real point via
-mark_as_memorable, so `config_de_goldens` refuses to run unless the isolated
-TEST_MEMORY_COLLECTION collection actually exists in Qdrant, and never resolves
-to the real 'sebastian_memory' collection.
+Same guardrail extends to memory: golden #20 writes real facts via mark_as_memorable,
+so `config_de_goldens` refuses to run unless Qdrant is reachable, and never resolves
+to the real 'sebastian_memory' base. Since fase 2 (H3) the memory is MariaDB
+(sebastian_test) plus `<base>_catalogo` and `<base>_notas` in Qdrant, recreated every
+session; there is no flat `sebastian_memory_test` collection any more.
 """
 import time
 from datetime import date, datetime, timedelta
@@ -18,6 +19,9 @@ import pymysql
 import pytest
 
 from tests.golden.aislamiento import neutralizar_servicios_externos
+from tests.golden.memoria_base import (
+    USUARIO_B, limpiar_atributos_de_conversacion, limpiar_memoria, sembrar_memoria_base,
+)
 from utils.config import get_config
 
 TEST_DB_NAME = "sebastian_test"
@@ -32,6 +36,27 @@ def pytest_configure(config):
     )
 
 
+def _imprimir_escenarios(terminalreporter):
+    """Fase 2 H3: los escenarios con estado pegan en el informe las respuestas de cada turno."""
+    try:
+        from tests.golden.test_escenarios_memoria import RESULTADOS
+    except ImportError:
+        return
+    if not RESULTADOS:
+        return
+    terminalreporter.write_sep("=", "ESCENARIOS DE MEMORIA (turnos, tools y respuestas de Alfred)")
+    for r in RESULTADOS:
+        terminalreporter.write_line("")
+        terminalreporter.write(f"{r['id']} ", bold=True)
+        terminalreporter.write_line(r["titulo"])
+        for frase, tools, texto in r["turnos"]:
+            terminalreporter.write_line(f"  Usuario:   {frase}")
+            terminalreporter.write_line(f"  Tools:     {' → '.join(tools) if tools else '(ninguna)'}")
+            terminalreporter.write_line(f"  Alfred:    {texto}")
+        for linea in r.get("bd", []):
+            terminalreporter.write_line(f"  BD:        {linea}")
+
+
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     """Print the golden → expected → actual → PASS/FAIL report + X/14 summary."""
     try:
@@ -39,6 +64,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     except ImportError:
         return
     from tests.golden.uso import USO
+    _imprimir_escenarios(terminalreporter)
     if not GOLDEN_RESULTS:
         if USO.por_modelo or USO.tokens_embedding:
             terminalreporter.write_sep("=", "USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create)")
@@ -185,13 +211,11 @@ def config_de_goldens(tmp_path_factory):
     qdrant_url = base_config.get("qdrant_url", "http://localhost:6333")
     client = QdrantClient(url=qdrant_url)
     try:
-        client.get_collection(TEST_MEMORY_COLLECTION)
+        client.get_collections()
     except Exception:
         pytest.exit(
-            f"REFUSING TO RUN GOLDEN HARNESS: Qdrant collection '{TEST_MEMORY_COLLECTION}' "
-            "not found (create it before running — see SPRINT3-MEMORIA.md Phase 3). This "
-            "guardrail exists because golden #20 writes real points and must never silently "
-            "fall back to the real 'sebastian_memory' collection.",
+            f"REFUSING TO RUN GOLDEN HARNESS: Qdrant ({qdrant_url}) is not reachable. The harness "
+            f"recreates '{TEST_MEMORY_COLLECTION}_catalogo' and '{TEST_MEMORY_COLLECTION}_notas' every session.",
             returncode=1,
         )
 
@@ -201,50 +225,33 @@ def config_de_goldens(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def memory_fixtures(config_de_goldens):
-    """Seed deterministic memories in the isolated test collection. Session-scoped: wipes
-    and recreates sebastian_memory_test at the start of each session for determinism."""
+def memory_fixtures(config_de_goldens, test_db):
+    """Fase 2 (D34): la memoria nueva vive en MariaDB y en `<base>_catalogo` y `<base>_notas`. Se recrean en
+    cada sesión (determinismo) y se indexan las descripciones de los atributos semilla (la BD de test ya los
+    trae: migración 011). Ya no hay colección plana `sebastian_memory_test`."""
     from qdrant_client import QdrantClient
-    from qdrant_client.models import Distance, VectorParams
 
-    from modules.memory import MemoryModule
-
-    qdrant_url = config_de_goldens.get("qdrant_url", "http://localhost:6333")
-    client = QdrantClient(url=qdrant_url)
-    client.delete_collection(TEST_MEMORY_COLLECTION)
-    client.create_collection(
-        TEST_MEMORY_COLLECTION,
-        vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
-        on_disk_payload=True,
-    )
-
-    mem = MemoryModule(
-        collection_name=TEST_MEMORY_COLLECTION,
-        openai_api_key=config_de_goldens["openai_apikey"],
-        qdrant_url=qdrant_url,
-    )
-    mem.store("Mi cuñado Paco es alérgico a los frutos secos", tags=["familia", "salud"])
-    mem.store("A mi señor le gusta el vino tinto de Ribera del Duero", tags=["preferencias"])
-    mem.store("El cumpleaños de Rebe es en marzo", tags=["familia", "fechas"])
-
-    # Fase 2 (D34): la memoria nueva vive en <base>_catalogo y <base>_notas. Se recrean en cada sesión
-    # y se indexan las descripciones de los atributos semilla (la BD de test ya los trae: migración 011).
     from core.memoria.catalogo import Catalogo
     from core.memoria.embedder import OpenAIEmbedder
     from core.memoria.repositorio import RepositorioMemoria
-    from db.connection import close_connection, get_connection
     from scripts.memoria.crear_colecciones import crear_colecciones, nombres
+    from tests.golden.uso import USO
+
+    qdrant_url = config_de_goldens.get("qdrant_url", "http://localhost:6333")
+    client = QdrantClient(url=qdrant_url)
+
+    # El catálogo se indexa desde la BD: antes de indexar, fuera lo que una sesión anterior dejó de más.
+    limpiar_memoria(test_db, GOLDEN_USER_ID, USUARIO_B)
+    limpiar_atributos_de_conversacion(test_db)
 
     for nombre in nombres(TEST_MEMORY_COLLECTION):
-        client.delete_collection(nombre)
+        try:
+            client.delete_collection(nombre)
+        except Exception:
+            pass
     crear_colecciones(client, TEST_MEMORY_COLLECTION)
     embedder = OpenAIEmbedder(config_de_goldens["openai_apikey"])
-    try:
-        repo = RepositorioMemoria(get_connection())
-        Catalogo(repo, embedder, client, TEST_MEMORY_COLLECTION).indexar_atributos()
-    finally:
-        close_connection()
-    from tests.golden.uso import USO
+    Catalogo(RepositorioMemoria(test_db), embedder, client, TEST_MEMORY_COLLECTION).indexar_atributos()
     USO.registrar_embeddings(embedder.tokens)
 
     return {"memory_collection": TEST_MEMORY_COLLECTION}
@@ -258,17 +265,19 @@ def _historial_limpio(request, test_db):
         yield
         return
     cur = test_db.cursor()
-    cur.execute("DELETE FROM conversations WHERE user_id = %s", (GOLDEN_USER_ID,))
-    # Fase 2: lo que mark_as_memorable escribió en un golden anterior (hechos, decisiones, entidades del
-    # usuario de goldens) no puede condicionar al siguiente. Los atributos creados se quedan: son catálogo.
-    cur.execute("DELETE FROM mem_decisiones WHERE user_id = %s", (GOLDEN_USER_ID,))
-    cur.execute("UPDATE mem_hechos SET superseded_by = NULL WHERE user_id = %s", (GOLDEN_USER_ID,))
-    cur.execute("DELETE FROM mem_hechos WHERE user_id = %s", (GOLDEN_USER_ID,))
-    cur.execute("DELETE FROM mem_entidad_alias WHERE entidad_id IN"
-                " (SELECT id FROM mem_entidades WHERE user_id = %s)", (GOLDEN_USER_ID,))
-    cur.execute("DELETE FROM mem_entidades WHERE user_id = %s", (GOLDEN_USER_ID,))
+    cur.execute("DELETE FROM conversations WHERE user_id IN (%s, %s)", (GOLDEN_USER_ID, USUARIO_B))
     test_db.commit()
+    # Fase 2: lo que mark_as_memorable escribió en un golden anterior (hechos, decisiones, entidades de los
+    # usuarios de goldens) no puede condicionar al siguiente. Los atributos creados se quedan: son catálogo.
+    limpiar_memoria(test_db, GOLDEN_USER_ID, USUARIO_B)
     yield
+
+
+@pytest.fixture
+def memoria_base(test_db):
+    """La memoria de test de los goldens (H3 plan §3 H3.2): «yo» y los tres hechos de siempre, en MariaDB.
+    Función, no sesión: `_historial_limpio` vacía la memoria antes de cada golden y esto la vuelve a sembrar."""
+    sembrar_memoria_base(test_db, GOLDEN_USER_ID)
 
 
 def sembrar_historia(db, user_id: str, historia: list) -> None:
@@ -285,15 +294,15 @@ def sembrar_historia(db, user_id: str, historia: list) -> None:
     db.commit()
 
 
-@pytest.fixture
-def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixtures):
-    """Returns a callable run(phrase) -> (tool_call_sequence, response_dict).
+def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
+    """Returns a callable run(phrase, historia=None, *, user_id=None, config=None) -> (tool_call_sequence, response).
 
     Records the tool-call sequence by wrapping ToolExecutor.execute (real dispatch
-    still runs — side effects land in sebastian_test / sebastian_memory_test) and
+    still runs — side effects land in sebastian_test / sus colecciones de test) and
     Orchestrator._ask_user (the only path reached when request_clarification is
     chosen, since the Orchestrator intercepts that tool before it ever reaches
-    ToolExecutor).
+    ToolExecutor). `user_id` y `config` permiten a los escenarios cambiar de usuario (E7)
+    o de vault (E8) sin tocar el resto.
     """
     from unittest.mock import patch
 
@@ -303,9 +312,10 @@ def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixt
     from core.tool_executor import ToolExecutor
     from tests.golden.uso import USO
 
-    def _run(phrase: str, historia: list | None = None):
+    def _run(phrase: str, historia: list | None = None, *, user_id: str | None = None, config: dict | None = None):
+        user_id = user_id or user_id_por_defecto
         if historia:
-            sembrar_historia(test_db, golden_fixtures["user_id"], historia)
+            sembrar_historia(test_db, user_id, historia)
         calls = []
         original_execute = ToolExecutor.execute
         original_ask_user = Orchestrator._ask_user
@@ -332,7 +342,7 @@ def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixt
         original_embeddings_create = Embeddings.create
 
         def midiendo_embeddings(self, *args, **kwargs):
-            # Mide cualquier camino a OpenAI (MemoryModule del Sprint 3 y OpenAIEmbedder), no solo el nuevo.
+            # Mide cualquier camino a OpenAI (OpenAIEmbedder del catálogo y de las notas), no solo uno.
             respuesta = original_embeddings_create(self, *args, **kwargs)
             USO.registrar_embeddings(getattr(getattr(respuesta, "usage", None), "total_tokens", 0))
             return respuesta
@@ -342,9 +352,24 @@ def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixt
              patch.object(Orchestrator, "_ask_user", recording_ask_user), \
              patch.object(Orchestrator, "_track_usage", midiendo_uso), \
              patch.object(Orchestrator, "_log_turn_end", midiendo_latencia):
-            orch = Orchestrator(test_db, golden_fixtures["user_id"], config=config_de_goldens)
+            orch = Orchestrator(test_db, user_id, config=config or config_por_defecto)
             response = orch.handle(phrase)
 
         return calls, response
 
     return _run
+
+
+@pytest.fixture
+def orchestrator_runner(test_db, golden_fixtures, config_de_goldens, memory_fixtures, memoria_base):
+    """Los goldens de una frase: con la memoria base sembrada (Paco, el vino, Rebe)."""
+    return _hacer_runner(test_db, golden_fixtures["user_id"], config_de_goldens)
+
+
+@pytest.fixture
+def escenario_runner(test_db, config_de_goldens, memory_fixtures):
+    """Los escenarios con estado (H3 plan §3 H3.4): empiezan con la memoria **vacía** (la autouse
+    `_historial_limpio` ya la vació) y sin atributos de conversaciones anteriores. Varios turnos seguidos
+    comparten estado: el historial va a `conversations` y los hechos, a MariaDB."""
+    limpiar_atributos_de_conversacion(test_db)
+    return _hacer_runner(test_db, GOLDEN_USER_ID, config_de_goldens)

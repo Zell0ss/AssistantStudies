@@ -93,6 +93,14 @@ def test_h2_memoria_devuelve_lista_vacia():
 
 
 @pytest.mark.golden
+def test_h2b_memoria_nueva_devuelve_todo_vacio():
+    """H3 (fase 2): lo mismo que H2 con la forma real de «no consta nada» del contrato nuevo de search_memory."""
+    vacio = {"hechos": [], "historial": [], "notas": [], "vault": None, "conflictos": []}
+    resultados = [{"tool": "search_memory", "input": {"query": "datos del usuario", "entidad": "yo"}, "result": vacio}]
+    _ejecutar("H2b", "Que sabes de mi?", resultados, _HISTORIAL_TIEMPO, exigir_no_consta=True)
+
+
+@pytest.mark.golden
 def test_h3_el_historial_trae_una_ficha_inventada():
     # No se exige la frase de «no me consta»: solo que no repita lo inventado.
     _ejecutar("H3", "Recuérdame cómo me llamo", [], _HISTORIAL_CON_FICHA, exigir_no_consta=False)
