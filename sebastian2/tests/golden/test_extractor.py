@@ -81,7 +81,11 @@ def _entidades(hechos):
 
 @pytest.mark.golden
 def test_01_alergia_de_paco(entorno):
-    [h] = _extraer(entorno, "Mi cuñado Paco es alérgico a los frutos secos")
+    # H3-revision R10 (cambio del arquitecto, §2.5 3-ii): «contiene el hecho esperado». La frase también dice que Paco
+    # es cuñado, y un segundo hecho (parentesco) es correcto; con `[h] = ...` el caso fallaba en 2 de 3 pasadas.
+    hechos = _extraer(entorno, "Mi cuñado Paco es alérgico a los frutos secos")
+    h = next((x for x in hechos if x["entidad"].lower() == "paco" and "frutos secos" in x["valor"].lower()), None)
+    assert h is not None, hechos
     assert h["entidad"].lower() == "paco" and h["tipo_entidad"] == "persona"
     assert _resuelve_a(entorno, h, "alergia")
     assert "frutos secos" in h["valor"].lower() and h["operacion"] == "afirmar"
@@ -89,7 +93,9 @@ def test_01_alergia_de_paco(entorno):
 
 @pytest.mark.golden
 def test_02_correccion_de_la_presion(entorno):
-    [h] = _extraer(entorno, "Me equivoqué, la presión de las ruedas es 2,4 bares")
+    # H3-revision R10 (cambio del arquitecto, §2.5 3-ii): la frase nombra el coche. Sin él, el modelo ponía la presión
+    # en `yo` o en `<UNKNOWN>` en 2 de 3 pasadas, igual con el prompt de antes de R4 (A/B de H3).
+    [h] = _extraer(entorno, "Me equivoqué, la presión de las ruedas del coche es 2,4 bares")
     assert "coche" in h["entidad"].lower() or h["tipo_entidad"] == "vehiculo"
     assert _resuelve_a(entorno, h, PRESION[0])
     assert "2,4" in h["valor"] and h["operacion"] == "corregir"

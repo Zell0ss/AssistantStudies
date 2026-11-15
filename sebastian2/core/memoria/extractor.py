@@ -55,14 +55,21 @@ def _prompt(catalogo: str, hoy: date) -> str:
     return _PROMPT.read_text().replace("{hoy}", hoy.isoformat()).replace("{catalogo}", catalogo)
 
 
+def es_marcador(entidad: str) -> bool:
+    """`<UNKNOWN>`, `<desconocido>`…: el modelo no sabe de quién habla y deja un marcador en vez de una entidad
+    (H3-revision R10). Un nombre que solo empieza o solo termina en «<» o «>» («<3») es un nombre."""
+    e = entidad.strip()
+    return not e or (e.startswith("<") and e.endswith(">"))
+
+
 def _validar(crudo) -> dict | None:
-    """Un hecho bien formado con valores por defecto, o None si no sirve."""
+    """Un hecho bien formado con valores por defecto, o None si no sirve (también si su entidad es un marcador)."""
     if not isinstance(crudo, dict):
         return None
     entidad = str(crudo.get("entidad") or "").strip()
     atributo = str(crudo.get("atributo") or "").strip()
     operacion = crudo.get("operacion")
-    if not entidad or not atributo or operacion not in _OPERACIONES:
+    if es_marcador(entidad) or not atributo or operacion not in _OPERACIONES:
         return None
     tipo_entidad = crudo.get("tipo_entidad")
     tipo_valor = crudo.get("tipo_valor")
@@ -83,9 +90,11 @@ class Extractor:
         self._cliente = cliente
         self._modelo = modelo
         self._on_usage = on_usage
+        self.marcadores_descartados = 0   # de la última llamada: el servicio avisa de que no supo de quién se hablaba
 
     def extraer(self, texto: str, catalogo: str, hoy: date) -> list[dict]:
         """Hechos de `texto`. Un fallo de la API se propaga: quien llama decide como degradar."""
+        self.marcadores_descartados = 0
         respuesta = self._cliente.messages.create(
             model=self._modelo,
             max_tokens=_TOKENS_MAXIMOS,
@@ -101,5 +110,8 @@ class Extractor:
         if bloque is None:
             logger.warning("Extractor: la respuesta no trae la tool registrar_hechos")
             return []
-        validados = [h for h in map(_validar, (bloque.input or {}).get("hechos") or []) if h]
+        crudos = (bloque.input or {}).get("hechos") or []
+        self.marcadores_descartados = sum(1 for c in crudos if isinstance(c, dict)
+                                          and es_marcador(str(c.get("entidad") or "")) and c.get("entidad"))
+        validados = [h for h in map(_validar, crudos) if h]
         return validados[:MAX_HECHOS]

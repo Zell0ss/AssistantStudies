@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from core.memoria.extractor import (
-    MAX_HECHOS, MODELO_EXTRACTOR, TOOL_REGISTRAR_HECHOS, Extractor,
+    MAX_HECHOS, MODELO_EXTRACTOR, TOOL_REGISTRAR_HECHOS, Extractor, _validar,
 )
 
 
@@ -133,3 +133,29 @@ def test_prompt_extractor_alergia_es_memoria():
     assert "cualquier dato de salud" not in texto
     for sigue_fuera in ("cómo ha dormido", "qué ha comido", "hambre", "síntomas", "tristras"):
         assert sigue_fuera in texto, sigue_fuera                  # lo del día a día sigue sin ser memoria
+
+
+# --- R10 (H3-revision §2.5): una entidad marcador no es una entidad -------------------------------------------
+
+@pytest.mark.parametrize("marcador", ["<UNKNOWN>", "<desconocido>", "<usuario>", "", "   "])
+def test_validar_descarta_entidad_marcador(marcador):
+    """Hallado en el A/B de H3: a veces el modelo devuelve la entidad literal `<UNKNOWN>` y el servicio habría
+    creado una entidad con ese nombre."""
+    assert _validar(_hecho(entidad=marcador)) is None
+
+
+@pytest.mark.parametrize("nombre", ["Paco", "yo", "el coche", "Ana <3", "a<b>c", "<3"])
+def test_validar_conserva_las_entidades_normales(nombre):
+    assert _validar(_hecho(entidad=nombre))["entidad"] == nombre
+
+
+def test_el_extractor_cuenta_los_marcadores_que_descarta():
+    cliente = ClienteFalso([_hecho(entidad="<UNKNOWN>"), _hecho(entidad="Paco")])
+    extractor = Extractor(cliente)
+    hechos = extractor.extraer("x", "c", date(2026, 11, 15))
+    assert [h["entidad"] for h in hechos] == ["Paco"] and extractor.marcadores_descartados == 1
+    extractor.extraer("y", "c", date(2026, 11, 15))                    # se cuenta por llamada, no se acumula
+    assert extractor.marcadores_descartados == 1
+    extractor_sin = Extractor(ClienteFalso([_hecho()]))
+    extractor_sin.extraer("z", "c", date(2026, 11, 15))
+    assert extractor_sin.marcadores_descartados == 0
