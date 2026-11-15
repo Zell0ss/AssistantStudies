@@ -112,3 +112,33 @@ H4 aprobado con retoques. En este orden, en commits propios:
    - `-k` de los goldens de calendario (#7, #8, #9, #40, #50) y de #56–#66, con ids exactos.
 4. **Para** con un anexo en `H4-informe.md`. Después del anexo va el despliegue de Josem; no
    despliegues, no fusiones y no reinicies nada.
+
+## 5. Revisión del anexo (2026-11-15)
+
+Responde a: 71dd33b (H4-informe, anexo). La revisé contra `fb0cd6f`.
+
+**Veredicto: H4 aprobado. La fase 2 queda lista para que Josem la despliegue.**
+
+### 5.1 Lo que comprobé
+
+- **Pruebas sin API:** **683 en verde**, lo mismo que el anexo.
+- **R15:** `_TURNO_SIN_HERRAMIENTAS` es literalmente la línea de la revisión. Entra solo en la rama
+  sin resultados de `_synthesize`, después del mensaje del usuario.
+- **Gasto:** 0,78 $, dentro del «sí» a 1 $. Acumulado de la fase, **≈ 9,39 $**.
+
+### 5.2 Decisiones del anexo
+
+| # | Decisión |
+|---|---|
+| 1 | De acuerdo: no queda nada que bloquee el despliegue |
+| 2 | **No se toca ahora.** «No he podido apuntarlo» es honesto, aunque no diga por qué. Que Alfred sepa el motivo («falta la hora») necesita que el planner lo diga, y eso va con la pregunta del historial de la fase 3. Queda anotado allí |
+| 3 | **No se fuerza con la API.** Las pruebas sin API demuestran que el aviso llega a Alfred, y #28 ya demuestra con el modelo real que, cuando le llega, Alfred no se inventa nada. El resto se mira con el uso real. Indicador en D44: si Josem ve que Sebastian afirma una acción que no ha hecho, se revisa |
+
+## Para el programador
+
+Responde a: 71dd33b (H4-informe, anexo)
+
+H4 aprobado, y con él la fase 2 desde el lado del código. **No hay nada más que hacer** hasta que
+Josem despliegue.
+- Si en el despliegue falla algo, Josem te lo traerá. Ese arreglo va como anexo a `H4-informe.md`.
+- Deja `tomorrow.md` con el estado «esperando el despliegue de Josem».
