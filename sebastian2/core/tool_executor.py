@@ -18,7 +18,6 @@ from modules.notes import NotesModule
 from modules.tasks import TasksModule
 from modules.consult_docs import ConsultDocsModule
 from core.memoria.servicio import ServicioMemoria
-from modules.memory import MemoryModule
 from modules.project_registry import known_project_slugs
 from modules.youtube_transcript import extraer, SinSubtitulos, YtDlpDesactualizado, YtDlpError
 from modules.salud import SaludModule
@@ -44,14 +43,6 @@ class ToolExecutor:
     def _vault_docs_path(self):
         config = self._config if self._config is not None else get_config()
         return config['vault_docs_path']
-
-    def _memory_module(self):
-        config = self._config if self._config is not None else get_config()
-        return MemoryModule(
-            collection_name=config['memory_collection'],  # D20: sin valor por defecto, que no caiga en producción
-            openai_api_key=config['openai_apikey'],
-            qdrant_url=config.get('qdrant_url', 'http://localhost:6333'),
-        )
 
     def _servicio_memoria(self):
         config = self._config if self._config is not None else get_config()
@@ -344,8 +335,10 @@ class ToolExecutor:
         return self._servicio_memoria().guardar(self._user_id, inputs['texto'])
 
     def _search_memory(self, inputs: dict):
-        module = self._memory_module()
-        return module.search(query=inputs['query'], k=inputs.get('k', 5))
+        # Contrato nuevo (fase 2, plan §2.3): alias exacto + historial + notas + vault; sin `k`.
+        return self._servicio_memoria().consultar(
+            self._user_id, inputs['query'], entidad=inputs.get('entidad'), atributo=inputs.get('atributo'),
+            historial=bool(inputs.get('historial', False)))
 
     # ── YouTube ───────────────────────────────────────────────────────────────
 

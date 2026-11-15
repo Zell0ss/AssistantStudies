@@ -37,20 +37,34 @@ MEMORY_TOOLS = [
     {
         "name": "search_memory",
         "description": (
-            "Busca en la memoria de Sebastian hechos guardados anteriormente. Usa esta tool cuando el "
-            "usuario referencia algo pasado ('¿qué te dije de...?', '¿te acuerdas de...?') o cuando falta "
-            "contexto que podría estar guardado en memoria."
+            "Consulta la memoria de Sebastian: lo que consta del usuario, de su gente, de sus cosas y de sus "
+            "proyectos. Úsala cuando el usuario referencia algo pasado ('¿qué te dije de...?', '¿te acuerdas "
+            "de...?', '¿qué alergias tiene Paco?', '¿qué había decidido sobre...?') y cuando falta contexto que "
+            "podría estar guardado. En el prompt tienes un índice de lo que consta (entidades y atributos, sin "
+            "valores): pasa en `entidad` y `atributo` esos nombres o sus alias; se resuelven por coincidencia "
+            "exacta, no se adivinan. `historial` a true para lo que valía antes ('¿qué presión te dije antes?', "
+            "'¿qué había decidido?'). Devuelve los hechos vigentes, el historial, las notas de texto libre "
+            "parecidas a la consulta, el valor en vivo del vault si es un proyecto suyo y los conflictos entre "
+            "ambos."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Qué se busca, en lenguaje natural."
+                    "description": "Qué se busca, en lenguaje natural (sirve para encontrar notas de texto libre)."
                 },
-                "k": {
-                    "type": "integer",
-                    "description": "Número máximo de resultados (default 5)."
+                "entidad": {
+                    "type": "string",
+                    "description": "De quién o de qué se pregunta, como en el índice (p. ej. 'Paco', 'yo', 'coche')."
+                },
+                "atributo": {
+                    "type": "string",
+                    "description": "Qué propiedad, como en el índice (p. ej. 'alergia', 'estado')."
+                },
+                "historial": {
+                    "type": "boolean",
+                    "description": "true para incluir también lo que valía antes y quién lo sustituyó. Por defecto, false."
                 }
             },
             "required": ["query"]

@@ -451,36 +451,42 @@ def test_mark_as_memorable_no_loguea_el_texto(mock_desde_config, db):
     assert "mark_as_memorable" in volcado
 
 
-@patch('modules.memory.MemoryModule.search')
-def test_search_memory_no_loguea_la_consulta(mock_search, db):
-    mock_search.return_value = {'success': True, 'result': '', 'data': {'matches': [{'content': 'dato-secreto-789'}]}}
+@patch('core.memoria.servicio.ServicioMemoria.desde_config')
+def test_search_memory_no_loguea_la_consulta(mock_desde_config, db):
+    mock_desde_config.return_value.consultar.return_value = {
+        'hechos': [{'valor': 'dato-secreto-789'}], 'historial': [], 'notas': [], 'vault': None, 'conflictos': []}
     from core.tool_executor import ToolExecutor
     with patch('core.tool_executor.logger') as mock_logger:
-        ToolExecutor(db, '99999', config={'openai_apikey': 'k', 'memory_collection': 'x'}).execute(
-            "search_memory", {"query": "consulta-secreta-000"})
+        ToolExecutor(db, '99999', config={'memory_collection': 'x'}).execute(
+            "search_memory", {"query": "consulta-secreta-000", "entidad": "entidad-secreta-111"})
     volcado = " ".join(str(c) for c in mock_logger.mock_calls)
-    assert "consulta-secreta-000" not in volcado and "dato-secreto-789" not in volcado
+    for secreto in ("consulta-secreta-000", "entidad-secreta-111", "dato-secreto-789"):
+        assert secreto not in volcado, secreto
+    assert "search_memory" in volcado
 
 
-@patch('modules.memory.MemoryModule.search')
-def test_search_memory_dispatches(mock_search, db):
-    """search_memory calls MemoryModule.search with query and k."""
-    mock_search.return_value = {'success': True, 'result': '1 resultado(s).', 'data': {'matches': [{'content': 'x'}]}}
+@patch('core.memoria.servicio.ServicioMemoria.desde_config')
+def test_search_memory_dispatches(mock_desde_config, db):
+    """search_memory (contrato nuevo, fase 2) llama a ServicioMemoria.consultar con el usuario y los 4 campos."""
+    esperado = {'hechos': [{'entidad': 'Paco', 'atributo': 'alergia', 'valor': 'frutos secos'}],
+                'historial': [], 'notas': [], 'vault': None, 'conflictos': []}
+    mock_desde_config.return_value.consultar.return_value = esperado
     from core.tool_executor import ToolExecutor
-    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'})
-    result = executor.execute("search_memory", {"query": "alergia de paco", "k": 3})
-    mock_search.assert_called_once_with(query="alergia de paco", k=3)
-    assert result['data']['matches'][0]['content'] == 'x'
+    config = {'openai_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'}
+    result = ToolExecutor(db, '99999', config=config).execute(
+        "search_memory", {"query": "alergias de Paco", "entidad": "Paco", "atributo": "alergia", "historial": True})
+    mock_desde_config.return_value.consultar.assert_called_once_with(
+        '99999', "alergias de Paco", entidad="Paco", atributo="alergia", historial=True)
+    assert mock_desde_config.call_args.args[:2] == (db, config)   # la config del ejecutor llega al servicio
+    assert result == esperado
 
 
-@patch('modules.memory.MemoryModule.search')
-def test_search_memory_defaults_k_to_5(mock_search, db):
-    """search_memory defaults k to 5 when not given."""
-    mock_search.return_value = {'success': True, 'result': '', 'data': {'matches': []}}
+@patch('core.memoria.servicio.ServicioMemoria.desde_config')
+def test_search_memory_solo_con_query_el_resto_por_defecto(mock_desde_config, db):
     from core.tool_executor import ToolExecutor
-    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'})
-    executor.execute("search_memory", {"query": "algo"})
-    mock_search.assert_called_once_with(query="algo", k=5)
+    ToolExecutor(db, '99999', config={'memory_collection': 'x'}).execute("search_memory", {"query": "algo"})
+    mock_desde_config.return_value.consultar.assert_called_once_with(
+        '99999', "algo", entidad=None, atributo=None, historial=False)
 
 
 # ── YouTube ───────────────────────────────────────────────────────────────────
@@ -649,20 +655,6 @@ def test_salud_no_registra_el_mensaje_en_debug(mock_logger, mock_registrar, db):
     assert not any("dolor de cabeza" in linea for linea in lineas_logueadas)
     assert not any("dormí fatal" in linea for linea in lineas_logueadas)
     assert any("salud" in linea for linea in lineas_logueadas)  # el nombre de la tool sí se registra
-
-
-def test_memory_module_uses_configured_collection_name(db):
-    """ToolExecutor passes config['memory_collection'] through to MemoryModule (test isolation)."""
-    from core.tool_executor import ToolExecutor
-    executor = ToolExecutor(db, '99999', config={'openai_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'})
-    with patch('modules.memory.MemoryModule.__init__', return_value=None) as mock_init:
-        with patch('modules.memory.MemoryModule.search', return_value={'success': True, 'result': '', 'data': {}}):
-            executor.execute("search_memory", {"query": "algo"})
-    mock_init.assert_called_once_with(
-        collection_name='sebastian_memory_test',
-        openai_api_key='sk-fake',
-        qdrant_url='http://localhost:6333',
-    )
 
 
 @patch('core.tool_executor.extraer')

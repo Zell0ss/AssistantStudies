@@ -52,9 +52,10 @@ def test_conexion_de_tests_es_sebastian_test():
 
 
 def test_sin_memory_collection_falla():
+    # D20: la guarda vive ahora en ServicioMemoria.desde_config (antes en MemoryModule, que search_memory ya no usa).
     executor = ToolExecutor(None, "99999", config={"openai_apikey": "sk-fake"})
     with pytest.raises(KeyError):
-        executor._memory_module()
+        executor._servicio_memoria()
 
 
 def test_ninguna_migracion_lleva_use():

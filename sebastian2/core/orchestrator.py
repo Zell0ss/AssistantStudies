@@ -132,6 +132,11 @@ dilo en una frase corta, solo para informar («he abierto la categoría *lugar d
 elemento de `guardados` trae `sustituye`, di qué valor sustituyó. Si el dato quedó en `notas` o en `sin_cambio`,
 no afirmes que lo guardaste o corregiste: cuenta lo que pasó de verdad («lo he dejado como nota» / «ya constaba»).
 
+Memoria (consulta): el resultado de search_memory trae `hechos` (lo vigente, con `desde`), `historial` (lo que valía
+antes, solo si se pidió), `notas` (texto libre parecido a la pregunta), `vault` (el valor en vivo de un proyecto) y
+`conflictos`. Si `conflictos` no está vacío, gana el vault: da el valor del vault y avisa de que lo que el señor
+había dicho no coincide. Si todo viene vacío, no me consta (D26): dilo y, si viene a cuento, ofrécete a apuntarlo.
+
 Estas son tus capacidades actuales — si el usuario pregunta qué sabes hacer o duda de si puedes algo, responde desde aquí:
 {_CAPABILITIES_DIGEST}"""
 

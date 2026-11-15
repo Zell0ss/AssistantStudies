@@ -43,3 +43,26 @@ def test_alfred_no_ofrece_renombrar_lo_que_no_se_puede():
     """H2-revision §2.2: confirmar o renombrar pendientes es de la fase 3; Alfred solo informa."""
     assert "otro nombre" not in _ALFRED_SYSTEM.lower()
     assert "he abierto la categoría" in _ALFRED_SYSTEM.lower()
+
+
+# --- search_memory (H3, plan §2.3) ---------------------------------------------------------------
+
+def test_search_memory_tiene_el_contrato_nuevo():
+    schema = _tool("search_memory")["input_schema"]
+    assert set(schema["properties"]) == {"query", "entidad", "atributo", "historial"}   # sin `k`
+    assert schema["required"] == ["query"]
+    assert schema["properties"]["historial"]["type"] == "boolean"
+
+
+def test_search_memory_dice_cuando_usarla_y_que_es_el_indice():
+    d = _tool("search_memory")["description"].lower()
+    for frase in ("¿qué te dije", "historial", "índice", "alias"):
+        assert frase in d, frase
+
+
+def test_alfred_sabe_leer_la_salida_de_search_memory():
+    texto = _ALFRED_SYSTEM
+    for clave in ("search_memory", "conflictos", "vault", "historial", "notas"):
+        assert clave in texto, clave
+    assert "gana el vault" in texto.lower()          # D37: si chocan, el vault y se avisa
+    assert "no me consta" in texto.lower()           # D26: todo vacio = no le consta
