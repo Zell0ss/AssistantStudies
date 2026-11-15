@@ -421,9 +421,22 @@ def test_mark_as_memorable_dispatches(mock_desde_config, db):
     config = {'openai_apikey': 'sk-fake', 'memory_collection': 'sebastian_memory_test'}
     executor = ToolExecutor(db, '99999', config=config)
     result = executor.execute("mark_as_memorable", {"texto": "Paco es alérgico a los frutos secos"})
-    mock_desde_config.return_value.guardar.assert_called_once_with('99999', "Paco es alérgico a los frutos secos")
+    mock_desde_config.return_value.guardar.assert_called_once_with(
+        '99999', "Paco es alérgico a los frutos secos", mensaje=None)
     assert mock_desde_config.call_args.args[:2] == (db, config)
     assert result['success'] is True
+
+
+@patch('core.memoria.servicio.ServicioMemoria.desde_config')
+def test_mark_as_memorable_pasa_el_mensaje_del_usuario(mock_desde_config, db):
+    """R7 (D41): además de la frase del planner, la fuente guarda el literal que escribió el usuario en el turno."""
+    mock_desde_config.return_value.guardar.return_value = {'success': True, 'result': 'Apuntado.', 'data': {}}
+    from core.tool_executor import ToolExecutor
+    executor = ToolExecutor(db, '99999', config={'memory_collection': 'x'})
+    executor.mensaje_del_turno = "apunta lo de Paco, que es alérgico a los frutos secos"
+    executor.execute("mark_as_memorable", {"texto": "Paco es alérgico a los frutos secos"})
+    mock_desde_config.return_value.guardar.assert_called_once_with(
+        '99999', "Paco es alérgico a los frutos secos", mensaje="apunta lo de Paco, que es alérgico a los frutos secos")
 
 
 @patch('core.memoria.servicio.ServicioMemoria.desde_config')

@@ -31,13 +31,14 @@ def exigir_bd_de_test(db) -> None:
 
 
 def limpiar_memoria(db, *user_ids: str) -> None:
-    """Borra hechos, decisiones y entidades (con sus alias) de esos usuarios. El catálogo de atributos no."""
+    """Borra hechos, fuentes, decisiones y entidades (con sus alias) de esos usuarios. El catálogo de atributos no."""
     exigir_bd_de_test(db)
     cur = db.cursor()
     for u in user_ids:
         cur.execute("DELETE FROM mem_decisiones WHERE user_id = %s", (u,))
         cur.execute("UPDATE mem_hechos SET superseded_by = NULL WHERE user_id = %s", (u,))
         cur.execute("DELETE FROM mem_hechos WHERE user_id = %s", (u,))
+        cur.execute("DELETE FROM mem_fuentes WHERE user_id = %s", (u,))       # después de los hechos que la citan
         cur.execute("DELETE FROM mem_entidad_alias WHERE entidad_id IN"
                     " (SELECT id FROM mem_entidades WHERE user_id = %s)", (u,))
         cur.execute("DELETE FROM mem_entidades WHERE user_id = %s", (u,))

@@ -11,7 +11,7 @@ import uuid
 from datetime import date, datetime
 
 from logcentral_client import get_logger
-from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
+from qdrant_client.models import FieldCondition, Filter, MatchValue, PointIdsList, PointStruct
 
 from core.memoria.normalizar import normalizar
 from core.memoria.resolucion import (
@@ -49,7 +49,9 @@ class ServicioMemoria:
 
     # --- API -----------------------------------------------------------------------------
 
-    def guardar(self, user_id: str, texto: str, username: str | None = None) -> dict:
+    def guardar(self, user_id: str, texto: str, username: str | None = None, mensaje: str | None = None) -> dict:
+        """`texto` es lo que recibio el extractor (la frase autocontenida del planner); `mensaje`, el literal del
+        usuario en ese turno. Los dos quedan en una fuente (D41), de la que cuelgan los hechos de esta llamada."""
         try:
             hechos = self._extractor.extraer(texto, self.texto_catalogo(user_id, username), self._hoy())
         except Exception as e:
@@ -60,9 +62,13 @@ class ServicioMemoria:
         yo = self._repo.entidad_usuario(user_id, username)
         data = {"guardados": [], "nuevos_pendientes": {"entidades": [], "atributos": []},
                 "notas": [], "sin_cambio": []}
-        turno = {"notas_cerradas": 0}   # R3: como mucho una nota cerrada por similitud en cada turno
+        # Una fuente por llamada, aunque la frase de varios hechos o ninguno (D41). R3: como mucho una nota
+        # cerrada por similitud en cada turno.
+        turno = {"notas_cerradas": 0, "fuente_id": self._repo.crear_fuente(user_id, texto, mensaje)}
         for hecho in hechos:
             self._procesar(user_id, texto, hecho, data, turno)
+        # Si no dejo ningun hecho (frase vacia, o todo «ya constaba»), no queda texto sin hecho (D42).
+        self._repo.purgar_fuente_sin_hechos(turno["fuente_id"])
         logger.info(f"memoria.guardar: user={user_id} hechos={len(hechos)} guardados={len(data['guardados'])} "
                     f"notas={len(data['notas'])} sin_cambio={len(data['sin_cambio'])} yo={yo}")
         return {"success": True, "result": self._resumen(hechos, data), "data": data}
@@ -87,7 +93,7 @@ class ServicioMemoria:
             if f["valid_to"] is None:
                 salida["hechos"].append({"entidad": f["entidad"], "atributo": f["atributo"], "valor": f["valor"],
                                          "desde": f["valid_from"].date().isoformat()})
-            elif historial:
+            elif historial and f["valor"] != "":    # lo olvidado (D42) ya no tiene texto: no sale una entrada vacia
                 salida["historial"].append({
                     "entidad": f["entidad"], "atributo": f["atributo"], "valor": f["valor"],
                     "desde": f["valid_from"].date().isoformat(), "hasta": f["valid_to"].date().isoformat(),
@@ -194,7 +200,8 @@ class ServicioMemoria:
         detalle = f"entidad={entidad_id} atributo={atributo_id} regla={decision.regla}"
 
         if decision.tipo == "anadir":
-            hid = self._repo.anadir_hecho(user_id, entidad_id, atributo_id, hecho["valor"], confianza=confianza)
+            hid = self._repo.anadir_hecho(user_id, entidad_id, atributo_id, hecho["valor"], confianza=confianza,
+                                          fuente_id=turno["fuente_id"])
             self._repo.registrar_decision(user_id, "anadir", senales, detalle, hecho_id=hid)
             if atributo["nombre"] == "nota":
                 self._embeber_nota(user_id, hid, hecho["valor"])   # R3: toda nota se puede encontrar despues
@@ -202,17 +209,17 @@ class ServicioMemoria:
         elif decision.tipo == "sustituir":
             viejo = self._repo.hecho(decision.hecho_id)
             hid = self._repo.sustituir_hecho(user_id, decision.hecho_id, entidad_id, atributo_id,
-                                             hecho["valor"], confianza=confianza)
+                                             hecho["valor"], confianza=confianza, fuente_id=turno["fuente_id"])
             self._repo.registrar_decision(user_id, "sustituir", senales, detalle, hecho_id=hid)
             sustituye = {"valor": viejo["valor"], "desde": viejo["valid_from"].date().isoformat()}
             data["guardados"].append(self._guardado(entidad, atributo, hecho["valor"], "sustituir", sustituye))
         elif decision.tipo == "retirar":
             viejo = self._repo.hecho(decision.hecho_id)
-            self._repo.retirar_hecho(decision.hecho_id)
+            self._retirar(user_id, decision.hecho_id)
             self._repo.registrar_decision(user_id, "retirar", senales, detalle, hecho_id=decision.hecho_id)
             data["guardados"].append(self._guardado(entidad, atributo, viejo["valor"], "retirar", None))
         elif decision.tipo == "nota":
-            self._guardar_nota(user_id, texto, entidad_id, senales, detalle, data)
+            self._guardar_nota(user_id, texto, entidad_id, senales, detalle, data, turno["fuente_id"])
         else:
             self._repo.registrar_decision(user_id, "sin_cambio", senales, detalle, hecho_id=decision.hecho_id)
             data["sin_cambio"].append(decision.aviso or f"{entidad['nombre']} · {atributo['nombre']}: ya constaba.")
@@ -298,15 +305,29 @@ class ServicioMemoria:
 
     # --- notas ----------------------------------------------------------------------------------
 
-    def _guardar_nota(self, user_id, texto, entidad_id, senales, detalle, data) -> None:
+    def _guardar_nota(self, user_id, texto, entidad_id, senales, detalle, data, fuente_id=None) -> None:
         """Una resolucion debil no sustituye: el texto original se guarda como `nota` y se embebe en
         `<base>_notas` con {hecho_id, user_id} (el texto no va al payload; se lee de SQL)."""
         atributo_nota = self._repo.atributos_por_alias("nota")[0]["id"]
-        hid = self._repo.anadir_hecho(user_id, entidad_id, atributo_nota, texto)
+        hid = self._repo.anadir_hecho(user_id, entidad_id, atributo_nota, texto, fuente_id=fuente_id)
         self._repo.registrar_decision(user_id, "nota", senales, detalle, hecho_id=hid)
         self._embeber_nota(user_id, hid, texto)
         if texto not in data["notas"]:
             data["notas"].append(texto)
+
+    def _retirar(self, user_id: str, hecho_id: int) -> None:
+        """«Olvida lo de...» (D42): cierra y purga en una transaccion (SQL manda) y, despues del commit, borra el
+        vector de las notas purgadas. Si Qdrant falla se avisa, sin texto, y el turno sigue: la nota ya no esta
+        vigente y su texto ya no esta en SQL, asi que un punto huerfano no puede devolverla (se filtra por SQL)."""
+        notas = self._repo.retirar_y_purgar(user_id, hecho_id)
+        if not notas:
+            return
+        try:
+            self._qdrant.delete(collection_name=self._coleccion_notas, points_selector=PointIdsList(
+                points=[str(uuid.uuid5(_ESPACIO_NOTAS, f"nota:{n}")) for n in notas]))
+        except Exception as e:
+            logger.warning(f"memoria: no se pudo borrar el vector de {len(notas)} nota(s) retirada(s): "
+                           f"{type(e).__name__}")
 
     def _embeber_nota(self, user_id: str, hecho_id: int, texto: str) -> None:
         """Despues de confirmar en SQL: si falla el embedding la nota queda guardada, sin vector."""
@@ -329,7 +350,7 @@ class ServicioMemoria:
         if decision.tipo != "retirar":
             return False
         nota = self._repo.hecho(decision.hecho_id)
-        self._repo.retirar_hecho(nota["id"])
+        self._retirar(user_id, nota["id"])
         senales = {**self._senales(ent, attr, False, decision.regla),
                    "nota": {"puntuacion": round(candidatas[0]["score"], 3),
                             "margen": round(self._catalogo.margen(candidatas), 3)}}

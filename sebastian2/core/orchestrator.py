@@ -425,6 +425,7 @@ class Orchestrator:
         turn_start = time.perf_counter()
         self._turn_usage = {"tokens_in": 0, "tokens_out": 0, "models": set()}
         self._indice_turno = None
+        self._executor.mensaje_del_turno = user_message   # D41: la fuente de la memoria guarda el literal
         logger.bind(user_id=self._user_id).info(
             f"Turn start | user={self._user_id} | message={user_message[:200]!r}"
         )

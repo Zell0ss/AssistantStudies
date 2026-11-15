@@ -919,3 +919,31 @@ def test_el_vault_solo_se_pasa_al_indice_del_propietario(mock_anthropic_cls, moc
     assert mock_indice.call_args.args[2] == {"proyecto-prueba": {"estado": "stable"}}
     Orchestrator(db, '12345', config=config).handle("hola")           # otro usuario autorizado
     assert mock_indice.call_args.args[2] is None
+
+
+# ── Fase 2 H3 (R7, D41): el literal del usuario llega a la fuente ─────────────────────────────
+
+@patch('core.orchestrator.Anthropic')
+def test_el_ejecutor_recibe_el_mensaje_literal_del_turno(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    assert orch._executor.mensaje_del_turno is None
+    orch.handle("apunta lo de Paco, que es alérgico a los frutos secos")
+    assert orch._executor.mensaje_del_turno == "apunta lo de Paco, que es alérgico a los frutos secos"
+
+
+@patch('core.orchestrator.Anthropic')
+def test_el_mensaje_del_turno_se_renueva_en_cada_turno(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")] * 2
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    orch.handle("primero")
+    orch.handle("segundo")
+    assert orch._executor.mensaje_del_turno == "segundo"

@@ -39,6 +39,9 @@ class ToolExecutor:
         self._user_id = user_id
         self._config = config
         self._on_usage = on_usage   # el extractor de la memoria (Haiku) informa de su uso al orquestador
+        # El literal que escribió el usuario en este turno (lo pone el orquestador): la fuente de la memoria lo
+        # guarda junto a la frase que reescribe el planner (D41).
+        self.mensaje_del_turno: str | None = None
 
     def _vault_docs_path(self):
         config = self._config if self._config is not None else get_config()
@@ -332,7 +335,7 @@ class ToolExecutor:
 
     def _mark_as_memorable(self, inputs: dict):
         # Contrato nuevo (fase 2, D31): una sola frase; el servicio extrae, resuelve y escribe.
-        return self._servicio_memoria().guardar(self._user_id, inputs['texto'])
+        return self._servicio_memoria().guardar(self._user_id, inputs['texto'], mensaje=self.mensaje_del_turno)
 
     def _search_memory(self, inputs: dict):
         # Contrato nuevo (fase 2, plan §2.3): alias exacto + historial + notas + vault; sin `k`.

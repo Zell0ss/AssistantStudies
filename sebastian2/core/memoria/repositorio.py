@@ -156,10 +156,12 @@ class RepositorioMemoria:
     # --- Hechos con vigencia (D7: nada se borra) -----------------------------------------
 
     def anadir_hecho(self, user_id: str, entidad_id: int, atributo_id: int, valor: str, *,
-                     origen: str = "conversacion", confianza: float | None = None) -> int:
+                     origen: str = "conversacion", confianza: float | None = None,
+                     fuente_id: int | None = None) -> int:
         cur = self._db.cursor()
         try:
-            hecho_id = self._insertar_hecho(cur, user_id, entidad_id, atributo_id, valor, origen, confianza)
+            hecho_id = self._insertar_hecho(cur, user_id, entidad_id, atributo_id, valor, origen, confianza,
+                                            fuente_id=fuente_id)
             self._db.commit()
         except Exception:
             self._db.rollback()
@@ -168,7 +170,7 @@ class RepositorioMemoria:
 
     def sustituir_hecho(self, user_id: str, viejo_id: int, entidad_id: int, atributo_id: int,
                         valor: str, *, origen: str = "conversacion",
-                        confianza: float | None = None) -> int:
+                        confianza: float | None = None, fuente_id: int | None = None) -> int:
         """Cierra el hecho viejo y abre el nuevo en UNA transaccion: si el INSERT falla, el viejo sigue
         vigente (D7). `superseded_by` del viejo apunta al nuevo."""
         cur = self._db.cursor()
@@ -179,7 +181,7 @@ class RepositorioMemoria:
             if cur.rowcount != 1:
                 raise ValueError(f"el hecho {viejo_id} no esta vigente para ese usuario")
             nuevo_id = self._insertar_hecho(cur, user_id, entidad_id, atributo_id, valor, origen,
-                                            confianza, valid_from=ahora)
+                                            confianza, valid_from=ahora, fuente_id=fuente_id)
             cur.execute("UPDATE mem_hechos SET superseded_by = %s WHERE id = %s", (nuevo_id, viejo_id))
             self._db.commit()
         except Exception:
@@ -187,8 +189,75 @@ class RepositorioMemoria:
             raise
         return nuevo_id
 
+    def retirar_y_purgar(self, user_id: str, hecho_id: int) -> list[int]:
+        """«Olvida lo de...» (D42): cierra el hecho y **borra el texto**, todo en UNA transaccion.
+
+        Se purgan: el valor del hecho (pasa a `''`; la fila, sus fechas y su decision se quedan), el de los hechos
+        de su cadena de sustituciones (los que sustituyo, directa o indirectamente) y la fuente de cada uno, pero
+        solo si ya no queda ningun hecho vigente de esa fuente. Devuelve los ids de los hechos purgados que son
+        notas: su vector en `<base>_notas` lo borra quien llama, despues del commit (Qdrant no es transaccional).
+        """
+        cur = self._db.cursor()
+        ahora = _ahora()
+        try:
+            cur.execute("UPDATE mem_hechos SET valid_to = %s WHERE id = %s AND user_id = %s AND valid_to IS NULL",
+                        (ahora, hecho_id, user_id))
+            if cur.rowcount != 1:
+                raise ValueError(f"el hecho {hecho_id} no esta vigente para ese usuario")
+            ids = self._cadena_de_sustituciones(cur, user_id, hecho_id)
+            marcas = ",".join(["%s"] * len(ids))
+            cur.execute(f"SELECT h.id, h.fuente_id, a.nombre AS atributo FROM mem_hechos h"
+                        f" JOIN mem_atributos a ON a.id = h.atributo_id WHERE h.id IN ({marcas})", ids)
+            filas = list(cur.fetchall())
+            cur.execute(f"UPDATE mem_hechos SET valor = '' WHERE id IN ({marcas})", ids)
+            for fuente_id in {f["fuente_id"] for f in filas if f["fuente_id"] is not None}:
+                cur.execute(
+                    "UPDATE mem_fuentes SET texto = NULL, mensaje = NULL, purgada_at = %s WHERE id = %s"
+                    " AND purgada_at IS NULL AND NOT EXISTS"
+                    " (SELECT 1 FROM mem_hechos WHERE fuente_id = %s AND valid_to IS NULL)",
+                    (ahora, fuente_id, fuente_id))
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            raise
+        return [f["id"] for f in filas if f["atributo"] == "nota"]
+
+    @staticmethod
+    def _cadena_de_sustituciones(cur, user_id: str, hecho_id: int) -> list[int]:
+        """`hecho_id` y todos los que sustituyo, directa o indirectamente (`superseded_by` -> ... -> hecho_id)."""
+        ids, frontera = [hecho_id], [hecho_id]
+        while frontera:
+            marcas = ",".join(["%s"] * len(frontera))
+            cur.execute(f"SELECT id FROM mem_hechos WHERE user_id = %s AND superseded_by IN ({marcas})",
+                        [user_id, *frontera])
+            frontera = [f["id"] for f in cur.fetchall() if f["id"] not in ids]
+            ids += frontera
+        return ids
+
+    # --- Fuentes: la frase de origen de cada llamada a mark_as_memorable (D41) -------------------
+
+    def crear_fuente(self, user_id: str, texto: str, mensaje: str | None = None) -> int:
+        cur = self._db.cursor()
+        cur.execute("INSERT INTO mem_fuentes (user_id, texto, mensaje, created_at) VALUES (%s, %s, %s, %s)",
+                    (user_id, texto, mensaje, _ahora()))
+        self._db.commit()
+        return cur.lastrowid
+
+    def fuente(self, fuente_id: int) -> dict | None:
+        cur = self._db.cursor()
+        cur.execute("SELECT * FROM mem_fuentes WHERE id = %s", (fuente_id,))
+        return cur.fetchone()
+
+    def purgar_fuente_sin_hechos(self, fuente_id: int) -> None:
+        """Una fuente que no dejo ningun hecho no guarda texto: no queda texto sin hecho."""
+        cur = self._db.cursor()
+        cur.execute("UPDATE mem_fuentes SET texto = NULL, mensaje = NULL, purgada_at = %s WHERE id = %s"
+                    " AND purgada_at IS NULL AND NOT EXISTS (SELECT 1 FROM mem_hechos WHERE fuente_id = %s)",
+                    (_ahora(), fuente_id, fuente_id))
+        self._db.commit()
+
     def retirar_hecho(self, hecho_id: int) -> None:
-        """Retirar = poner `valid_to`. La fila se queda."""
+        """Retirar = poner `valid_to`. La fila se queda. Sin purga: para «olvida lo de...» es `retirar_y_purgar`."""
         cur = self._db.cursor()
         cur.execute("UPDATE mem_hechos SET valid_to = %s WHERE id = %s AND valid_to IS NULL",
                     (_ahora(), hecho_id))
@@ -246,12 +315,12 @@ class RepositorioMemoria:
         return list(cur.fetchall())
 
     def _insertar_hecho(self, cur, user_id, entidad_id, atributo_id, valor, origen, confianza,
-                        valid_from: str | None = None) -> int:
+                        valid_from: str | None = None, fuente_id: int | None = None) -> int:
         ahora = _ahora()
         cur.execute(
             "INSERT INTO mem_hechos (user_id, entidad_id, atributo_id, valor, valid_from, origen, confianza,"
-            " created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-            (user_id, entidad_id, atributo_id, valor, valid_from or ahora, origen, confianza, ahora))
+            " fuente_id, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (user_id, entidad_id, atributo_id, valor, valid_from or ahora, origen, confianza, fuente_id, ahora))
         return cur.lastrowid
 
     # --- Registro de decisiones (D8: por que se hizo lo que se hizo) ----------------------

@@ -42,6 +42,7 @@ def _limpiar(conn):
     cur.execute("DELETE FROM mem_decisiones WHERE user_id IN (%s, %s)", usuarios)
     cur.execute("UPDATE mem_hechos SET superseded_by = NULL WHERE user_id IN (%s, %s)", usuarios)
     cur.execute("DELETE FROM mem_hechos WHERE user_id IN (%s, %s)", usuarios)
+    cur.execute("DELETE FROM mem_fuentes WHERE user_id IN (%s, %s)", usuarios)
     cur.execute("DELETE FROM mem_entidad_alias WHERE entidad_id IN"
                 " (SELECT id FROM mem_entidades WHERE user_id IN (%s, %s))", usuarios)
     cur.execute("DELETE FROM mem_entidades WHERE user_id IN (%s, %s)", usuarios)

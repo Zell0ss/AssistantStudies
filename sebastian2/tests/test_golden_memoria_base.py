@@ -69,6 +69,21 @@ def test_limpiar_solo_toca_a_esos_usuarios(conn):
     assert len(repo.hechos_con_nombres(AJENO)) == 3
 
 
+def test_limpiar_tambien_borra_las_fuentes_y_no_viola_su_clave_ajena(conn):
+    repo = RepositorioMemoria(conn)
+    e = repo.crear_entidad(A, "Paco", "persona", estado="activo")
+    fuente = repo.crear_fuente(A, "texto", "mensaje")
+    repo.anadir_hecho(A, e, repo.atributos_por_alias("alergia")[0]["id"], "marisco", fuente_id=fuente)
+    repo.crear_fuente(AJENO, "de otro", None)
+
+    limpiar_memoria(conn, A)
+
+    assert repo.fuente(fuente) is None
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) AS n FROM mem_fuentes WHERE user_id = %s", (AJENO,))
+    assert cur.fetchone()["n"] == 1                       # solo toca a esos usuarios
+
+
 def test_limpiar_con_hechos_sustituidos_no_viola_la_clave_ajena(conn):
     repo = RepositorioMemoria(conn)
     e = repo.crear_entidad(A, "coche", "vehiculo", estado="activo")
