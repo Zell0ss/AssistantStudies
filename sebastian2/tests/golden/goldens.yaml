@@ -454,3 +454,15 @@
     - [calendar_add_event]
     - [request_clarification]
   validates: "Fase 2 H3 (D39), negativa: «recuerda que» con una cita con fecha es calendario. Sin hora puede preguntar; lo único que falla es mark_as_memorable o salud"
+
+# Fase 2 H3, R8 (H3-revision, D43): el historial lleva el «Anotado…» del asistente; una orden de olvidar sigue llamando a la tool.
+# La historia es la de E4 (los tres turnos). Normativo; su línea base va solo con -k.
+- id: 66
+  phrase: "Olvida lo del marisco de Paco"
+  historia:
+    - {user: "Mi cuñado Paco es alérgico a los frutos secos", bot: "Anotado. Paco: cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en la memoria."}
+    - {user: "¿Qué alergias tiene Paco?", bot: "Paco tiene alergia a los frutos secos."}
+    - {user: "Paco también es alérgico al marisco", bot: "Anotado, señor. Paco: alérgico también al marisco."}
+  mode: exact
+  expected: [mark_as_memorable]
+  validates: "Fase 2 H3 (D43): con un historial que ya dice «Anotado…», olvidar sigue siendo mark_as_memorable; el historial es lo que se dijo, no lo que se hizo"

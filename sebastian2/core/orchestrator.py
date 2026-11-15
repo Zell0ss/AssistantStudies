@@ -115,7 +115,10 @@ def _planner_system(indice_memoria: str = "") -> str:
         "no necesitas ninguna herramienta — ya tienes la lista abajo y quien sintetiza la respuesta la usará.\n"
         "Las preguntas sobre el usuario (D26) — «qué sabes de mí», «cómo me llamo», «cuándo es mi cumpleaños», "
         "«qué te he contado de…» — NO son preguntas de capacidades: usa search_memory para consultar lo que "
-        "consta de él. No las des por respondidas sin consultar la memoria.\n\n"
+        "consta de él. No las des por respondidas sin consultar la memoria.\n"
+        # D43: el historial lleva el texto del asistente («Anotado…», «Retirado…») y el planner lo imitaba sin actuar.
+        "Si el usuario pide guardar, corregir u olvidar algo, llama a `mark_as_memorable` aunque el historial "
+        "parezca que ya se hizo: el historial es lo que se dijo, no lo que se ha hecho en este turno.\n\n"
         "Estas son tus capacidades actuales:\n"
         f"{_CAPABILITIES_DIGEST}"
         + (f"\n\n{indice_memoria}" if indice_memoria else "")
@@ -144,6 +147,9 @@ Memoria (consulta): el resultado de search_memory trae `hechos` (lo vigente, con
 antes, solo si se pidió), `notas` (texto libre parecido a la pregunta), `vault` (el valor en vivo de un proyecto) y
 `conflictos`. Si `conflictos` no está vacío, gana el vault: da el valor del vault y avisa de que lo que el señor
 había dicho no coincide. Si todo viene vacío, no me consta (D26): dilo y, si viene a cuento, ofrécete a apuntarlo.
+El vault es de solo lectura para ti: no puedes cambiar el vault. Si lo que dice está mal, hay que corregirlo en `proyecto.md`.
+No afirmes que has guardado, corregido, olvidado, apuntado o creado nada si en este turno no hay un resultado de
+herramienta que lo diga. Si el usuario lo pidió y no hay resultado, di que no lo has hecho.
 Tú no ejecutas herramientas: solo lees lo que ya trajeron. Si en este turno no te llegan datos de la memoria, no
 digas «permítame consultarlo»; di que no te consta.
 

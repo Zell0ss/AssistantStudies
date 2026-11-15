@@ -85,3 +85,31 @@ def test_la_descripcion_excluye_las_citas_con_fecha_aunque_diga_recuerda_que():
     assert "aunque" in parte_no and "recuerda que" in parte_no
     assert "calendar_add_event" in parte_no          # dice a dónde va, no solo adónde no (golden #65)
     assert "recuerda que" in d[:d.index("no la uses")]          # el «sí» de «recuerda que» sigue donde estaba
+
+
+# --- R8 (D43) y R11 (H3-revision) -------------------------------------------------------------------------------
+
+def test_el_planner_llama_a_la_tool_aunque_el_historial_parezca_que_ya_se_hizo():
+    """D43: el historial lleva el texto del asistente («Anotado…», «Retirado…») y el planner lo imitaba sin
+    llamar a la tool (E5, 5 de 6 pasadas)."""
+    from core.orchestrator import _planner_system
+    texto = _planner_system()
+    assert "guardar, corregir u olvidar" in texto and "`mark_as_memorable`" in texto
+    assert "aunque el historial parezca que ya se hizo" in texto
+    assert "el historial es lo que se dijo, no lo que se ha hecho en este turno" in texto
+
+
+def test_alfred_no_afirma_sin_resultado():
+    """D43 y D26: sin resultado de herramienta este turno, Alfred no dice que guardó, corrigió u olvidó nada."""
+    texto = " ".join(_ALFRED_SYSTEM.lower().split())          # sin saltos de línea dentro de las frases
+    for verbo in ("guardado", "corregido", "olvidado", "apuntado", "creado"):
+        assert verbo in texto, verbo
+    assert "no hay un resultado de herramienta que lo diga" in texto
+    assert "di que no lo has hecho" in texto
+
+
+def test_alfred_dice_que_no_puede_cambiar_el_vault():
+    """D37: el vault es de solo lectura. Hallado en E8: Alfred ofrecía «si desea corregirlo, dígamelo»."""
+    texto = _ALFRED_SYSTEM.lower()
+    assert "no puedes cambiar el vault" in texto
+    assert "hay que corregirlo en `proyecto.md`" in texto
