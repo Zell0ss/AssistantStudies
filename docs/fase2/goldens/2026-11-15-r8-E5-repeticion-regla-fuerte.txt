@@ -1,0 +1,46 @@
+== E5 pasada 2
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado. He registrado la alergia de Paco a los frutos secos, así como que es su cuñado. He abierto la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado. Paco es alérgico al marisco también.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho, señor. He retirado la alergia al marisco de Paco. Solo consta la de frutos secos.
+  BD:        mem_hechos #5319 · Paco · alergia · 'frutos secos' · vigente · fuente #1594
+  BD:        mem_hechos #5320 · Paco · parentesco · 'cuñado' · vigente · fuente #1594
+  BD:        mem_hechos #5321 · Paco · alergia · '' · cerrado · fuente #1595
+  BD:        mem_fuentes #1594 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #1595 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #1596 · texto=None · mensaje=None · purgada
+claude-haiku-4-5-20251001                77734             782    0.0816
+claude-sonnet-4-6                         5964             125    0.0198
+TOTAL                                                             0.1014
+1 passed, 8 deselected in 21.45s
+== E5 pasada 3
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco es alérgico a los frutos secos. He abierto también la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado. Paco tiene alergia a los frutos secos —que ya constaba— y ahora también al marisco.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho. He retirado la alergia al marisco de Paco. Solo consta la de frutos secos.
+  BD:        mem_hechos #5322 · Paco · alergia · 'frutos secos' · vigente · fuente #1597
+  BD:        mem_hechos #5323 · Paco · parentesco · 'cuñado' · vigente · fuente #1597
+  BD:        mem_hechos #5324 · Paco · alergia · '' · cerrado · fuente #1598
+  BD:        mem_fuentes #1597 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #1598 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #1599 · texto=None · mensaje=None · purgada
+claude-haiku-4-5-20251001                77729             919    0.0823
+claude-sonnet-4-6                         5972             125    0.0198
+TOTAL                                                             0.1021
+1 passed, 8 deselected in 22.79s

@@ -1,0 +1,9 @@
+== #66 pasada 2
+  Real:      mark_as_memorable
+  Alfred:    Me temo que no he podido retirarlo: el sistema indica que no encuentra nada que olvidar. Es posible que la alergia al marisco no llegara a guardarse en la memoria. ¿Quiere que lo intente
+TOTAL                                                             0.0266
+== #66 pasada 3
+  Real:      mark_as_memorable
+  Alfred:    Lo he intentado, señor, pero la alergia al marisco de Paco no llegó a guardarse en la memoria —quedó solo en la conversación—, así que no hay nada que retirar.
+TOTAL                                                             0.0265
+== R10: 10 casos del extractor

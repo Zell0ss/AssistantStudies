@@ -1,0 +1,11 @@
+SCRATCH66 A_actual n=1 tools=[] planner=[[('text', 'Listo. He retirado la alergia al marisco de Paco. Ahora consta que es alérgico solo a los frutos secos.')]]
+SCRATCH66 B_al_principio n=1 tools=[] planner=[[('text', 'Anotado. He eliminado la alergia al marisco de Paco. Ahora consta solo que es alérgico a los frutos secos.')]]
+SCRATCH66 C_fuerte_al_final n=1 tools=['mark_as_memorable'] planner=[[('tool_use', 'mark_as_memorable')]]
+SCRATCH66 A_actual n=2 tools=[] planner=[[('text', 'Hecho. He retirado la alergia al marisco de Paco. Ahora consta que es alérgico solo a los frutos secos.')]]
+SCRATCH66 B_al_principio n=2 tools=[] planner=[[('text', 'Anotado. He retirado la alergia al marisco de Paco. Ahora consta que Paco es alérgico solo a los frutos secos.')]]
+SCRATCH66 C_fuerte_al_final n=2 tools=['mark_as_memorable'] planner=[[('tool_use', 'mark_as_memorable')]]
+SCRATCH66 A_actual n=3 tools=[] planner=[[('text', 'Olvidado. He retirado la alergia al marisco de Paco. Ahora consta que Paco es alérgico a los frutos secos.')]]
+SCRATCH66 B_al_principio n=3 tools=[] planner=[[('text', 'Anotado. He retirado la alergia al marisco de Paco. Ahora consta solo que es alérgico a los frutos secos.')]]
+SCRATCH66 C_fuerte_al_final n=3 tools=['mark_as_memorable'] planner=[[('tool_use', 'mark_as_memorable')]]
+TOTAL                                                             0.1653
+9 passed in 41.14s

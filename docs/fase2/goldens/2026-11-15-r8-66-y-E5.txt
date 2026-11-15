@@ -1,0 +1,86 @@
+== #66 pasada 1
+  Real:      (ninguna)
+  Alfred:    Entendido. ¿Ha llegado un resultado de herramienta que confirme que se ha retirado ese dato? No me ha llegado ninguno en este turno, así que no puedo afirmar que lo haya borrado. Si lo ha solicitado a
+claude-haiku-4-5-20251001                 8685              46    0.0089
+claude-sonnet-4-6                         1381              84    0.0054
+TOTAL                                                             0.0143
+============================== RESUMEN: 0/1 PASS ===============================
+== #66 pasada 2
+  Real:      (ninguna)
+  Alfred:    Entendido. Sin embargo, no me ha llegado ningún resultado de herramienta que confirme que lo haya retirado. No puedo afirmar que esté hecho.
+claude-haiku-4-5-20251001                 8685              40    0.0089
+claude-sonnet-4-6                         1381              69    0.0052
+TOTAL                                                             0.0141
+============================== RESUMEN: 0/1 PASS ===============================
+== #66 pasada 3
+  Real:      (ninguna)
+  Alfred:    Entendido. Aunque me temo que retirar un dato de la memoria está fuera de lo que puedo hacer en este momento sin una herramienta que lo confirme. No he recibido confirmación de que se haya eliminado, 
+claude-haiku-4-5-20251001                 8685              32    0.0088
+claude-sonnet-4-6                         1381              96    0.0056
+TOTAL                                                             0.0144
+============================== RESUMEN: 0/1 PASS ===============================
+== E5 pasada 1
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos, señor.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: alérgico también al marisco, además de los frutos secos.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     (ninguna)
+  Alfred:    Entendido, señor. ¿Puedo preguntarle si desea que retire únicamente la alergia al marisco, conservando la de frutos secos?
+  BD:        mem_hechos #4973 · Paco · alergia · 'frutos secos' · vigente · fuente #1464
+  BD:        mem_hechos #4974 · Paco · parentesco · 'cuñado' · vigente · fuente #1464
+  BD:        mem_hechos #4975 · Paco · alergia · 'marisco' · vigente · fuente #1465
+  BD:        mem_fuentes #1464 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #1465 · texto='Paco es alérgico al marisco (además de los frutos secos)' · mensaje='Paco también es alérgico al marisco' · con texto
+claude-haiku-4-5-20251001                65763             696    0.0692
+claude-sonnet-4-6                         5817             143    0.0196
+TOTAL                                                             0.0888
+1 failed, 8 deselected in 20.02s
+== E5 pasada 2
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos, señor.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: alérgico también al marisco.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     (ninguna)
+  Alfred:    Entendido, señor. Que conste: no tengo resultado de herramienta en este turno que confirme que se ha retirado el dato del marisco. No he podido ejecutarlo.
+  BD:        mem_hechos #4976 · Paco · alergia · 'frutos secos' · vigente · fuente #1466
+  BD:        mem_hechos #4977 · Paco · parentesco · 'cuñado' · vigente · fuente #1466
+  BD:        mem_hechos #4978 · Paco · alergia · 'marisco' · vigente · fuente #1467
+  BD:        mem_fuentes #1466 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #1467 · texto='Paco también es alérgico al marisco' · mensaje='Paco también es alérgico al marisco' · con texto
+claude-haiku-4-5-20251001                65724             630    0.0689
+claude-sonnet-4-6                         5802             141    0.0195
+TOTAL                                                             0.0884
+1 failed, 8 deselected in 20.40s
+== E5 pasada 3
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco es alérgico a los frutos secos. He abierto la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado. Ahora constan dos alergias para Paco: frutos secos (ya constaba) y marisco, que acabo de agregar.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     (ninguna)
+  Alfred:    Entendido. ¿Hay algún resultado de herramienta que confirme que se ha retirado ese dato? No me ha llegado ninguno en este turno, así que no puedo confirmar que lo haya eliminado. No lo he hecho aún.
+  BD:        mem_hechos #4979 · Paco · alergia · 'frutos secos' · vigente · fuente #1468
+  BD:        mem_hechos #4980 · Paco · alergia · 'marisco' · vigente · fuente #1469
+  BD:        mem_fuentes #1468 · texto='Paco es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #1469 · texto='Paco es alérgico a los frutos secos y al marisco' · mensaje='Paco también es alérgico al marisco' · con texto
+claude-haiku-4-5-20251001                65684             690    0.0691
+claude-sonnet-4-6                         5772             165    0.0198
+TOTAL                                                             0.0889
+1 failed, 8 deselected in 20.97s

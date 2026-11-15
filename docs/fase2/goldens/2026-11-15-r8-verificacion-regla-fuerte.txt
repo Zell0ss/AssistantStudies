@@ -1,0 +1,256 @@
+2026-11-15 21:02:09.392 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:02:09[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+2026-11-15 21:02:51.845 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:02:51[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+.
+=================================== FAILURES ===================================
+____________________________ test_golden[golden_62] ____________________________
+
+golden = {'expected': ['mark_as_memorable'], 'id': 62, 'mode': 'exact', 'phrase': 'Olvida lo de las camisetas UV', ...}
+orchestrator_runner = <function _hacer_runner.<locals>._run at 0x7f95c56c5a80>
+
+    @pytest.mark.golden
+    @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
+    def test_golden(golden, orchestrator_runner):
+        actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"))
+        passed = _matches(actual, golden["mode"], golden["expected"])
+        response_text = response.get("text", "") if isinstance(response, dict) else str(response)
+    
+        GOLDEN_RESULTS.append({
+            "id": golden["id"],
+            "phrase": golden["phrase"],
+            "mode": golden["mode"],
+            "expected": _fmt_expected(golden["mode"], golden["expected"]),
+            "actual": _fmt_sequence(actual),
+            "passed": passed,
+            "validates": golden.get("validates", ""),
+            "response_text": response_text,
+        })
+    
+>       assert passed, (
+            f"Golden #{golden['id']} ({golden['mode']}) — "
+            f"esperado {golden['expected']!r}, real {actual!r}. "
+            f"Respuesta de Alfred: {response_text!r}"
+        )
+E       AssertionError: Golden #62 (exact) — esperado ['mark_as_memorable'], real []. Respuesta de Alfred: 'Entendido. ¿Hay algún resultado de herramienta que confirme que se ha retirado ese dato?\n\nNo me llega ningún resultado de herramienta en este turno, así que no puedo confirmar que lo haya olvidado. No se ha ejecutado la acción todavía.'
+E       assert False
+
+tests/golden/test_goldens.py:64: AssertionError
+=========================== GOLDEN REGRESSION REPORT ===========================
+
+#10 [PASS] mode=exact
+  Frase:     Elimina de inventario actimeles
+  Esperado:  inventory_remove
+  Real:      inventory_remove
+  Valida:    Fuzzy match "actimeles" → "Actimel" (el match aproximado es responsabilidad del modelo/tool, no de esta golden)
+  Alfred:    No encuentro «actimeles» en el inventario. Puede que estén registrados con otro nombre — ¿quiere que busque algo parecido?
+
+#11 [PASS] mode=exact
+  Frase:     Actualiza Actimel a 6 unidades
+  Esperado:  inventory_set_quantity
+  Real:      inventory_set_quantity
+  Valida:    Update con cantidad ABSOLUTA. Si el modelo llama a inventory_update_quantity (delta) es FAIL legítimo — imán de confusión conocido entre las dos tools de cantidad
+  Alfred:    Actimel actualizado a 6 unidades.
+
+#12 [PASS] mode=none
+  Frase:     Cuando es san patricio?
+  Esperado:  (ninguna)
+  Real:      (ninguna)
+  Valida:    Conocimiento general sin tools
+  Alfred:    San Patricio se celebra el **17 de marzo**.
+
+#13 [PASS] mode=none
+  Frase:     gracias crack
+  Esperado:  (ninguna)
+  Real:      (ninguna)
+  Valida:    Charla pura, cero tools
+  Alfred:    A su servicio, señor. Para eso estoy.
+
+#14 [PASS] mode=none
+  Frase:     que hora es
+  Esperado:  (ninguna)
+  Real:      (ninguna)
+  Valida:    El bug histórico: sin fecha/hora en el prompt esto degeneraba en "Son las 00:00 horas, señor". Ahora el planner ya recibe la fecha de hoy — validar que responde sin tools (la hora exacta la resuelve Alfred con el datetime del synthesis prompt, no con una tool)
+  Alfred:    Son las 21:01, señor.
+
+#15 [PASS] mode=exact
+  Frase:     que tareas tengo abiertas en saxhero
+  Esperado:  tasks_list
+  Real:      tasks_list
+  Valida:    Sprint 2: tasks_list filtrado por proyecto, estado abierto por defecto
+  Alfred:    En **Saxhero** tiene dos tareas abiertas:
+
+1. Tarea a completar
+2. Practicar escalas
+
+Ambas con prioridad normal. ¿Desea gestionar alguna de ellas?
+
+#16 [PASS] mode=exact
+  Frase:     apuntame una tarea en sebastian: revisar fuzzy match
+  Esperado:  tasks_create
+  Real:      tasks_create
+  Valida:    Sprint 2: tasks_create. 'sebastian' debe validar contra PROJECTS.md (sección 'Sebastian 2.0 — ...') vía known_projects
+  Alfred:    Apuntado, señor. Tarea «revisar fuzzy match» creada en el proyecto Sebastian.
+
+#17 [PASS] mode=exact
+  Frase:     en que estado esta el proyecto agora?
+  Esperado:  consult_docs
+  Real:      consult_docs
+  Valida:    Sprint 2: consult_docs resolviendo la sección '## agora' de PROJECTS.md
+  Alfred:    Aquí está el resumen técnico de **Agora**:
+
+- **Frontend:** SPA nginx en `seb01:5151`, proxy `/api/*` → uvicorn :8001
+- **Backend:** uvicorn :8001, servicio systemd activo (`agora-backend.service`)
+- 
+
+#18 [PASS] mode=exact
+  Frase:     que puerto usa glasspannel?
+  Esperado:  consult_docs
+  Real:      consult_docs
+  Valida:    Sprint 2: consult_docs — la sección de glasspannel no dice "puerto" literal (dice URL http://seb01:3000), valida que el planner llama a la tool igualmente y deja que Alfred infiera del contenido devuelto
+  Alfred:    El puerto **3000**, señor. La aplicación corre en `http://seb01:3000`.
+
+#19 [PASS] mode=exact
+  Frase:     marca como hecha la tarea 9001
+  Esperado:  tasks_complete
+  Real:      tasks_complete
+  Valida:    Sprint 2: tasks_complete con id sembrado explícito (fixture golden #19, project 'saxhero')
+  Alfred:    Hecha. La tarea 9001 queda marcada como completada.
+
+#20 [PASS] mode=exact
+  Frase:     recuerda que mi cuñado Paco es alérgico a los frutos secos
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Sprint 3: mark_as_memorable — hecho personal duradero, escribe un punto real en sebastian_memory_test
+  Alfred:    Ya constaba, señor: la alergia de Paco a los frutos secos estaba anotada.
+
+#22 [PASS] mode=exact
+  Frase:     apunta leche a la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Sprint 3: frontera operativo vs memoria — 'apunta' aquí es la lista de la compra, NO debe disparar mark_as_memorable
+  Alfred:    Leche apuntada en la lista de la compra, señor.
+
+#29 [PASS] mode=exact
+  Frase:     apunta melatonina en la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Sprint H4, negativa: frontera salud vs lista de la compra — 'apunta' + un suplemento para dormir no debe disparar salud (descripción de la tool, estrecha a propósito)
+  Alfred:    Melatonina apuntada en la lista de la compra, señor.
+
+#39 [PASS] mode=exact
+  Frase:     apunta tomates en la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Fase 3 H3, negativa: un alimento en la lista de la compra no es una comida (frontera como #29)
+  Alfred:    Tomates añadidos a la lista de la compra, señor.
+
+#43 [PASS] mode=multiset
+  Frase:     tengo hambre, apunta galletas en la compra
+  Esperado:  salud → list_add_item
+  Real:      list_add_item → salud
+  Valida:    Fase 3 H3, frontera: una sensación y una lista en la misma frase, cada una a su tool
+  Alfred:    Galletas apuntadas en la lista de la compra.
+
+En cuanto al hambre, lamento que no haya podido registrarse ahora mismo; si lo desea, inténtelo de nuevo en un momento.
+
+#52 [PASS] mode=exact
+  Frase:     apunta leche a la compra
+  Esperado:  list_add_item
+  Real:      list_add_item
+  Valida:    Fase 1 H2 (D21), negativa: el historial no arrastra la tool del turno anterior (tiempo)
+  Alfred:    Anotado, señor: leche en la lista de la compra.
+
+#56 [PASS] mode=exact
+  Frase:     He decidido no publicar saxhero en GitHub de momento
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D31): una decisión sobre un proyecto es memoria, no una nota ni una tarea
+  Alfred:    Anotado, señor. He guardado que **saxhero** no se publicará en GitHub de momento.
+
+He abierto la categoría *publicación* para el proyecto *saxhero*.
+
+#57 [PASS] mode=exact
+  Frase:     Al final sí publico saxhero este finde
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D31): la corrección de una decisión previa también va a mark_as_memorable (sustituye)
+  Alfred:    Guardado. Saxhero se publica este fin de semana.
+
+He abierto la categoría *saxhero* en memoria, señor.
+
+#58 [PASS] mode=exact
+  Frase:     ¿Qué había decidido sobre publicar saxhero?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Fase 2 H3 (D36): pregunta por una decisión guardada va a search_memory
+  Alfred:    No me consta ninguna decisión anotada sobre publicar *saxhero*. Si desea, se lo apunto ahora.
+
+#59 [PASS] mode=exact
+  Frase:     Me equivoqué: la presión de las ruedas es 2,4 bares
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D31): corrección explícita de un dato duradero
+  Alfred:    Anotado: 2,4 bares. He abierto la categoría *coche* con el atributo *presión de neumáticos*.
+
+#60 [PASS] mode=exact
+  Frase:     Apunta en mis notas: presión ruedas 2,4
+  Esperado:  notes_create
+  Real:      notes_create
+  Valida:    Fase 2 H3, negativa: «apunta en mis notas» es la tool de notas aunque el contenido sea memoria
+  Alfred:    Apuntado, señor. Nota creada: «presión ruedas 2,4».
+
+#61 [PASS] mode=exact
+  Frase:     He desayunado tostadas con tomate
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 2 H3, negativa: una comida es salud, nunca mark_as_memorable
+  Alfred:    Entendido, señor, aunque me temo que el sistema no ha podido registrarlo en este momento. Le sugiero que lo intente de nuevo en unos minutos.
+
+#62 [FAIL] mode=exact
+  Frase:     Olvida lo de las camisetas UV
+  Esperado:  mark_as_memorable
+  Real:      (ninguna)
+  Valida:    Fase 2 H3 (R3): retirar algo es mark_as_memorable
+  Alfred:    Entendido. ¿Hay algún resultado de herramienta que confirme que se ha retirado ese dato?
+
+No me llega ningún resultado de herramienta en este turno, así que no puedo confirmar que lo haya olvidado. No
+
+#63 [PASS] mode=exact
+  Frase:     ¿Qué alergias tiene Paco?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Fase 2 H3 (D36): lectura estructurada de un hecho
+  Alfred:    Según lo que tengo anotado, Paco tiene alergia a los **frutos secos**.
+
+#64 [PASS] mode=exact
+  Frase:     Tengo cita para la colonoscopia el 3 de diciembre a las 10
+  Esperado:  calendar_add_event
+  Real:      calendar_add_event
+  Valida:    Fase 2 H3 (D39), negativa: una cita con fecha es calendario, no memoria ni salud
+  Alfred:    Anotado, señor. Colonoscopia el 3 de diciembre a las 10:00.
+
+#65 [PASS] mode=any_of
+  Frase:     Recuerda que el 3 de diciembre tengo la colonoscopia
+  Esperado:  calendar_add_event  O  request_clarification
+  Real:      calendar_add_event
+  Valida:    Fase 2 H3 (D39), negativa: «recuerda que» con una cita con fecha es calendario. Sin hora puede preguntar; lo único que falla es mark_as_memorable o salud
+  Alfred:    Anotado, señor. Colonoscopia el 3 de diciembre.
+
+#66 [PASS] mode=exact
+  Frase:     Olvida lo del marisco de Paco
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D43): con un historial que ya dice «Anotado…», olvidar sigue siendo mark_as_memorable; el historial es lo que se dijo, no lo que se hizo
+  Alfred:    La herramienta no ha encontrado nada que retirar, señor. Puede que la alergia al marisco de Paco no llegara a guardarse en memoria. No puedo confirmar que esté olvidado.
+= USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create) =
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001               447978            3486    0.4654
+claude-sonnet-4-6                        36559            1025    0.1251
+text-embedding-3-small (OpenAI)             185               -    0.0000
+TOTAL                                                             0.5905
+latencia por turno (misma medida que 'Turn end'): n=27 mediana=5.42s p90=8.92s min=2.8s max=14.4s
+============================= RESUMEN: 26/27 PASS ==============================
+=========================== short test summary info ============================
+FAILED tests/golden/test_goldens.py::test_golden[golden_62] - AssertionError:...
+1 failed, 26 passed, 39 deselected in 165.90s (0:02:45)

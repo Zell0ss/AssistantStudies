@@ -1,0 +1,144 @@
+2026-11-15 21:06:36.227 | WARNING  | modules.salud:registrar_texto:65 - Tristras no respondió a /api/ingesta/texto: ConnectionError
+[32m21:06:36[0m | [33m[1mWARNING [0m | [36msebastian[0m — Tristras no respondió a /api/ingesta/texto: ConnectionError
+F
+=================================== FAILURES ===================================
+____________________ test_E9_retirar_una_nota_por_similitud ____________________
+
+escenario_runner = <function _hacer_runner.<locals>._run at 0x7f6a7a226fc0>
+test_db = <pymysql.connections.Connection object at 0x7f6a930e1490>
+
+    @pytest.mark.golden
+    def test_E9_retirar_una_nota_por_similitud(escenario_runner, test_db):
+        turnos = _correr(escenario_runner, ["Uso camisetas UV para bañarme", "Olvida lo de las camisetas UV"])
+        todos = hechos(test_db, GOLDEN_USER_ID)
+        reglas = [d["senales"].get("regla") for d in decisiones(test_db, GOLDEN_USER_ID) if d["tipo"] == "retirar"]
+        _registrar("E9", "Retirar «camisetas UV»: la nota queda cerrada", turnos,
+                   _bd(todos) + _bd_fuentes(fuentes(test_db, GOLDEN_USER_ID)) + [f"reglas de retirar: {reglas}"])
+    
+        # D42: lo retirado conserva la fila pero no su valor, así que no se busca por «camiseta» sino por lo que queda vigente.
+>       assert todos, "no se guardó nada sobre las camisetas"
+E       AssertionError: no se guardó nada sobre las camisetas
+E       assert []
+
+tests/golden/test_escenarios_memoria.py:202: AssertionError
+========= ESCENARIOS DE MEMORIA (turnos, tools y respuestas de Alfred) =========
+
+E1 Guardar y consultar: Paco y los frutos secos
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco, alérgico a los frutos secos. He abierto la categoría *Paco* en mi memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  BD:        mem_hechos #5304 · Paco · alergia · 'frutos secos' · vigente · fuente #1580
+  BD:        mem_hechos #5305 · Paco · parentesco · 'cuñado' · vigente · fuente #1580
+
+E2 Corrección: 2,30 → 2,4 bares
+  Usuario:   La presión de las ruedas del coche es 2,30 bares
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor: 2,30 bares en los neumáticos. He abierto la categoría *coche › presión de neumáticos*.
+  Usuario:   Me equivoqué: es 2,4 bares
+  Tools:     mark_as_memorable
+  Alfred:    Corregido, señor: 2,4 bares, en lugar de los 2,30 que había anotado antes.
+  BD:        mem_hechos #5307 · coche · presion_neumaticos · '2,4 bares' · vigente · fuente #1582
+  BD:        mem_hechos #5306 · coche · presion_neumaticos · '2,30 bares' · cerrado · sustituido por #5307 · fuente #1581
+
+E3 Lo que valía antes: historial
+  Usuario:   La presión de las ruedas del coche es 2,30 bares
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: presión de neumáticos del coche, 2,30 bares. He abierto la categoría *coche / presión de neumáticos*.
+  Usuario:   Me equivoqué: es 2,4 bares
+  Tools:     mark_as_memorable
+  Alfred:    Corregido. La presión de los neumáticos queda en **2,4 bares**, sustituyendo el 2,30 que tenía anotado.
+  Usuario:   ¿Qué presión te dije antes?
+  Tools:     search_memory
+  Alfred:    Me dijo primero **2,30 bares**, que luego corrigió a **2,4 bares**, valor que está vigente actualmente.
+  BD:        mem_hechos #5309 · coche · presion_neumaticos · '2,4 bares' · vigente · fuente #1584
+  BD:        mem_hechos #5308 · coche · presion_neumaticos · '2,30 bares' · cerrado · sustituido por #5309 · fuente #1583
+
+E4 Dos alergias vigentes a la vez
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: cuñado, alérgico a los frutos secos. He abierto la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos, señor.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Paco: alérgico también al marisco.
+  BD:        mem_hechos #5310 · Paco · alergia · 'frutos secos' · vigente · fuente #1585
+  BD:        mem_hechos #5311 · Paco · parentesco · 'cuñado' · vigente · fuente #1585
+  BD:        mem_hechos #5312 · Paco · alergia · 'marisco' · vigente · fuente #1586
+
+E5 Olvidar el marisco, no los frutos secos (D42: se borra el texto)
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco, alérgico a los frutos secos. He abierto la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco también es alérgico al marisco.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho. He retirado la alergia al marisco de Paco.
+  BD:        mem_hechos #5313 · Paco · alergia · 'frutos secos' · vigente · fuente #1587
+  BD:        mem_hechos #5314 · Paco · parentesco · 'cuñado' · vigente · fuente #1587
+  BD:        mem_hechos #5315 · Paco · alergia · '' · cerrado · fuente #1588
+  BD:        mem_fuentes #1587 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #1588 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #1589 · texto=None · mensaje=None · purgada
+
+E6 Decisión sobre un proyecto: atributo nuevo, pending, y Alfred lo dice (D16)
+  Usuario:   He decidido no publicar saxhero en GitHub
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor. Saxhero no se publicará en GitHub.
+
+He abierto las categorías *saxhero* y *publicación* en memoria.
+  BD:        mem_hechos #5316 · saxhero · publicacion · 'false' · vigente · fuente #1590
+  BD:        decisiones: ['crear_entidad', 'crear_atributo', 'anadir']
+  BD:        atributo creado: publicacion (pending)
+
+E7 El usuario B no recibe lo del usuario A
+  Usuario:   Mi coche es rojo
+  Tools:     mark_as_memorable
+  Alfred:    Anotado, señor: su coche es rojo.
+
+He abierto el atributo *color* en su perfil.
+  Usuario:   ¿De qué color es mi coche?
+  Tools:     search_memory
+  Alfred:    No me consta el color de su coche, señor. Si lo desea, puedo apuntarlo.
+  BD:        A: ["mem_hechos #5317 · yo · color · 'rojo' · vigente · fuente #1591"]
+  BD:        B: []
+
+E8 El vault de prueba dice stable; la conversación, pausado
+  Usuario:   proyecto-prueba está pausado
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: *proyecto-prueba* queda como pausado. He abierto la categoría *proyecto-prueba* en memoria.
+  Usuario:   ¿En qué estado está proyecto-prueba?
+  Tools:     search_memory
+  Alfred:    Según el vault, *proyecto-prueba* está en estado **stable**.
+
+Debo advertirle: lo que usted me indicó hace un momento —que estaba pausado— no coincide con el vault. El vault manda, y no puedo modificarlo desde aquí. Si el estado es incorrecto, habría que corregirlo directamente en `proyecto.md`.
+  BD:        mem_hechos #5318 · proyecto-prueba · estado · 'pausado' · vigente · fuente #1592
+
+E9 Retirar «camisetas UV»: la nota queda cerrada
+  Usuario:   Uso camisetas UV para bañarme
+  Tools:     salud
+  Alfred:    Entendido, señor — aunque no ha podido registrarse ahora mismo. Le sugiero que lo intente de nuevo en unos minutos.
+  Usuario:   Olvida lo de las camisetas UV
+  Tools:     mark_as_memorable
+  Alfred:    No he encontrado nada sobre camisetas UV que retirar, señor. No constaba en memoria.
+  BD:        mem_fuentes #1593 · texto=None · mensaje=None · purgada
+  BD:        reglas de retirar: []
+= USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create) =
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001               401686            3938    0.4214
+claude-sonnet-4-6                        30454             753    0.1027
+text-embedding-3-small (OpenAI)             256               -    0.0000
+TOTAL                                                             0.5240
+latencia por turno (misma medida que 'Turn end'): n=21 mediana=4.33s p90=5.47s min=2.6s max=6.1s
+=========================== short test summary info ============================
+FAILED tests/golden/test_escenarios_memoria.py::test_E9_retirar_una_nota_por_similitud
+1 failed, 8 passed in 96.27s (0:01:36)

@@ -1,0 +1,3 @@
+  Real:      mark_as_memorable   Alfred:    No he encontrado nada sobre camisetas UV en mi memoria: no había nada que olvidar. TOTAL                                                             0.0253
+  Real:      mark_as_memorable   Alfred:    No he encontrado nada sobre camisetas UV en la memoria. No hay nada que retirar. TOTAL                                                             0.0252
+  Real:      mark_as_memorable   Alfred:    No he encontrado nada sobre camisetas UV en mi memoria, señor. No hay nada que retirar. TOTAL                                                             0.0254

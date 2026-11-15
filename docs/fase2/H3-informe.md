@@ -232,3 +232,162 @@ pasada completa (1,79 $) se hizo antes de leer el encargo R5–R7 y que el gasto
 7. **Confirmación de dos decisiones que tomé yo** al implementar: `historial` no muestra lo olvidado (desviación 5) y toda nota se embebe (3).
 8. **Para H4:** aplicar la migración 012 (con 010 y 011) en `sebastian_db`; la ejecuta Josem. Y la purga de D42 no tiene aún un camino de punta a punta
    verde por el orquestador (decisión 1).
+
+
+---
+
+## Anexo — retoques de la revisión (2026-11-15, programador)
+
+Responde a: 36c3f90 (H3-revision, «Para el programador»). Buzón mirado antes de cada paso [API]: sin mensajes nuevos.
+
+### Hecho
+
+| Pedido | Commit | Resultado |
+|---|---|---|
+| R8 (D43): reglas del planner y de Alfred, golden #66, prueba | `809f697`, **`2ec6667`** | planner: **desviación a confirmar** (abajo); Alfred: la regla funciona |
+| R9: retirar por el valor entre los hechos vigentes, E9b | `48cc4f3` | 10 pruebas sin API; no se vio en una pasada real |
+| R10: `_validar` y aviso «no sé de quién se habla»; casos 1 y 2 | `48cc4f3` (servicio), `e200440` (extractor y casos) | **10/10** |
+| R11: Alfred no puede cambiar el vault | `809f697` | prueba de contenido |
+| R12 (D42): el log de inicio de turno guarda la longitud, no el texto | `fe443e6` | prueba de que el log no lo contiene |
+
+R8 y R11 comparten el commit `809f697` (editan el mismo bloque de `_ALFRED_SYSTEM`); R9 y la parte de servicio de R10 comparten `48cc4f3` (mismo
+fichero). **Pruebas sin API: 655 en verde**, 90 marcadas `golden`.
+
+R12: el «sí» de Josem fue «Si, hasta 2€» a mis dos preguntas (el gasto y el log de turno); tomé el «sí» como válido para las dos.
+
+### Pasadas [API] (salidas en `docs/fase2/goldens/2026-11-15-r8-*`, `-r10-*` y `-escenarios-tras-r8-r12.txt`)
+
+| Pasada | Resultado |
+|---|---|
+| #66 ×3 y E5 ×3 con **la regla tal como la fijó la revisión** | **0/3 y 0/3**: el planner contestaba en texto «He retirado…» sin llamar a la tool |
+| Alfred con su regla nueva en esas seis pasadas | **funciona**: «no he podido ejecutarlo», «no puedo afirmar que lo haya borrado» (ya no afirma lo que no hizo) |
+| Diagnóstico (#66 ×3 por variante, sin commitear): A la regla actual · B al principio del prompt · C más fuerte y al final | **A 0/3 · B 0/3 · C 3/3** |
+| Verificación de la regla C acotada: 27 goldens (#1, #10–#20 por el filtro `-k`, #22, #29, #39, #43, #52, #56–#66) | **26/27**; falla #62, que **pasa 3/3 al repetirlo** (intermitente) |
+| #66 con el código de producción (1 en la verificación + 2) | **3/3** |
+| R10: los 10 casos del extractor | **10/10** |
+| Escenarios E1–E9 | **8/9**; E5 pasa; falla E9 (ver Decisiones §2) |
+| E5 con el código de producción (1 en E1–E9 + 2) | **3/3** |
+
+**Desviación a confirmar (R8, planner).** La revisión fijó el texto de la regla y el criterio «3/3». Con ese texto en medio del prompt dio 0/6. Probé
+tres colocaciones/redacciones (diagnóstico de arriba) y solo funcionó una regla más fuerte y **al final** del prompt, después de las capacidades y del
+índice, justo antes de decidir. La acoté a datos de memoria («guardar, corregir u olvidar un dato de memoria») para que «Guárdame esta nota» o «apunta
+leche» no se vayan a `mark_as_memorable`: la verificación de 27 goldens no mostró ningún efecto lateral (el #1, las listas, #16, #22, #29, #39, #52 y #60
+pasan). El texto exacto está en `_REGLA_ACCIONES_CON_HISTORIAL` (`core/orchestrator.py`). Si prefieres otro, es una constante.
+
+### Las respuestas de E5 (tres pasadas con el código de producción)
+
+Pasada 1 (en E1–E9), con el estado de la BD después de olvidar:
+
+```
+E5 Olvidar el marisco, no los frutos secos (D42: se borra el texto)
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco, alérgico a los frutos secos. He abierto la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco también es alérgico al marisco.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho. He retirado la alergia al marisco de Paco.
+  BD:        mem_hechos #5313 · Paco · alergia · 'frutos secos' · vigente · fuente #1587
+  BD:        mem_hechos #5314 · Paco · parentesco · 'cuñado' · vigente · fuente #1587
+  BD:        mem_hechos #5315 · Paco · alergia · '' · cerrado · fuente #1588
+  BD:        mem_fuentes #1587 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #1588 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #1589 · texto=None · mensaje=None · purgada
+```
+
+Pasada 2 (solo E5):
+
+```
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado. He registrado la alergia de Paco a los frutos secos, así como que es su cuñado. He abierto la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado. Paco es alérgico al marisco también.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho, señor. He retirado la alergia al marisco de Paco. Solo consta la de frutos secos.
+  BD:        mem_hechos #5319 · Paco · alergia · 'frutos secos' · vigente · fuente #1594
+  BD:        mem_hechos #5320 · Paco · parentesco · 'cuñado' · vigente · fuente #1594
+  BD:        mem_hechos #5321 · Paco · alergia · '' · cerrado · fuente #1595
+  BD:        mem_fuentes #1594 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #1595 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #1596 · texto=None · mensaje=None · purgada
+```
+
+Pasada 3 (solo E5):
+
+```
+  Usuario:   Mi cuñado Paco es alérgico a los frutos secos
+  Tools:     mark_as_memorable
+  Alfred:    Anotado: Paco es alérgico a los frutos secos. He abierto también la categoría *Paco* en la memoria.
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Alfred:    Paco tiene alergia a los frutos secos.
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Alfred:    Anotado. Paco tiene alergia a los frutos secos —que ya constaba— y ahora también al marisco.
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     mark_as_memorable
+  Alfred:    Hecho. He retirado la alergia al marisco de Paco. Solo consta la de frutos secos.
+  BD:        mem_hechos #5322 · Paco · alergia · 'frutos secos' · vigente · fuente #1597
+  BD:        mem_hechos #5323 · Paco · parentesco · 'cuñado' · vigente · fuente #1597
+  BD:        mem_hechos #5324 · Paco · alergia · '' · cerrado · fuente #1598
+  BD:        mem_fuentes #1597 · texto='Paco (cuñado) es alérgico a los frutos secos' · mensaje='Mi cuñado Paco es alérgico a los frutos secos' · con texto
+  BD:        mem_fuentes #1598 · texto=None · mensaje=None · purgada
+  BD:        mem_fuentes #1599 · texto=None · mensaje=None · purgada
+```
+
+**Lo que queda tras E5 (la tabla que pidió el §3 del encargo, ya de punta a punta por el orquestador):** el hecho del marisco queda **cerrado, con
+`valor = ''`**, sin sustituto; su fuente y la del turno de «olvida» quedan **purgadas** (`texto` y `mensaje` a NULL, `purgada_at` puesto); los frutos
+secos y el parentesco siguen vigentes y **su fuente conserva el texto**. Es lo que dice D42 y lo que pedían las tres últimas líneas del escenario.
+
+### Gasto
+
+Autorizado por Josem el 2026-11-15, en esta ventana: «Si, hasta 2€» (lo tomé como ≤ 2 $, por seguridad; el mensaje de la otra sesión hablaba de subir el tope
+a 8 $, pero Josem no lo dijo en mi ventana y no lo usé).
+
+| Paso | Anthropic | Detalle |
+|---|---|---|
+| #66 ×3 y E5 ×3 con la regla de la revisión | 0,309 $ | Haiku 4.5 + Sonnet 4.6 |
+| Diagnóstico de variantes (9 pasadas) | 0,165 $ | |
+| Verificación de la regla acotada: 27 goldens | 0,591 $ | Haiku 447.978 / 3.486 → 0,465; Sonnet 36.559 / 1.025 → 0,125 |
+| #62 ×3 | 0,076 $ | |
+| #66 ×2 con el código de producción | 0,053 $ | |
+| R10: los 10 casos del extractor | 0,030 $ | Haiku 25.169 / 1.050 |
+| Escenarios E1–E9 | 0,524 $ | Haiku 401.686 / 3.938 → 0,421; Sonnet 30.454 / 753 → 0,103 |
+| E5 ×2 con el código de producción | 0,204 $ | |
+| **Total del anexo** | **1,95 $** | OpenAI < 0,0001 $ |
+
+**Acumulado de la fase 2: ≈ 6,46 $** (4,51 $ + 1,95 $). Pasa del tope original de 5 $ porque la revisión pidió subirlo a 8 $ y Josem autorizó 2 € más.
+Quedan ≈ 1,5 $ de los 8 $ propuestos; H4 (pasada completa de 66 goldens y escenarios, ≈ 2,3 $ según la revisión) **no cabe** sin otro «sí».
+
+### Desviaciones
+
+1. La regla del planner (arriba).
+2. **R9** compara el valor **como palabras completas**, no como subcadena (la revisión decía «contiene»): sin eso, olvidar «M» podría cerrar «marzo».
+   Hay prueba. Se dispara igual que R3 (entidad o atributo sin resolver con fuerza) y comparte con R3 el límite de un cierre indirecto por turno.
+3. R10: el `Extractor` expone `marcadores_descartados` (de la última llamada) para que el servicio avise; y se avisa también si, además, salieron hechos válidos.
+4. `-k "golden_1 or …"` casó también #10–#19 (subcadena): 27 goldens en vez de 19. Fue un exceso involuntario de ≈ 0,15 $ que sirvió de verificación extra.
+
+### Decisiones que necesito
+
+1. **Confirmar la regla del planner** (desviación de arriba) o darme otra. Es la que hace pasar #66 y E5 3/3.
+2. **E9 (1 observación).** El planner mandó «Uso camisetas UV para bañarme» a `salud`, no a memoria, así que no se guardó nada y E9 falló. En las
+   pasadas anteriores iba a `mark_as_memorable`. No lo repetí (sin margen): puede ser variación de clasificación, o efecto de la regla nueva; no
+   puedo distinguirlo con un dato. R9 y E9b están cubiertos por pruebas sin API.
+3. **Alfred filtra la regla al usuario** cuando el planner no llama a la tool: «¿Hay algún resultado de herramienta que confirme que se ha retirado ese dato?»
+   (visto en #62 y en E5/#66). Es honesto pero suena a mecanismo interno. Propongo que la regla diga que lo cuente en llano («no he podido hacerlo, ¿lo
+   intento de nuevo?»). Es decisión de redacción: tuya.
+4. **Otros logs con el texto del mensaje.** R12 solo pedía el log de inicio de turno. Los tres logs de error de `handle()` (`orchestrator.py` ~409, 414 y 420:
+   conexión, límite de peticiones, error de la API) siguen guardando `message={truncated!r}` (200 caracteres). Es el mismo caso que D42. ¿Los paso también a longitud?
+5. **Gasto.** Ver arriba: ≈ 6,46 $ acumulados; H4 no cabe sin otro «sí» de Josem.
+6. **#62** es intermitente: falló en la línea base pre-H3 y una vez en la verificación de ahora; pasó en la pasada completa, en las dos `-k` de R5 y 3/3 al repetirlo. ¿Lo apunto con #43 y #28?
