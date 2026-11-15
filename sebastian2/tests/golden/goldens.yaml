@@ -439,3 +439,18 @@
   mode: exact
   expected: [search_memory]
   validates: "Fase 2 H3 (D36): lectura estructurada de un hecho"
+
+# Fase 2 H3, R5 (H3-encargo, D39): una cita con fecha es calendario. Normativos; su línea base va solo con -k.
+- id: 64
+  phrase: "Tengo cita para la colonoscopia el 3 de diciembre a las 10"
+  mode: exact
+  expected: [calendar_add_event]
+  validates: "Fase 2 H3 (D39), negativa: una cita con fecha es calendario, no memoria ni salud"
+
+- id: 65
+  phrase: "Recuerda que el 3 de diciembre tengo la colonoscopia"
+  mode: any_of
+  expected:
+    - [calendar_add_event]
+    - [request_clarification]
+  validates: "Fase 2 H3 (D39), negativa: «recuerda que» con una cita con fecha es calendario. Sin hora puede preguntar; lo único que falla es mark_as_memorable o salud"
