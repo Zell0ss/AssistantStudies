@@ -1001,3 +1001,77 @@ def test_los_logs_de_error_no_llevan_el_mensaje(mock_anthropic_cls, mock_logger,
     errores = [c for c in mock_logger.mock_calls if "exception" in str(c)[:60] or "Anthropic API" in str(c)]
     assert errores, "tiene que seguir quedando la traza del error"
     assert any(f"chars={len(mensaje)}" in str(c) and "user=99999" in str(c) for c in errores)
+
+
+# ── Fase 2 H4 (R15, D44): un turno sin herramientas, Alfred lo sabe ───────────────────────────
+
+_AVISO = ("[En este turno no se ha ejecutado ninguna herramienta: no has guardado, cambiado, borrado, apuntado ni creado "
+          "nada. Si el usuario lo pidió, dile en llano que no lo has hecho y ofrécete a intentarlo.]")
+
+
+def _orquestador_con_sintesis(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.return_value = _make_text_response("ok")
+    from core.orchestrator import Orchestrator
+    return Orchestrator(db, '99999'), mock_client
+
+
+def test_la_constante_es_la_de_la_revision():
+    from core.orchestrator import _TURNO_SIN_HERRAMIENTAS
+    assert _TURNO_SIN_HERRAMIENTAS == _AVISO
+
+
+@patch('core.orchestrator.Anthropic')
+def test_sintesis_sin_herramientas_lleva_aviso(mock_anthropic_cls, db):
+    """D44: sin tool_results, Alfred solo veía el mensaje y el historial («Anotado… al marisco») y contestaba «He retirado…».
+    Ese dato (en este turno no se hizo nada) lo tiene el código y ahora se le pasa, DESPUÉS del mensaje del usuario."""
+    orch, cliente = _orquestador_con_sintesis(mock_anthropic_cls, db)
+    historial = [{"role": "user", "content": "Paco también es alérgico al marisco"},
+                 {"role": "assistant", "content": "Anotado, señor."}]
+
+    orch._synthesize("Olvida lo del marisco de Paco", [], historial)
+
+    mensajes = cliente.messages.create.call_args.kwargs["messages"]
+    assert mensajes[:-1] == historial                                  # el historial viaja igual que antes
+    ultimo = mensajes[-1]["content"]
+    assert ultimo.index("Olvida lo del marisco de Paco") < ultimo.index(_AVISO)       # después del mensaje
+    assert ultimo.rstrip().endswith(_AVISO)
+
+
+@patch('core.orchestrator.Anthropic')
+def test_sintesis_con_herramientas_no_lleva_aviso(mock_anthropic_cls, db):
+    orch, cliente = _orquestador_con_sintesis(mock_anthropic_cls, db)
+    resultados = [{"tool": "mark_as_memorable", "input": {"texto": "x"}, "result": {"success": True}}]
+
+    orch._synthesize("Olvida lo del marisco de Paco", resultados, [])
+
+    assert "no se ha ejecutado ninguna herramienta" not in cliente.messages.create.call_args.kwargs["messages"][-1]["content"]
+
+
+@patch('core.orchestrator.Anthropic')
+def test_un_turno_en_el_que_el_planner_no_llama_a_ninguna_tool_le_pasa_el_aviso_a_alfred(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("Listo, he retirado el marisco."), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("Olvida lo del marisco de Paco")
+
+    sintesis = mock_client.messages.create.call_args_list[1]
+    assert _AVISO in sintesis.kwargs["messages"][-1]["content"]
+
+
+@patch('core.orchestrator.Anthropic')
+def test_un_turno_con_tool_no_pasa_el_aviso(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [
+        _make_tool_use_response("search_memory", "t1", {"query": "paco"}), _make_text_response("ya"), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    orch._executor.execute = MagicMock(return_value={"hechos": []})
+    orch.handle("¿Qué alergias tiene Paco?")
+
+    assert _AVISO not in mock_client.messages.create.call_args_list[2].kwargs["messages"][-1]["content"]

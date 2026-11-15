@@ -168,6 +168,15 @@ Estas son tus capacidades actuales — si el usuario pregunta qué sabes hacer o
 {_CAPABILITIES_DIGEST}"""
 
 
+# D44: cuando el planner no ejecuta ninguna herramienta, `_synthesize` no recibe resultados y Alfred solo veía el mensaje y el
+# historial: con «Anotado… al marisco» en el historial y «Olvida lo del marisco» delante, contestaba «He retirado…» sin haber
+# retirado nada. Que en este turno no se ha hecho nada lo sabe el código; ahora se le dice, después del mensaje del usuario.
+_TURNO_SIN_HERRAMIENTAS = (
+    "[En este turno no se ha ejecutado ninguna herramienta: no has guardado, cambiado, borrado, apuntado ni creado nada. "
+    "Si el usuario lo pidió, dile en llano que no lo has hecho y ofrécete a intentarlo.]"
+)
+
+
 class Orchestrator:
     """Handles any user message by orchestrating module tools via Haiku + Alfred synthesis."""
 
@@ -563,7 +572,7 @@ class Orchestrator:
                 f"Responde al usuario en español, de forma concisa y útil."
             )
         else:
-            synthesis_prompt = f"{_now_str()}\n{user_message}"
+            synthesis_prompt = f"{_now_str()}\n{user_message}\n\n{_TURNO_SIN_HERRAMIENTAS}"
 
         response = self._client.messages.create(
             model="claude-sonnet-4-6",
