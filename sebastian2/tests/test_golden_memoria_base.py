@@ -7,7 +7,7 @@ import pytest
 from core.memoria.repositorio import RepositorioMemoria
 from db.connection import close_connection, get_connection
 from tests.golden.memoria_base import (
-    decisiones, exigir_bd_de_test, hechos, limpiar_atributos_de_conversacion, limpiar_memoria,
+    decisiones, exigir_bd_de_test, fuentes, hechos, limpiar_atributos_de_conversacion, limpiar_memoria,
     sembrar_memoria_base,
 )
 
@@ -109,6 +109,18 @@ def test_hechos_distingue_vigentes_de_cerrados(conn):
     assert hechos(conn, A, entidad="Paco", vigentes=True) == []
     assert len(hechos(conn, A, entidad="Paco", vigentes=False)) == 1
     assert len(hechos(conn, A, entidad="Paco")) == 1            # sin filtro: vigentes y cerrados
+
+
+def test_fuentes_devuelve_las_del_usuario_en_orden_y_con_lo_purgado_a_none(conn):
+    repo = RepositorioMemoria(conn)
+    primera = repo.crear_fuente(A, "uno", "mensaje uno")
+    segunda = repo.crear_fuente(A, "dos", None)
+    repo.crear_fuente(B, "de otro", None)
+    repo.purgar_fuente_sin_hechos(segunda)                       # sin hechos: se purga
+    assert [(f["id"], f["texto"], f["mensaje"]) for f in fuentes(conn, A)] == [
+        (primera, "uno", "mensaje uno"), (segunda, None, None)]      # en orden; la purgada, con texto y mensaje a None
+    assert fuentes(conn, A)[0]["purgada_at"] is None and fuentes(conn, A)[1]["purgada_at"] is not None
+    assert [f["texto"] for f in fuentes(conn, B)] == ["de otro"]
 
 
 def test_decisiones_devuelve_las_del_usuario(conn):

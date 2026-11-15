@@ -15,7 +15,7 @@ import pytest
 from core.memoria.normalizar import normalizar
 from core.memoria.repositorio import RepositorioMemoria
 from tests.golden.conftest import GOLDEN_USER_ID
-from tests.golden.memoria_base import USUARIO_B, decisiones, hechos
+from tests.golden.memoria_base import USUARIO_B, decisiones, fuentes, hechos
 
 RESULTADOS = []   # {id, titulo, turnos: [(frase, tools, texto)], bd: [líneas]}; los imprime el conftest
 
@@ -39,9 +39,15 @@ def _registrar(ident, titulo, turnos, db=()):
 
 
 def _bd(filas):
-    return [f"{f['entidad']} · {f['atributo']} · {f['valor']!r} · "
+    return [f"mem_hechos #{f['id']} · {f['entidad']} · {f['atributo']} · {f['valor']!r} · "
             f"{'vigente' if f['valid_to'] is None else 'cerrado'}"
-            f"{' · sustituido por #%s' % f['superseded_by'] if f['superseded_by'] else ''}" for f in filas]
+            f"{' · sustituido por #%s' % f['superseded_by'] if f['superseded_by'] else ''}"
+            f" · fuente #{f['fuente_id']}" for f in filas]
+
+
+def _bd_fuentes(filas):
+    return [f"mem_fuentes #{f['id']} · texto={f['texto']!r} · mensaje={f['mensaje']!r} · "
+            f"{'purgada' if f['purgada_at'] else 'con texto'}" for f in filas]
 
 
 def _tipos_de_decision(db, user=GOLDEN_USER_ID):
@@ -106,12 +112,21 @@ def test_E5_olvidar_uno_de_varios(escenario_runner, test_db):
     turnos = _correr(escenario_runner, [PACO, PREGUNTA_PACO, "Paco también es alérgico al marisco",
                                         "Olvida lo del marisco de Paco"])
     filas = hechos(test_db, GOLDEN_USER_ID, entidad="Paco", atributo="alergia")
-    _registrar("E5", "Olvidar el marisco, no los frutos secos", turnos, _bd(filas))
+    todas = fuentes(test_db, GOLDEN_USER_ID)
+    _registrar("E5", "Olvidar el marisco, no los frutos secos (D42: se borra el texto)", turnos,
+               _bd(hechos(test_db, GOLDEN_USER_ID)) + _bd_fuentes(todas))
 
-    marisco = [f for f in filas if "marisco" in f["valor"].lower()]
-    secos = [f for f in filas if "frutos secos" in f["valor"].lower()]
-    assert len(marisco) == 1 and marisco[0]["valid_to"] is not None and marisco[0]["superseded_by"] is None, _bd(filas)
-    assert len(secos) == 1 and secos[0]["valid_to"] is None, "los frutos secos tienen que seguir vigentes"
+    # D42: lo retirado queda cerrado, sin sustituto y con el valor en '' (ya no se puede buscar por «marisco»).
+    cerrados = [f for f in filas if f["valid_to"] is not None]
+    secos = [f for f in filas if f["valid_to"] is None]
+    assert len(cerrados) == 1 and cerrados[0]["superseded_by"] is None and cerrados[0]["valor"] == "", _bd(filas)
+    assert len(secos) == 1 and "frutos secos" in secos[0]["valor"].lower(), "los frutos secos tienen que seguir vigentes"
+    # y la fuente de «frutos secos» conserva su texto (le queda un hecho vigente); la del marisco, solo si no le queda ninguno.
+    fuente_secos = next(f for f in todas if f["id"] == secos[0]["fuente_id"])
+    assert fuente_secos["texto"] and fuente_secos["purgada_at"] is None, _bd_fuentes(todas)
+    fuente_marisco = next(f for f in todas if f["id"] == cerrados[0]["fuente_id"])
+    quedan_vigentes = [h for h in hechos(test_db, GOLDEN_USER_ID, vigentes=True) if h["fuente_id"] == fuente_marisco["id"]]
+    assert (fuente_marisco["texto"] is None) == (not quedan_vigentes), _bd_fuentes(todas)
 
 
 # --- E6: atributo nuevo y D16 --------------------------------------------------------------------------
@@ -178,10 +193,13 @@ def test_E8_el_vault_gana_y_avisa(escenario_runner, test_db, config_de_goldens, 
 @pytest.mark.golden
 def test_E9_retirar_una_nota_por_similitud(escenario_runner, test_db):
     turnos = _correr(escenario_runner, ["Uso camisetas UV para bañarme", "Olvida lo de las camisetas UV"])
-    menciones = [f for f in hechos(test_db, GOLDEN_USER_ID) if "camiseta" in f["valor"].lower()]
+    todos = hechos(test_db, GOLDEN_USER_ID)
     reglas = [d["senales"].get("regla") for d in decisiones(test_db, GOLDEN_USER_ID) if d["tipo"] == "retirar"]
     _registrar("E9", "Retirar «camisetas UV»: la nota queda cerrada", turnos,
-               _bd(menciones) + [f"reglas de retirar: {reglas}"])
+               _bd(todos) + _bd_fuentes(fuentes(test_db, GOLDEN_USER_ID)) + [f"reglas de retirar: {reglas}"])
 
-    assert menciones, "no se guardó nada sobre las camisetas"
-    assert all(m["valid_to"] is not None for m in menciones), f"queda algo vigente: {_bd(menciones)}"
+    # D42: lo retirado conserva la fila pero no su valor, así que no se busca por «camiseta» sino por lo que queda vigente.
+    assert todos, "no se guardó nada sobre las camisetas"
+    vigentes = [h for h in todos if h["valid_to"] is None and "camiseta" in h["valor"].lower()]
+    assert not vigentes, f"queda algo vigente: {_bd(vigentes)}"
+    assert reglas, "no se retiró nada: ningún `retirar` en mem_decisiones"

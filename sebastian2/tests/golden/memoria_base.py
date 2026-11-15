@@ -85,5 +85,12 @@ def hechos(db, user_id: str, *, entidad: str | None = None, atributo: str | None
     return filas
 
 
+def fuentes(db, user_id: str) -> list[dict]:
+    """Las fuentes del usuario (D41), en orden de creación. `texto` y `mensaje` son None si están purgadas (D42)."""
+    cur = db.cursor()
+    cur.execute("SELECT * FROM mem_fuentes WHERE user_id = %s ORDER BY id", (user_id,))
+    return list(cur.fetchall())
+
+
 def decisiones(db, user_id: str) -> list[dict]:
     return RepositorioMemoria(db).decisiones(user_id)
