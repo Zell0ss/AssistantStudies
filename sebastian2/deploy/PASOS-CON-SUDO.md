@@ -136,3 +136,145 @@ sudo systemctl start sebastian.service
 ```
 
 `sebastian_dev` y `sebastian_memory_dev` pueden quedarse: no los usa nadie.
+
+---
+
+## Fase 2 — Memoria v1: hechos que se pueden corregir (D31–D43)
+
+**Qué cambia al terminar:** la memoria de Sebastian deja de ser una lista plana de frases en Qdrant y pasa a ser
+**hechos con vigencia en MariaDB** (`mem_*`): «Paco · alergia: frutos secos», con su historial («¿qué presión llevaba
+antes?»), corregibles («me equivoqué») y olvidables («olvida lo de…», que **borra el texto**, D42). Cada hecho guarda la
+frase de la que salió (`mem_fuentes`, D41). Los 3 recuerdos que había en Sprint 3 se migran. El cuaderno saca su semilla de
+memoria de MariaDB.
+
+**Qué NO cambia:** la colección `sebastian_memory` (Sprint 3) **no se borra** en esta fase: queda como archivo (D18).
+Tampoco cambian las unidades systemd ni el `config.yaml`.
+
+**Rutas:** `/data/AssistantStudies` (producción, siempre en `main`) y `/data/AssistantStudies-fase2` (worktree de la rama
+`fase-2`). Hasta el paso 3, el código nuevo solo está en el worktree: por eso los pasos 1 y 2 se lanzan desde allí.
+
+**Gasto:** una sola llamada de pago, en el paso 5 (OpenAI, embebe unas 15 frases: menos de 0,001 $).
+
+### Paso 0 — Requisitos y copia de seguridad
+
+El código de la fase 2 necesita el `.venv` de H0 (Python 3.12 y anthropic 1.14). Si todavía tienes el de Python 3.11 y
+anthropic 0.79, haz antes el «Despliegue definitivo» de `docs/fase2/H0-informe.md`.
+
+```bash
+/data/AssistantStudies/sebastian2/.venv/bin/python -V                          # Python 3.12.x
+/data/AssistantStudies/sebastian2/.venv/bin/pip show anthropic | grep ^Version # 1.14.x
+git -C /data/AssistantStudies rev-parse HEAD     # APUNTA este hash: es la vuelta atrás
+sudo mysqldump sebastian_db > ~/sebastian_db_backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### Paso 1 — Migraciones 010, 011 y 012 en `sebastian_db` (sudo mysql)
+
+En este orden. Son idempotentes (`IF NOT EXISTS`, `INSERT IGNORE`) y no llevan `USE`: la BD la eliges tú aquí.
+
+```bash
+cd /data/AssistantStudies-fase2/sebastian2
+sudo mysql sebastian_db < db/migrations/010_memoria.sql
+sudo mysql sebastian_db < db/migrations/011_memoria_semillas.sql
+sudo mysql sebastian_db < db/migrations/012_memoria_fuentes.sql
+sudo mysql sebastian_db -e "SHOW TABLES LIKE 'mem_%'; SHOW COLUMNS FROM mem_hechos LIKE 'fuente_id';"
+```
+
+Deben salir 7 tablas (`mem_entidades`, `mem_entidad_alias`, `mem_atributos`, `mem_atributo_alias`, `mem_hechos`,
+`mem_decisiones`, `mem_fuentes`) y la columna `fuente_id`. Las tablas nuevas no molestan al código viejo.
+
+### Paso 2 — Crear las colecciones `sebastian_memory_catalogo` y `sebastian_memory_notas` en Qdrant
+
+La base se pasa explícita porque el `config.yaml` apunta a desarrollo (D19). La herramienta se niega con una base que no
+termine en `_test` o `_dev` si no lleva `--produccion`.
+
+```bash
+cd /data/AssistantStudies-fase2/sebastian2
+SEBASTIAN_MEMORY_COLLECTION=sebastian_memory .venv/bin/python -m scripts.memoria.crear_colecciones --produccion
+```
+
+Debe imprimir `OK sebastian_memory_catalogo` y `OK sebastian_memory_notas`. Repetirlo no es un error.
+
+### Paso 3 — Merge de `fase-2` en producción
+
+```bash
+cd /data/AssistantStudies && git status        # debe estar limpio y en main
+git merge --ff-only fase-2
+```
+
+El bot sigue con el código viejo en memoria hasta el reinicio del paso 6.
+
+### Paso 4 — Migrar los recuerdos de Sprint 3 a MariaDB
+
+`SEBASTIAN_DB_NAME` y `SEBASTIAN_MEMORY_COLLECTION` van **explícitos en la línea**, porque el `config.yaml` apunta a
+desarrollo (D19). Primero `--dry-run`, que no escribe nada y enseña de qué texto sale cada hecho:
+
+```bash
+cd /data/AssistantStudies/sebastian2
+SEBASTIAN_DB_NAME=sebastian_db SEBASTIAN_MEMORY_COLLECTION=sebastian_memory \
+  .venv/bin/python -m scripts.memoria.migrar_sprint3 --produccion --dry-run
+```
+
+Tienen que salir **tres** líneas «escribiría»: la alergia al ácido acetilsalicílico, las camisetas UV (con el sujeto corregido
+a «Uso camisetas UV para bañarme») y la presión de las ruedas (una sola vez; el duplicado se descarta). Si sale algún
+«sin mapa» que debería migrarse, **para y dímelo**. Si está bien, lo mismo sin `--dry-run`:
+
+```bash
+SEBASTIAN_DB_NAME=sebastian_db SEBASTIAN_MEMORY_COLLECTION=sebastian_memory \
+  .venv/bin/python -m scripts.memoria.migrar_sprint3 --produccion
+```
+
+Lee `sebastian_memory` (solo lectura) y no escribe en Qdrant. Repetirlo no duplica nada, ni resucita lo que olvides después.
+
+### Paso 5 — Indexar el catálogo (OpenAI, menos de 0,001 $)
+
+*Es una adición del programador al plan:* sin este paso `sebastian_memory_catalogo` está vacío y la resolución semántica de
+atributos (D35) no encuentra nada. Va después de migrar, para que `presion_neumaticos` y la entidad «coche» entren.
+
+```bash
+cd /data/AssistantStudies/sebastian2
+SEBASTIAN_DB_NAME=sebastian_db SEBASTIAN_MEMORY_COLLECTION=sebastian_memory \
+  .venv/bin/python -m scripts.memoria.indexar_catalogo --produccion
+```
+
+Debe imprimir `OK sebastian_memory_catalogo: N atributo(s) y 2 entidad(es) de <tu id>`. Es idempotente.
+
+### Paso 6 — Reiniciar
+
+```bash
+sudo systemctl restart sebastian.service
+```
+
+### Paso 7 — Comprobar (solo lectura)
+
+```bash
+bash /data/AssistantStudies/sebastian2/deploy/comprobar_fase2.sh
+```
+
+No usa sudo, no escribe en ninguna BD ni en Qdrant y no llama a ninguna API. Comprueba que producción está en `main` y sin
+`modules/memory.py`, que las dos unidades siguen fijando `sebastian_db` / `sebastian_memory`, que el log de arranque lo
+confirma, que `sebastian_db` tiene las 7 tablas de la memoria y `mem_hechos.fuente_id`, las semillas activas y los 3 hechos
+migrados, que las colecciones nuevas existen (1536, Cosine) y están indexadas, que `sebastian_memory` sigue ahí y que no hay
+errores en LogCentral desde el reinicio. Termina con `Todo bien.` o con la lista de FALLOS.
+
+### Paso 8 — Prueba por Telegram
+
+1. «¿Qué sabes de mí?» → tiene que contar la alergia al ácido acetilsalicílico y las camisetas UV (y la presión de las ruedas
+   del coche), sin inventar nada más.
+2. «Mi coche ahora lleva 2,4 bares» → tiene que decir que **corrige** los 2,30 anteriores.
+3. «¿Qué presión llevaba antes?» → tiene que decir 2,30 bares.
+
+Si algo no cuadra: `logcentral query --source sebastian --level error` y dímelo con la hora.
+
+### Si hay que deshacerlo
+
+Las tablas `mem_*`, las colecciones nuevas y los hechos migrados no molestan al código viejo, así que basta con volver al
+`main` anterior (el hash que apuntaste en el paso 0) y reiniciar:
+
+```bash
+sudo systemctl stop sebastian.service
+cd /data/AssistantStudies && git reset --hard <el hash del paso 0>
+sudo systemctl start sebastian.service
+```
+
+La colección `sebastian_memory` (Sprint 3) **no se borra** en esta fase, así que el bot viejo sigue teniendo sus recuerdos.
+Lo que hayas pedido olvidar con el bot nuevo ya no se puede recuperar (D42 borra el texto): no es un fallo de la vuelta atrás.
