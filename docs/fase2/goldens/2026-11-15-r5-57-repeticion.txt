@@ -1,0 +1,4 @@
+  Real:      mark_as_memorable TOTAL                                                             0.0253 
+  Real:      mark_as_memorable TOTAL                                                             0.0256 
+  Real:      mark_as_memorable TOTAL                                                             0.0254 
+  Real:      mark_as_memorable TOTAL                                                             0.0255 
