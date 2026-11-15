@@ -947,3 +947,26 @@ def test_el_mensaje_del_turno_se_renueva_en_cada_turno(mock_anthropic_cls, db):
     orch.handle("primero")
     orch.handle("segundo")
     assert orch._executor.mensaje_del_turno == "segundo"
+
+
+# ── Fase 2 H3 (R12, D42): el log de inicio de turno no guarda el texto del mensaje ────────────
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_el_log_de_inicio_de_turno_no_lleva_el_mensaje(mock_anthropic_cls, mock_logger, db):
+    """D42: «olvida lo de…» borra el texto. El log de inicio de turno guardaba los primeros 200 caracteres de cada
+    mensaje, y ahí seguía el texto olvidado. Ahora solo la longitud y el usuario."""
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("ok")]
+    mensaje = "Olvida lo de la colonoscopia-secreta-4242"
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle(mensaje)
+
+    # `logger.bind(...).info(...)` es una llamada encadenada: se mira todo lo que registró el mock.
+    volcado = " ".join(str(c) for c in mock_logger.mock_calls)
+    assert "colonoscopia-secreta-4242" not in volcado and "Olvida lo de" not in volcado
+    inicio = [c for c in mock_logger.mock_calls if "Turn start" in str(c)]
+    assert inicio, "tiene que seguir habiendo traza de inicio de turno"
+    assert f"chars={len(mensaje)}" in str(inicio[0]) and "user=99999" in str(inicio[0])

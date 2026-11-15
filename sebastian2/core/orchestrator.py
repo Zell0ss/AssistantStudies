@@ -433,7 +433,8 @@ class Orchestrator:
         self._indice_turno = None
         self._executor.mensaje_del_turno = user_message   # D41: la fuente de la memoria guarda el literal
         logger.bind(user_id=self._user_id).info(
-            f"Turn start | user={self._user_id} | message={user_message[:200]!r}"
+            # D42: el texto del usuario no va al log (olvidar lo de alguien tiene que borrarlo también de aquí): longitud y usuario.
+            f"Turn start | user={self._user_id} | chars={len(user_message)}"
         )
         iterations_used = 0
 
