@@ -97,6 +97,18 @@ def _now_str() -> str:
     return f"Hoy es {now.strftime('%Y-%m-%d')} y son las {now.strftime('%H:%M')}."
 
 
+# D43: el historial lleva el texto del asistente («Anotado…», «Retirado…») y el planner lo imitaba: contestaba en texto
+# «He retirado…» sin llamar a la tool (E5 y #66: 0 de 6). Con la regla en medio del prompt no bastaba; al final, justo
+# antes de decidir, y más fuerte, sí (3 de 3, diagnóstico de H3). Acotada a datos de memoria: «Guárdame esta nota» o
+# «apunta leche» tienen su propia tool.
+_REGLA_ACCIONES_CON_HISTORIAL = (
+    "\n\nSi el usuario pide guardar, corregir u olvidar un dato de memoria (algo duradero sobre él, su gente, sus cosas "
+    "o sus proyectos), tu respuesta de este turno tiene que ser una llamada a `mark_as_memorable`, aunque el historial "
+    "parezca que ya se hizo: el historial es lo que se dijo, no lo que se ha hecho en este turno. Nunca contestes en "
+    "texto que ya está hecho: aunque en el historial el asistente diga «Anotado» o «Retirado», eso fue otro turno y no cuenta."
+)
+
+
 def _planner_system(indice_memoria: str = "") -> str:
     """Return planner system prompt with today's date and current time injected.
 
@@ -115,13 +127,11 @@ def _planner_system(indice_memoria: str = "") -> str:
         "no necesitas ninguna herramienta — ya tienes la lista abajo y quien sintetiza la respuesta la usará.\n"
         "Las preguntas sobre el usuario (D26) — «qué sabes de mí», «cómo me llamo», «cuándo es mi cumpleaños», "
         "«qué te he contado de…» — NO son preguntas de capacidades: usa search_memory para consultar lo que "
-        "consta de él. No las des por respondidas sin consultar la memoria.\n"
-        # D43: el historial lleva el texto del asistente («Anotado…», «Retirado…») y el planner lo imitaba sin actuar.
-        "Si el usuario pide guardar, corregir u olvidar algo, llama a `mark_as_memorable` aunque el historial "
-        "parezca que ya se hizo: el historial es lo que se dijo, no lo que se ha hecho en este turno.\n\n"
+        "consta de él. No las des por respondidas sin consultar la memoria.\n\n"
         "Estas son tus capacidades actuales:\n"
         f"{_CAPABILITIES_DIGEST}"
         + (f"\n\n{indice_memoria}" if indice_memoria else "")
+        + _REGLA_ACCIONES_CON_HISTORIAL
     )
 
 # D26: regla de honestidad sobre el usuario (ver también _planner_system).

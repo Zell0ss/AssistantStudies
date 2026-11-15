@@ -93,10 +93,21 @@ def test_el_planner_llama_a_la_tool_aunque_el_historial_parezca_que_ya_se_hizo()
     """D43: el historial lleva el texto del asistente («Anotado…», «Retirado…») y el planner lo imitaba sin
     llamar a la tool (E5, 5 de 6 pasadas)."""
     from core.orchestrator import _planner_system
-    texto = _planner_system()
+    from core.tools import build_capabilities_digest
+    indice = "Lo que me consta de ti (nombres, sin valores; usa search_memory para los valores):\n- Paco (persona): alergia"
+    texto = _planner_system(indice)
     assert "guardar, corregir u olvidar" in texto and "`mark_as_memorable`" in texto
     assert "aunque el historial parezca que ya se hizo" in texto
     assert "el historial es lo que se dijo, no lo que se ha hecho en este turno" in texto
+    # Acotada a datos de memoria: «Guárdame esta nota» y «apunta leche» tienen su propia tool.
+    assert "dato de memoria" in texto
+    # H3-revision R8, diagnóstico de la pasada de H3: con la regla en medio del prompt el planner contestaba en texto
+    # «He retirado…» (0 de 6); al final, justo antes de decidir, y más fuerte, llama a la tool (3 de 3).
+    assert "tu respuesta de este turno tiene que ser una llamada a `mark_as_memorable`" in texto
+    assert "nunca contestes en texto que ya está hecho" in texto.lower()
+    regla = texto.index("aunque el historial parezca que ya se hizo")
+    assert regla > texto.index(build_capabilities_digest()) and regla > texto.index(indice)   # al final
+    assert texto.count("aunque el historial parezca que ya se hizo") == 1                      # y una sola vez
 
 
 def test_alfred_no_afirma_sin_resultado():
