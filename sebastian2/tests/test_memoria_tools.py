@@ -115,8 +115,7 @@ def test_alfred_no_afirma_sin_resultado():
     texto = " ".join(_ALFRED_SYSTEM.lower().split())          # sin saltos de línea dentro de las frases
     for verbo in ("guardado", "corregido", "olvidado", "apuntado", "creado"):
         assert verbo in texto, verbo
-    assert "no hay un resultado de herramienta que lo diga" in texto
-    assert "di que no lo has hecho" in texto
+    assert "no hay un resultado de herramienta que lo diga" in texto      # la condición: esto es para el modelo
 
 
 def test_alfred_dice_que_no_puede_cambiar_el_vault():
@@ -124,3 +123,16 @@ def test_alfred_dice_que_no_puede_cambiar_el_vault():
     texto = _ALFRED_SYSTEM.lower()
     assert "no puedes cambiar el vault" in texto
     assert "hay que corregirlo en `proyecto.md`" in texto
+
+
+def test_alfred_lo_cuenta_en_llano_cuando_no_hizo_lo_pedido():
+    """R13 (H3-revision §5.2-3): con la regla de D43, cuando el planner no llamaba a la tool Alfred soltaba «¿Hay algún
+    resultado de herramienta que confirme…?». Ahora tiene que contarlo como un mayordomo, sin mecanismos."""
+    texto = " ".join(_ALFRED_SYSTEM.split())
+    assert "dile en llano que no lo has hecho y ofrécete a intentarlo de nuevo" in texto
+    assert "No menciones herramientas, resultados ni reglas" in texto
+    # La frase que se le pide decir no puede contener la jerga del mecanismo (el modelo la copia).
+    frase = texto[texto.index("dile en llano"):texto.index("No menciones herramientas")]
+    for jerga in ("resultado de herramienta", "herramienta", "regla"):
+        assert jerga not in frase.lower(), jerga
+    assert "di que no lo has hecho" not in texto                             # sustituida por la de arriba

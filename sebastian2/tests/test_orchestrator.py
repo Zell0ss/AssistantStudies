@@ -970,3 +970,34 @@ def test_el_log_de_inicio_de_turno_no_lleva_el_mensaje(mock_anthropic_cls, mock_
     inicio = [c for c in mock_logger.mock_calls if "Turn start" in str(c)]
     assert inicio, "tiene que seguir habiendo traza de inicio de turno"
     assert f"chars={len(mensaje)}" in str(inicio[0]) and "user=99999" in str(inicio[0])
+
+
+# ── Fase 2 H3 (R14, D42): los logs de error de handle() tampoco guardan el texto del mensaje ───
+
+def _errores_de_api():
+    from anthropic import APIConnectionError, APIError, RateLimitError
+    return [
+        APIConnectionError(request=MagicMock()),
+        RateLimitError("limite", response=MagicMock(status_code=429, headers={}), body=None),
+        APIError("fallo del servicio", request=MagicMock(), body=None),
+    ]
+
+
+@pytest.mark.parametrize("error", _errores_de_api(), ids=["conexion", "limite", "api"])
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_los_logs_de_error_no_llevan_el_mensaje(mock_anthropic_cls, mock_logger, error, db):
+    """Mismo caso que R12: «olvida lo de…» borra el texto, y los logs de error de handle() guardaban 200 caracteres."""
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = error
+    mensaje = "Olvida lo de la colonoscopia-secreta-8181"
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle(mensaje)
+
+    volcado = " ".join(str(c) for c in mock_logger.mock_calls)
+    assert "colonoscopia-secreta-8181" not in volcado and "Olvida lo de" not in volcado
+    errores = [c for c in mock_logger.mock_calls if "exception" in str(c)[:60] or "Anthropic API" in str(c)]
+    assert errores, "tiene que seguir quedando la traza del error"
+    assert any(f"chars={len(mensaje)}" in str(c) and "user=99999" in str(c) for c in errores)

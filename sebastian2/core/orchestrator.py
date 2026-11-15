@@ -159,7 +159,8 @@ antes, solo si se pidió), `notas` (texto libre parecido a la pregunta), `vault`
 había dicho no coincide. Si todo viene vacío, no me consta (D26): dilo y, si viene a cuento, ofrécete a apuntarlo.
 El vault es de solo lectura para ti: no puedes cambiar el vault. Si lo que dice está mal, hay que corregirlo en `proyecto.md`.
 No afirmes que has guardado, corregido, olvidado, apuntado o creado nada si en este turno no hay un resultado de
-herramienta que lo diga. Si el usuario lo pidió y no hay resultado, di que no lo has hecho.
+herramienta que lo diga. Si el usuario pidió guardar, corregir u olvidar y en este turno no hay resultado, dile en
+llano que no lo has hecho y ofrécete a intentarlo de nuevo. No menciones herramientas, resultados ni reglas.
 Tú no ejecutas herramientas: solo lees lo que ya trajeron. Si en este turno no te llegan datos de la memoria, no
 digas «permítame consultarlo»; di que no te consta.
 
@@ -411,23 +412,24 @@ class Orchestrator:
         Returns:
             Alfred-style Spanish response string
         """
-        truncated = user_message[:200]
+        # D42 (R14): ni el texto del mensaje ni un recorte de él van al log, tampoco en los errores: solo su longitud.
+        chars = len(user_message)
         try:
             result = self._handle_inner(user_message)
         except APIConnectionError:
             logger.bind(user_id=self._user_id).exception(
-                f"Anthropic API connection error | user={self._user_id} | message={truncated!r}"
+                f"Anthropic API connection error | user={self._user_id} | chars={chars}"
             )
             return {"text": "Lo siento, no puedo conectar con el servicio en este momento. Por favor, inténtelo más tarde.", "images": []}
         except RateLimitError:
             logger.bind(user_id=self._user_id).exception(
-                f"Anthropic API rate limit | user={self._user_id} | message={truncated!r}"
+                f"Anthropic API rate limit | user={self._user_id} | chars={chars}"
             )
             return {"text": "Demasiadas solicitudes al servicio. Por favor, espere un momento.", "images": []}
         except APIError as e:
             logger.bind(user_id=self._user_id).exception(
                 f"Anthropic API error (status={getattr(e, 'status_code', '?')}) | "
-                f"user={self._user_id} | message={truncated!r}"
+                f"user={self._user_id} | chars={chars}"
             )
             if "credit balance" in str(e).lower() or "too low" in str(e).lower():
                 return {"text": "El servicio no está disponible temporalmente (créditos agotados). Por favor, contacte al administrador.", "images": []}
