@@ -73,7 +73,9 @@ CALENDAR_TOOLS = [
         "name": "calendar_add_event",
         "description": (
             "Crea un nuevo evento en el calendario. "
-            "Usa esta herramienta cuando el usuario quiera añadir una cita, recordatorio o evento."
+            "Usa esta herramienta cuando el usuario quiera añadir una cita, recordatorio o evento. "
+            "Si el usuario no da día y hora, no te los inventes: pregunta con `request_clarification`. "
+            'Un recordatorio sin hora ("recuérdame acostarme pronto") no es un evento.'
         ),
         "input_schema": {
             "type": "object",

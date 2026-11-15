@@ -189,13 +189,16 @@
   expected: [salud]
   validates: "Sprint H4: horas con fracción en texto ('y media')"
 
+# Cambiado por el arquitecto en H4-revision §2.2 (R16): este golden es normativo y suyo. Se añade `request_clarification` porque
+# un recordatorio sin hora no es un evento: se pregunta en vez de inventar «las 23:00» y crear un evento real (golden #28 de H4).
 - id: 28
   phrase: "recuérdame acostarme pronto"
   mode: any_of
   expected:
     - []
     - [notes_create]
-  validates: "Sprint H4, negativa: NO es un registro de sueño, es un recordatorio futuro. No hay tool de recordatorios todavía, así que vale sin tool o como nota — lo único que falla el test es que llame a salud"
+    - [request_clarification]
+  validates: "Sprint H4, negativa: NO es un registro de sueño, es un recordatorio futuro. No hay tool de recordatorios todavía, así que vale sin tool, como nota o preguntando la hora — lo único que falla el test es que llame a salud o que cree un evento con una hora inventada"
 
 - id: 29
   phrase: "apunta melatonina en la compra"
