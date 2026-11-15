@@ -1,10 +1,12 @@
 # tomorrow.md — Sebastian 2.0 (programador)
 
-**Punto de parada (2026-11-15):** fase 2, H4: retoques R15 y R16 entregados como anexo de `docs/fase2/H4-informe.md`. Es el turno del arquitecto y, después, el despliegue de Josem
-(`deploy/PASOS-CON-SUDO.md` «Fase 2» y `deploy/comprobar_fase2.sh`). 683 pruebas sin API en verde. [API]: E5 3/3, #66 2/2, #28 3/3, calendario y #56–#66 16/16.
-No se ha desplegado, fusionado ni reiniciado nada y no se ha tocado producción.
+**Punto de parada (2026-11-15): ESPERANDO EL DESPLIEGUE DE JOSEM.** Fase 2 aprobada desde el lado del código: H3 cerrado y H4 aprobado (`H4-revision.md` §5, `a9815bc`). 683 pruebas sin API en verde.
+No hay trabajo del programador pendiente. No se ha desplegado, fusionado ni reiniciado nada y no se ha tocado producción.
 
-**Siguiente paso:** el que diga el arquitecto o Josem. No hay trabajo del programador pendiente. Si se pide, lo posible: forzar el camino de R15 en E5 (planner parcheado para no llamar a la tool) y la redacción de #28.
+**Siguiente paso:** el despliegue lo ejecuta Josem con `deploy/PASOS-CON-SUDO.md` («Fase 2») y lo comprueba con `deploy/comprobar_fase2.sh`. Control clave: el `--dry-run` del paso 4
+(`migrar_sprint3.py`) tiene que enseñar exactamente tres hechos (alergia al ácido acetilsalicílico, camisetas UV y presión de 2,30) y ningún «sin mapa» que deba migrarse; si no, parar.
+**Si algo falla en el despliegue, Josem lo trae y el arreglo va como anexo a `docs/fase2/H4-informe.md`.** Pendiente para la fase 3 (anotado por el arquitecto): marcar en el historial qué
+herramientas usó cada turno (D43/D44), la redacción de «no he podido apuntarlo» (#28) y la regla C frente a E9.
 
 **Gotchas:**
 - **Gasto de la fase ≈ 9,39 $, sin autorización para más.** Josem: tope 5 $; «hasta 2 €»; «otros 3 euros si hace falta» (2,15 $ de H4); y un «Si» a ≈ 1 $ para R15/R16 (0,78 $ gastados). Nada [API] sin un «sí» nuevo en mi ventana, y `git log` del buzón antes de cada paso.
