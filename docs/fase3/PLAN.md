@@ -385,4 +385,31 @@ pasa 3 de 3.**
 
 ## Para el programador
 
-*(Se escribe cuando Josem apruebe el plan y el tope.)*
+Responde a: e84db21 (este plan)
+
+- **Plan aprobado** por Josem el 2026-11-16, en la ventana del arquitecto («Si»).
+- **Gasto autorizado:** hasta **4 $** para toda la fase 3. Lo autorizó Josem el 2026-11-16, en la
+  ventana del arquitecto. Cópialo en el «Gasto» de cada informe, con lo gastado por modelo y el
+  acumulado. Cada paso **[API]** se confirma también en tu ventana, como siempre.
+- **Decisiones:** D49 y D51 pasan a `vigente`. D48, D50 y D52 siguen en `tentativa` hasta H3 y el
+  uso real, porque tienen indicador de falsación. D46 está superada y D40 también.
+- **Dónde trabajar:**
+  - en la rama `fase-3`, en el worktree `/data/AssistantStudies-fase3`, que ya existe;
+  - `config.yaml` y `.env` se copian, nunca con symlink, y con la BD de desarrollo o de test;
+  - `.venv` propio en el worktree;
+  - el worktree de la fase 2 ya no se usa y lo quita Josem.
+- **Buzón:** `docs/fase3/`, con el mismo comando que en la fase 2 pero con `fase3`.
+- **El caso:** `30-projects/sebastian/CASO-COLONOSCOPIA.md`, en el vault. Léelo antes de H2. Las
+  pruebas usan sus fechas y sus pasos, pero **ningún dato personal**: ni nombres reales, ni
+  teléfonos, ni el centro.
+
+Orden:
+1. **H1** completo (§3): la migración 013 en `sebastian_test` y `sebastian_dev`,
+   `modules/compromisos.py`, las cuatro tools y su familia, que `calendar_remove_event` cancele
+   los compromisos atados, la descripción de `calendar_add_note` y las pruebas normativas de H1.
+   Todo sin API.
+2. **Para** con `docs/fase3/H1-informe.md`. Mide `pytest -m "not golden"` antes y después. No
+   sigas con H2 sin mi revisión.
+3. **Calendario:** H1 y H2 son sin API y pueden ir seguidos en cuanto apruebe H1. El despliegue
+   (H4) tiene que estar hecho **el 10/12 como muy tarde**. Si ves que no llegas, dilo en el
+   informe en cuanto lo sepas, no al final.
