@@ -211,6 +211,28 @@ class RepositorioMemoria:
                     " ORDER BY id", (user_id, entidad_id, atributo_id))
         return list(cur.fetchall())
 
+    def hechos_con_nombres(self, user_id: str, entidad_id: int | None = None, atributo_id: int | None = None,
+                           *, solo_vigentes: bool = True) -> list[dict]:
+        """Hechos del usuario con el nombre de su entidad y de su atributo, y el valor de quien los sustituyo.
+        La consulta se arma con ids y marcadores (`search_memory` no admite SQL libre, plan §2.3)."""
+        sql = ("SELECT h.*, e.nombre AS entidad, a.nombre AS atributo, s.valor AS sustituido_por_valor"
+               " FROM mem_hechos h JOIN mem_entidades e ON e.id = h.entidad_id"
+               " JOIN mem_atributos a ON a.id = h.atributo_id"
+               " LEFT JOIN mem_hechos s ON s.id = h.superseded_by AND s.user_id = h.user_id"
+               " WHERE h.user_id = %s")
+        params = [user_id]
+        if entidad_id is not None:
+            sql += " AND h.entidad_id = %s"
+            params.append(entidad_id)
+        if atributo_id is not None:
+            sql += " AND h.atributo_id = %s"
+            params.append(atributo_id)
+        if solo_vigentes:
+            sql += " AND h.valid_to IS NULL"
+        cur = self._db.cursor()
+        cur.execute(sql + " ORDER BY h.id", params)
+        return list(cur.fetchall())
+
     def _insertar_hecho(self, cur, user_id, entidad_id, atributo_id, valor, origen, confianza,
                         valid_from: str | None = None) -> int:
         ahora = _ahora()

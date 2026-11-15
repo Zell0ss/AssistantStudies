@@ -17,12 +17,14 @@ from core.memoria.normalizar import normalizar
 from core.memoria.resolucion import (
     decidir_hecho, decidir_retirar_nota, resolver_atributo, resolver_entidad,
 )
+from core.memoria.vault import CAMPOS_CONTRATO, leer_proyectos, proyecto_por_nombre
 
 logger = get_logger("sebastian")
 
 _ESPACIO_NOTAS = uuid.UUID("a4c1d7e0-3b52-4f6a-8d19-5e2f9c0b7a31")
 _MAX_ENTIDADES_EN_PROMPT = 60
 _NOTAS_CANDIDATAS = 8       # R3: de mas, porque las cerradas siguen en Qdrant y se descartan despues
+_MAX_NOTAS_EN_CONSULTA = 3  # search_memory: las notas mas parecidas que se devuelven
 _OPERACION_DE = {"anadir": "afirmar", "sustituir": "corregir", "retirar": "retirar"}
 
 
@@ -32,7 +34,8 @@ def _nombre_atributo(crudo: str) -> str:
 
 
 class ServicioMemoria:
-    def __init__(self, repo, catalogo, extractor, embedder, qdrant, base: str, umbrales: dict, hoy=date.today):
+    def __init__(self, repo, catalogo, extractor, embedder, qdrant, base: str, umbrales: dict, hoy=date.today,
+                 vault_path: str | None = None, propietario_vault: str = ""):
         self._repo = repo
         self._catalogo = catalogo
         self._extractor = extractor
@@ -41,6 +44,8 @@ class ServicioMemoria:
         self._coleccion_notas = f"{base}_notas"
         self._umbrales = umbrales
         self._hoy = hoy
+        self._vault_path = vault_path            # `vault_docs_path` (D37); sin el, no hay datos en vivo
+        self._propietario_vault = propietario_vault
 
     # --- API -----------------------------------------------------------------------------
 
@@ -61,6 +66,85 @@ class ServicioMemoria:
         logger.info(f"memoria.guardar: user={user_id} hechos={len(hechos)} guardados={len(data['guardados'])} "
                     f"notas={len(data['notas'])} sin_cambio={len(data['sin_cambio'])} yo={yo}")
         return {"success": True, "result": self._resumen(hechos, data), "data": data}
+
+    def consultar(self, user_id: str, query: str, entidad: str | None = None, atributo: str | None = None,
+                  historial: bool = False) -> dict:
+        """`search_memory` (plan §2.3). La entidad y el atributo se resuelven **solo por alias exacto** y la
+        consulta se arma con ids: no hay SQL libre ni busqueda semantica sobre el catalogo. Lo unico semantico
+        son las notas de texto libre. Si el vault tiene el proyecto, añade su valor en vivo y marca el choque
+        con lo dicho en conversacion (D37: gana el vault)."""
+        salida = {"hechos": [], "historial": [], "notas": [], "vault": None, "conflictos": []}
+        ent = self._por_alias_unico(self._repo.entidades_por_alias(user_id, entidad)) if entidad else None
+        attr = self._por_alias_unico(self._repo.atributos_por_alias(atributo)) if atributo else None
+
+        # Pedir una entidad o un atributo que no se resuelven no amplia la consulta a «todo».
+        if (entidad and ent is None) or (atributo and attr is None) or (not entidad and not atributo):
+            filas = []
+        else:
+            filas = self._repo.hechos_con_nombres(user_id, ent["id"] if ent else None, attr["id"] if attr else None,
+                                                  solo_vigentes=False)
+        for f in filas:
+            if f["valid_to"] is None:
+                salida["hechos"].append({"entidad": f["entidad"], "atributo": f["atributo"], "valor": f["valor"],
+                                         "desde": f["valid_from"].date().isoformat()})
+            elif historial:
+                salida["historial"].append({
+                    "entidad": f["entidad"], "atributo": f["atributo"], "valor": f["valor"],
+                    "desde": f["valid_from"].date().isoformat(), "hasta": f["valid_to"].date().isoformat(),
+                    "sustituido_por": f["sustituido_por_valor"]})
+
+        if query:
+            salida["notas"] = self._notas_para(user_id, query)
+        salida["vault"], salida["conflictos"] = self._vault_y_conflictos(user_id, entidad, ent, atributo, attr)
+        logger.info(f"memoria.consultar: user={user_id} hechos={len(salida['hechos'])} "
+                    f"historial={len(salida['historial'])} notas={len(salida['notas'])} "
+                    f"vault={salida['vault'] is not None} conflictos={len(salida['conflictos'])}")
+        return salida
+
+    @staticmethod
+    def _por_alias_unico(filas: list[dict]) -> dict | None:
+        """Un alias ambiguo (dos entidades o atributos) no se resuelve: mejor no contestar que contestar mal."""
+        return filas[0] if len(filas) == 1 else None
+
+    def _notas_para(self, user_id: str, query: str) -> list[dict]:
+        minimo = self._umbrales["reutilizar"]["puntuacion"]   # tentativo: se calibro para el catalogo, no para notas
+        parecidas = [c for c in self._notas_vigentes_parecidas(user_id, query) if c["score"] >= minimo]
+        notas = []
+        for c in parecidas[:_MAX_NOTAS_EN_CONSULTA]:
+            n = self._repo.hecho(c["hecho_id"])
+            notas.append({"texto": n["valor"], "entidad": self._repo.entidad(n["entidad_id"])["nombre"],
+                          "desde": n["valid_from"].date().isoformat()})
+        return notas
+
+    def _vault_y_conflictos(self, user_id, entidad, ent, atributo, attr) -> tuple[dict | None, list]:
+        """D37. Solo para el propietario del vault y solo para los campos del contrato."""
+        if not entidad or not self._vault_path or user_id != self._propietario_vault:
+            return None, []
+        proyectos = leer_proyectos(self._vault_path)
+        hallado = proyecto_por_nombre(proyectos, ent["nombre"] if ent else entidad) \
+            or proyecto_por_nombre(proyectos, entidad)
+        if hallado is None:
+            return None, []
+        carpeta, campos = hallado
+        if atributo:
+            if attr is None or attr["nombre"] not in CAMPOS_CONTRATO:
+                return None, []
+            campos = {k: v for k, v in campos.items() if k == attr["nombre"]}
+        if not campos:
+            return None, []
+        conflictos = []
+        for campo, valor_vault in campos.items():
+            if ent is None:
+                break
+            propio = self._repo.atributos_por_alias(campo)
+            if len(propio) != 1:
+                continue
+            for h in self._repo.hechos_vigentes(user_id, ent["id"], propio[0]["id"]):
+                if normalizar(h["valor"]) != normalizar(valor_vault):
+                    conflictos.append({"entidad": ent["nombre"], "atributo": campo, "vault": valor_vault,
+                                       "conversacion": h["valor"], "desde": h["valid_from"].date().isoformat(),
+                                       "gana": "vault"})
+        return {"proyecto": carpeta, "campos": campos}, conflictos
 
     def texto_catalogo(self, user_id: str, username: str | None = None) -> str:
         """El catalogo del usuario tal como lo ve el extractor: sus entidades y todos los atributos."""
@@ -313,7 +397,7 @@ class ServicioMemoria:
         import anthropic
         from qdrant_client import QdrantClient
 
-        from core.memoria.ajustes import umbrales
+        from core.memoria.ajustes import propietario_vault, umbrales
         from core.memoria.catalogo import Catalogo
         from core.memoria.embedder import OpenAIEmbedder
         from core.memoria.extractor import Extractor
@@ -324,4 +408,5 @@ class ServicioMemoria:
         embedder = OpenAIEmbedder(config["openai_apikey"])
         qdrant = QdrantClient(url=config.get("qdrant_url", "http://localhost:6333"))
         extractor = Extractor(anthropic.Anthropic(api_key=config["anthropic_apikey"]), on_usage=on_usage)
-        return cls(repo, Catalogo(repo, embedder, qdrant, base), extractor, embedder, qdrant, base, umbrales(config))
+        return cls(repo, Catalogo(repo, embedder, qdrant, base), extractor, embedder, qdrant, base, umbrales(config),
+                   vault_path=config.get("vault_docs_path"), propietario_vault=propietario_vault(config))
