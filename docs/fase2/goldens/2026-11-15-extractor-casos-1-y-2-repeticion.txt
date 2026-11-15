@@ -1,0 +1,15 @@
+'Mi cuñado Paco es alérgico a los frutos secos' →
+    {'entidad': 'Paco', 'tipo_entidad': 'persona', 'atributo': 'alergia', 'tipo_valor': 'texto', 'cardinalidad': 'varios', 'valor': 'frutos secos', 'operacion': 'afirmar', 'descripcion_atributo': ''}
+'Me equivoqué, la presión de las ruedas es 2,4 bares' →
+    {'entidad': 'yo', 'tipo_entidad': 'persona', 'atributo': 'presion_neumaticos', 'tipo_valor': 'numero', 'cardinalidad': 'uno', 'valor': '2,4 bares', 'operacion': 'corregir', 'descripcion_atributo': ''}
+claude-haiku-4-5-20251001                 4956             199    0.0060
+1 failed, 1 passed, 8 deselected in 6.47s
+---
+'Mi cuñado Paco es alérgico a los frutos secos' →
+    {'entidad': 'Paco', 'tipo_entidad': 'persona', 'atributo': 'alergia', 'tipo_valor': 'texto', 'cardinalidad': 'varios', 'valor': 'frutos secos', 'operacion': 'afirmar', 'descripcion_atributo': ''}
+    {'entidad': 'Paco', 'tipo_entidad': 'persona', 'atributo': 'parentesco', 'tipo_valor': 'texto', 'cardinalidad': 'varios', 'valor': 'cuñado', 'operacion': 'afirmar', 'descripcion_atributo': ''}
+'Me equivoqué, la presión de las ruedas es 2,4 bares' →
+    {'entidad': 'yo', 'tipo_entidad': 'vehiculo', 'atributo': 'presion_neumaticos', 'tipo_valor': 'numero', 'cardinalidad': 'uno', 'valor': '2,4 bares', 'operacion': 'corregir', 'descripcion_atributo': ''}
+claude-haiku-4-5-20251001                 4956             261    0.0063
+1 failed, 1 passed, 8 deselected in 7.25s
+---

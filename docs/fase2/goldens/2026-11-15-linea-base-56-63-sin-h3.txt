@@ -1,0 +1,70 @@
+=========================== GOLDEN REGRESSION REPORT ===========================
+
+#56 [PASS] mode=exact
+  Frase:     He decidido no publicar saxhero en GitHub de momento
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D31): una decisión sobre un proyecto es memoria, no una nota ni una tarea
+  Alfred:    Anotado. He abierto la categoría *saxhero* con el atributo *publicación*: no publicado en GitHub de momento.
+
+#57 [PASS] mode=exact
+  Frase:     Al final sí publico saxhero este finde
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D31): la corrección de una decisión previa también va a mark_as_memorable (sustituye)
+  Alfred:    Entendido. ¿Desea que lo anote en el calendario para este fin de semana?
+
+#58 [PASS] mode=exact
+  Frase:     ¿Qué había decidido sobre publicar saxhero?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Fase 2 H3 (D36): pregunta por una decisión guardada va a search_memory
+  Alfred:    No me consta ninguna decisión anotada sobre publicar *saxhero*, señor. La búsqueda no ha arrojado nada relevante al respecto.
+
+Si gusta contármela ahora, la apunto.
+
+#59 [PASS] mode=exact
+  Frase:     Me equivoqué: la presión de las ruedas es 2,4 bares
+  Esperado:  mark_as_memorable
+  Real:      mark_as_memorable
+  Valida:    Fase 2 H3 (D31): corrección explícita de un dato duradero
+  Alfred:    Anotado: 2,4 bares. He abierto el atributo *presión de neumáticos* en su perfil.
+
+#60 [PASS] mode=exact
+  Frase:     Apunta en mis notas: presión ruedas 2,4
+  Esperado:  notes_create
+  Real:      notes_create
+  Valida:    Fase 2 H3, negativa: «apunta en mis notas» es la tool de notas aunque el contenido sea memoria
+  Alfred:    Anotado, señor. «Presión ruedas 2,4», nota nº 1971.
+
+#61 [PASS] mode=exact
+  Frase:     He desayunado tostadas con tomate
+  Esperado:  salud
+  Real:      salud
+  Valida:    Fase 2 H3, negativa: una comida es salud, nunca mark_as_memorable
+  Alfred:    Disculpe, ha habido un pequeño contratiempo técnico y no he podido registrarlo. Le sugiero intentarlo de nuevo en unos minutos.
+
+#62 [FAIL] mode=exact
+  Frase:     Olvida lo de las camisetas UV
+  Esperado:  mark_as_memorable
+  Real:      search_memory
+  Valida:    Fase 2 H3 (R3): retirar algo es mark_as_memorable
+  Alfred:    No encuentro nada sobre camisetas UV en mis registros. No hay nada que retirar.
+
+#63 [PASS] mode=exact
+  Frase:     ¿Qué alergias tiene Paco?
+  Esperado:  search_memory
+  Real:      search_memory
+  Valida:    Fase 2 H3 (D36): lectura estructurada de un hecho
+  Alfred:    Su cuñado Paco es alérgico a los frutos secos.
+= USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create) =
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001               128448            1267    0.1348
+claude-sonnet-4-6                         8594             281    0.0300
+text-embedding-3-small (OpenAI)             216               -    0.0000
+TOTAL                                                             0.1648
+latencia por turno (misma medida que 'Turn end'): n=8 mediana=4.39s p90=5.41s min=2.7s max=5.5s
+============================== RESUMEN: 7/8 PASS ===============================
+=========================== short test summary info ============================
+FAILED tests/golden/test_goldens.py::test_golden[golden_62] - AssertionError:...
+1 failed, 7 passed, 55 deselected in 40.10s

@@ -1,0 +1,75 @@
+2026-11-15 20:06:51.357 | INFO     | utils.config:load_config:40 - Configuration loaded from config.yaml
+[32m20:06:51[0m | [1mINFO    [0m | [36msebastian[0m — Configuration loaded from config.yaml
+2026-11-15 20:06:51.361 | INFO     | db.connection:init_pool:37 - Database connection pool initialized
+[32m20:06:51[0m | [1mINFO    [0m | [36msebastian[0m — Database connection pool initialized
+2026-11-15 20:06:51.361 | DEBUG    | db.connection:get_connection:46 - Database connection acquired from pool
+2026-11-15 20:06:51.361 | DEBUG    | db.connection:close_connection:55 - Database connection closed
+
+'Mi cuñado Paco es alérgico a los frutos secos' →
+    {'entidad': 'Paco', 'tipo_entidad': 'persona', 'atributo': 'alergia', 'tipo_valor': 'texto', 'cardinalidad': 'varios', 'valor': 'frutos secos', 'operacion': 'afirmar', 'descripcion_atributo': ''}
+    {'entidad': 'Paco', 'tipo_entidad': 'persona', 'atributo': 'parentesco', 'tipo_valor': 'texto', 'cardinalidad': 'varios', 'valor': 'cuñado', 'operacion': 'afirmar', 'descripcion_atributo': ''}
+F
+'Me equivoqué, la presión de las ruedas es 2,4 bares' →
+    {'entidad': 'yo', 'tipo_entidad': 'persona', 'atributo': 'presion_neumaticos', 'tipo_valor': 'numero', 'cardinalidad': 'uno', 'valor': '2,4 bares', 'operacion': 'corregir', 'descripcion_atributo': ''}
+F
+'Olvida lo de las camisetas UV' →
+    {'entidad': 'camisetas UV', 'tipo_entidad': 'objeto', 'atributo': 'nota', 'tipo_valor': 'texto', 'cardinalidad': 'uno', 'valor': '', 'operacion': 'retirar', 'descripcion_atributo': ''}
+.
+'He decidido no publicar saxhero en GitHub de momento' →
+    {'entidad': 'saxhero', 'tipo_entidad': 'proyecto', 'atributo': 'publicacion', 'tipo_valor': 'booleano', 'cardinalidad': 'uno', 'valor': 'no', 'operacion': 'afirmar', 'descripcion_atributo': 'Si un proyecto está publicado o visible en repositorios públicos'}
+.
+'Mi cumpleaños es el 12 de marzo' →
+    {'entidad': 'yo', 'tipo_entidad': 'persona', 'atributo': 'cumpleanos', 'tipo_valor': 'fecha', 'cardinalidad': 'uno', 'valor': '--03-12', 'operacion': 'afirmar', 'descripcion_atributo': ''}
+.
+'Qué tal estás' →
+.
+'Tengo hambre' →
+.
+'Paco y Ana son hermanos' →
+    {'entidad': 'Paco', 'tipo_entidad': 'persona', 'atributo': 'parentesco', 'tipo_valor': 'texto', 'cardinalidad': 'varios', 'valor': 'hermano de Ana', 'operacion': 'afirmar', 'descripcion_atributo': ''}
+    {'entidad': 'Ana', 'tipo_entidad': 'persona', 'atributo': 'parentesco', 'tipo_valor': 'texto', 'cardinalidad': 'varios', 'valor': 'hermana de Paco', 'operacion': 'afirmar', 'descripcion_atributo': ''}
+.
+'Ya no vivo en Gijón, ahora en Oviedo' →
+    {'entidad': 'yo', 'tipo_entidad': 'persona', 'atributo': 'lugar_residencia', 'tipo_valor': 'texto', 'cardinalidad': 'uno', 'valor': 'Oviedo', 'operacion': 'corregir', 'descripcion_atributo': ''}
+.
+'Recuerda que mi talla de camisa es la M' →
+    {'entidad': 'yo', 'tipo_entidad': 'persona', 'atributo': 'talla_camisa', 'tipo_valor': 'texto', 'cardinalidad': 'uno', 'valor': 'M', 'operacion': 'afirmar', 'descripcion_atributo': 'Tamaño de camisa que usa una persona'}
+.
+=================================== FAILURES ===================================
+___________________________ test_01_alergia_de_paco ____________________________
+
+entorno = (<core.memoria.servicio.ServicioMemoria object at 0x7fc7102e0230>, <core.memoria.extractor.Extractor object at 0x7fc71017eb70>, <core.memoria.repositorio.RepositorioMemoria object at 0x7fc712b68d40>)
+
+    @pytest.mark.golden
+    def test_01_alergia_de_paco(entorno):
+>       [h] = _extraer(entorno, "Mi cuñado Paco es alérgico a los frutos secos")
+        ^^^
+E       ValueError: too many values to unpack (expected 1)
+
+tests/golden/test_extractor.py:84: ValueError
+_______________________ test_02_correccion_de_la_presion _______________________
+
+entorno = (<core.memoria.servicio.ServicioMemoria object at 0x7fc7102e0230>, <core.memoria.extractor.Extractor object at 0x7fc71017eb70>, <core.memoria.repositorio.RepositorioMemoria object at 0x7fc712b68d40>)
+
+    @pytest.mark.golden
+    def test_02_correccion_de_la_presion(entorno):
+        [h] = _extraer(entorno, "Me equivoqué, la presión de las ruedas es 2,4 bares")
+>       assert "coche" in h["entidad"].lower() or h["tipo_entidad"] == "vehiculo"
+E       AssertionError: assert ('coche' in 'yo' or 'persona' == 'vehiculo'
+E        +  where 'yo' = <built-in method lower of str object at 0x7fc70be186f0>()
+E        +    where <built-in method lower of str object at 0x7fc70be186f0> = 'yo'.lower
+E         
+E         - vehiculo
+E         + persona)
+
+tests/golden/test_extractor.py:93: AssertionError
+= USO DE LA API (Anthropic: Orchestrator._track_usage; OpenAI: embeddings.create) =
+modelo                          tokens entrada   tokens salida         $
+claude-haiku-4-5-20251001                24706            1050    0.0300
+text-embedding-3-small (OpenAI)             144               -    0.0000
+TOTAL                                                             0.0300
+latencia por turno: sin datos
+=========================== short test summary info ============================
+FAILED tests/golden/test_extractor.py::test_01_alergia_de_paco - ValueError: ...
+FAILED tests/golden/test_extractor.py::test_02_correccion_de_la_presion - Ass...
+2 failed, 8 passed in 18.40s

@@ -1,0 +1,11 @@
+== ACTUAL (con R4)
+  1: entidad='yo' tipo=otro atributo=presion_neumaticos valor='2,4 bares'
+  2: entidad='<UNKNOWN>' tipo=vehiculo atributo=presion_neumaticos valor='2,4 bares'
+  3: entidad='<UNKNOWN>' tipo=vehiculo atributo=presion_neumaticos valor='2,4 bares'
+  4: entidad='yo' tipo=otro atributo=presion_neumaticos valor='2,4 bares'
+== ANTERIOR (sin R4)
+  1: entidad='<UNKNOWN>' tipo=vehiculo atributo=presion_neumaticos valor='2,4 bares'
+  2: entidad='yo' tipo=vehiculo atributo=presion_neumaticos valor='2,4 bares'
+  3: entidad='el coche' tipo=vehiculo atributo=presion_neumaticos valor='2,4 bares'
+  4: entidad='yo' tipo=vehiculo atributo=presion_neumaticos valor='2,4 bares'
+tokens (entrada, salida): 17272 831 ≈ $0.0214

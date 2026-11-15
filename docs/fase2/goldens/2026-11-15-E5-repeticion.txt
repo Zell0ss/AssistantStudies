@@ -1,0 +1,20 @@
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     (ninguna)
+  BD:        Paco · alergia · 'frutos secos' · vigente
+  BD:        Paco · alergia · 'marisco' · vigente
+1 failed, 8 deselected in 19.61s
+---
+  Usuario:   ¿Qué alergias tiene Paco?
+  Tools:     search_memory
+  Usuario:   Paco también es alérgico al marisco
+  Tools:     mark_as_memorable
+  Usuario:   Olvida lo del marisco de Paco
+  Tools:     (ninguna)
+  BD:        Paco · alergia · 'frutos secos' · vigente
+  BD:        Paco · alergia · 'marisco' · vigente
+1 failed, 8 deselected in 20.49s
+---

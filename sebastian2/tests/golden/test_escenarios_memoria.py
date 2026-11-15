@@ -12,6 +12,7 @@ Se lanza con:  pytest -m golden tests/golden/test_escenarios_memoria.py -s
 """
 import pytest
 
+from core.memoria.normalizar import normalizar
 from core.memoria.repositorio import RepositorioMemoria
 from tests.golden.conftest import GOLDEN_USER_ID
 from tests.golden.memoria_base import USUARIO_B, decisiones, hechos
@@ -129,10 +130,10 @@ def test_E6_atributo_nuevo_pending_y_se_informa(escenario_runner, test_db):
 
     assert atributo is not None, f"no hubo `crear_atributo`: {_tipos_de_decision(test_db)}"
     assert atributo["estado"] == "pending"
-    texto = turnos[0][2].lower()
-    nombre = atributo["nombre"].lower()
-    assert nombre in texto or nombre.replace("_", " ") in texto or "nuevo" in texto or "nueva" in texto, (
-        f"Alfred no menciona lo nuevo (D16): {texto!r}")
+    # Sin tildes ni signos, como los alias: el atributo es `publicacion` y Alfred escribe «*publicación*».
+    texto = normalizar(turnos[0][2])
+    nombre = normalizar(atributo["nombre"].replace("_", " "))
+    assert nombre in texto or "nuevo" in texto or "nueva" in texto, f"Alfred no menciona lo nuevo (D16): {texto!r}"
 
 
 # --- E7: aislamiento entre usuarios (D33) --------------------------------------------------------------
