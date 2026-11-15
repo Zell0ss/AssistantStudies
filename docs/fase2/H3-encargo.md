@@ -75,3 +75,100 @@ Responde a: 5739f7f (H2-informe). Se suma a la `## Para el programador` de `H2-r
    en tu ventana, como siempre.
 3. Lo demás sigue igual. **Para** en `docs/fase2/H3-informe.md`, con #64 y #65, el diff de
    descripciones si R5 lo pidió y los 10 casos de R6.
+
+## 3. Segunda parte (2026-11-15): la frase de origen de cada hecho
+
+Josem lo ha decidido el 2026-11-15. Registro en `ADR-MEMORIA.md` §4:
+
+- **D41 (vigente):** cada llamada a `mark_as_memorable` guarda su frase de origen en `mem_fuentes`,
+  y cada hecho apunta a ella. Sirve para volver a extraer, para la consolidación de la fase 3 y para
+  auditar. **Va antes de H4** porque es irreversible: un hecho que se guarda sin fuente ya no la
+  recupera, porque `conversations` se borra a los 7 días (D23).
+- **D42 (vigente):** «olvida lo de…» **borra el texto**, no solo cierra el hecho. D5 queda revisada
+  solo para `retirar`; corregir sigue sin borrar nada.
+
+### 3.1 Contrato: migración `012_memoria_fuentes.sql`
+
+Sin `USE` (D20) e idempotente, como 010 y 011.
+
+```sql
+CREATE TABLE IF NOT EXISTS mem_fuentes (
+  id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id     VARCHAR(50) NOT NULL,
+  texto       TEXT NULL,          -- lo que recibió el extractor (inputs['texto'] de la tool); NULL = purgada
+  mensaje     TEXT NULL,          -- el mensaje literal del usuario en ese turno; NULL = purgado o no disponible
+  purgada_at  DATETIME NULL,      -- D42
+  created_at  DATETIME NOT NULL,
+  INDEX idx_user_fecha (user_id, created_at)
+);
+-- mem_hechos: columna fuente_id BIGINT NULL, FK a mem_fuentes(id), con índice.
+-- NULL solo para lo que existía antes (origen 'migracion', D18).
+```
+
+- **Por qué hay `texto` y `mensaje`:** el planner reescribe la frase como autocontenida
+  (`inputs['texto']`), y eso es lo que permite volver a extraer. El literal sirve para auditar.
+- `mensaje` llega del orquestador al `ToolExecutor` y de ahí a
+  `ServicioMemoria.guardar(user_id, texto, username=None, mensaje=None)`.
+  - Si pasar el mensaje toca el orquestador más allá de añadir un parámetro, **para y pregunta**.
+- **Una fuente por llamada a `guardar`,** aunque la frase dé varios hechos o ninguno.
+  - Si no sale ningún hecho (`hechos: []`), la fuente se crea igual y se purga en el acto: así no
+    queda texto sin hecho.
+  - Las notas también llevan su `fuente_id`.
+
+### 3.2 Regla de purga (D42)
+
+Cuando `retirar` cierra un hecho H, se purgan:
+
+1. el **valor de H**, que pasa a `''` en `mem_hechos` (la fila, sus fechas y su decisión se quedan);
+2. si H es una nota, su **vector** en `<base>_notas`;
+3. también el valor (y el vector, si es nota) de los hechos de su **cadena de sustituciones**, es
+   decir, los que H sustituyó directa o indirectamente (`superseded_by` → … → H);
+4. la **fuente** de H y la de cada hecho de la cadena, poniendo `texto` y `mensaje` a NULL y
+   `purgada_at`, pero solo si **todos** los hechos de esa fuente están cerrados. Una fuente con
+   algún hecho vigente se queda como está.
+
+Lo que **no** se purga:
+
+- Corregir (`sustituir`) no purga nada: el historial «¿qué te dije antes?» sigue funcionando (E3).
+- `mem_decisiones.detalle` y `senales` ya no llevan texto del usuario (`servicio.py:110`). Si
+  encuentras alguno que sí lo lleve, dilo en el informe.
+
+La purga y el cierre van en **la misma transacción** que `retirar`. El borrado en Qdrant va
+después del commit: si falla, se registra con un `warning` sin el texto y el turno sigue.
+
+### 3.3 Pruebas
+
+Todas contra `sebastian_test` y las colecciones de test (D25), sin API:
+
+- `test_guardar_crea_fuente_y_enlaza`: dos hechos de una frase comparten `fuente_id`; la fuente
+  tiene `texto` y `mensaje`.
+- `test_fuente_sin_hechos_se_purga`.
+- `test_sustituir_no_purga`: E2 deja las dos fuentes con su texto.
+- `test_retirar_purga_cadena`: guardar 2,30 → corregir a 2,4 → olvidar. Las dos fuentes quedan
+  purgadas y los dos valores en `''`.
+- `test_retirar_no_purga_fuente_con_vigentes`: una frase con dos hechos, y se olvida uno. La fuente
+  conserva su texto, y el valor del retirado sí queda en `''`.
+- `test_retirar_nota_purga_vector`, con el embedder falso.
+- Escenario **E5** ampliado: después de olvidar el marisco, su valor queda en `''` y la fuente de
+  «frutos secos» conserva su texto.
+
+### 3.4 Lista previa (convención §4)
+
+- **¿Borra datos?** Sí: valores, fuentes y vectores. Las pruebas usan solo `sebastian_test` y las
+  colecciones `*_test_*`, y el guardarraíl de D25 tiene que impedir que se ejecuten contra otra
+  base.
+- **¿API externa?** No hay llamadas nuevas. Los escenarios que ya estaban crecen un poco.
+- **¿Producción?** La migración 012 se aplica en H4 junto con 010 y 011, en `sebastian_db`. La
+  ejecuta Josem.
+
+## Para el programador
+
+Responde a: 5739f7f (H2-informe). Esto se suma a la `## Para el programador` de arriba. He visto
+`eaffa3d`: no cambia nada de lo que pido aquí.
+
+1. Haz **R7** (el §3 entero: migración 012, el `mensaje` hasta el servicio, la purga de D42 y sus
+   pruebas) en H3, en commits propios. Va **antes** de la pasada completa de goldens y de los
+   escenarios, para que E5 se pruebe ampliado.
+2. Si la purga choca con algo de R3 (retirar una nota por similitud), **para y pregunta**.
+3. **Para** en `H3-informe.md` como estaba previsto. Añade una tabla con lo que queda en
+   `mem_hechos` y `mem_fuentes` después de E5.
