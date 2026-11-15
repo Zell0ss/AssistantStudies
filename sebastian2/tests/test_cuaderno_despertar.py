@@ -13,10 +13,11 @@ def _fake_client(response_text: str) -> MagicMock:
     return client
 
 
-def _fake_qdrant_no_memories() -> MagicMock:
-    qdrant = MagicMock()
-    qdrant.scroll.return_value = ([], None)
-    return qdrant
+def _db_sin_hechos() -> MagicMock:
+    """Una BD cuya memoria está vacía: el cuaderno se despierta sin la semilla de memoria."""
+    db = MagicMock()
+    db.cursor.return_value.fetchall.return_value = []
+    return db
 
 
 class TestDespertar:
@@ -26,9 +27,8 @@ class TestDespertar:
         client = _fake_client("Hoy pensé en X.")
 
         despertar(
-            client=client, qdrant_client=_fake_qdrant_no_memories(), bot=MagicMock(),
+            client=client, db=_db_sin_hechos(), user_id="1", bot=MagicMock(),
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
-            memory_collection="sebastian_memory_test",
         )
 
         content = notebook.read_text()
@@ -43,9 +43,8 @@ class TestDespertar:
         client = _fake_client("Hoy no le digo nada a Josem.")
 
         despertar(
-            client=client, qdrant_client=_fake_qdrant_no_memories(), bot=bot,
+            client=client, db=_db_sin_hechos(), user_id="1", bot=bot,
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
-            memory_collection="sebastian_memory_test",
         )
 
         bot.send_message.assert_not_called()
@@ -57,9 +56,8 @@ class TestDespertar:
         client = _fake_client("Pensando...\n\n<telegram>Buenas noches, señor.</telegram>")
 
         despertar(
-            client=client, qdrant_client=_fake_qdrant_no_memories(), bot=bot,
+            client=client, db=_db_sin_hechos(), user_id="1", bot=bot,
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
-            memory_collection="sebastian_memory_test",
         )
 
         bot.send_message.assert_called_once()
@@ -74,9 +72,9 @@ class TestDespertar:
         client = _fake_client("<telegram>Hola.</telegram>")
 
         despertar(
-            client=client, qdrant_client=_fake_qdrant_no_memories(), bot=bot,
+            client=client, db=_db_sin_hechos(), user_id="1", bot=bot,
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
-            memory_collection="sebastian_memory_test", dry_run=True,
+            dry_run=True,
         )
 
         assert notebook.read_text() == "Contenido original."
@@ -88,9 +86,9 @@ class TestDespertar:
         client = _fake_client("<telegram>Hola.</telegram>")
 
         result = despertar(
-            client=client, qdrant_client=_fake_qdrant_no_memories(), bot=MagicMock(),
+            client=client, db=_db_sin_hechos(), user_id="1", bot=MagicMock(),
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
-            memory_collection="sebastian_memory_test", dry_run=True,
+            dry_run=True,
         )
 
         assert result["spoke"] is True
@@ -101,24 +99,24 @@ class TestDespertar:
         # Sebastian to remember (often about Josem himself, e.g. "Tengo alergia..."),
         # not facts about Sebastian the bot. "de Sebastian" reads as the latter and
         # led a real despertar to write "Sebastian es alérgico al ácido acetilsalicílico".
-        qdrant = MagicMock()
-        point = MagicMock()
-        point.payload = {"content": "Tengo alergia al ácido acetilsalicílico"}
-        qdrant.scroll.return_value = ([point], None)
+        with patch("scripts.cuaderno.despertar.get_random_memory", return_value="yo · alergia: ácido acetilsalicílico"):
+            seeds_block = _build_seeds_block(tmp_path, MagicMock(), "1")
 
-        seeds_block = _build_seeds_block(tmp_path, qdrant, "sebastian_memory")
-
-        assert "Tengo alergia al ácido acetilsalicílico" in seeds_block
+        assert "yo · alergia: ácido acetilsalicílico" in seeds_block
         assert "memoria al azar de Sebastian" not in seeds_block
+        assert "un hecho que josem le ha pedido recordar" in seeds_block.lower()     # el sentido de la semilla no cambia
+
+    def test_sin_hechos_el_bloque_de_semillas_no_lleva_memoria_y_no_falla(self, tmp_path):
+        bloque = _build_seeds_block(tmp_path, _db_sin_hechos(), "1")
+        assert "Fecha y hora:" in bloque and "recordar" not in bloque
 
     def test_missing_notebook_file_starts_from_empty(self, tmp_path):
         notebook = tmp_path / "does_not_exist_yet.md"
         client = _fake_client("Primer despertar.")
 
         despertar(
-            client=client, qdrant_client=_fake_qdrant_no_memories(), bot=MagicMock(),
+            client=client, db=_db_sin_hechos(), user_id="1", bot=MagicMock(),
             notebook_path=notebook, vault_path=tmp_path, chat_id=123,
-            memory_collection="sebastian_memory_test",
         )
 
         assert "Primer despertar." in notebook.read_text()
@@ -142,19 +140,27 @@ class TestResolveChatId:
         assert _resolve_chat_id(config) == 815566372
 
 
-def test_cuaderno_lee_coleccion_de_config(tmp_path):
-    # D20: el cuaderno pide las semillas a la colección de la config, no a una constante.
+def test_cuaderno_lee_la_memoria_del_propietario_y_ya_no_crea_cliente_de_qdrant(tmp_path):
+    # H4: la semilla sale de MariaDB, del propietario del vault (por defecto cuaderno_chat_id). El cuaderno ya no usa Qdrant.
+    import scripts.cuaderno.despertar as modulo
     config = {
         "memory_collection": "coleccion_x", "anthropic_apikey": "k", "telegram_apikey": "t",
-        "vault_docs_path": str(tmp_path / "docs"), "cuaderno_chat_id": 1,
+        "vault_docs_path": str(tmp_path / "docs"), "cuaderno_chat_id": 815566372,
     }
-    qdrant = _fake_qdrant_no_memories()
+    db = _db_sin_hechos()
     with patch("scripts.cuaderno.despertar.get_config", return_value=config), \
          patch("scripts.cuaderno.despertar.Anthropic", return_value=_fake_client("Hoy, nada.")), \
-         patch("scripts.cuaderno.despertar.QdrantClient", return_value=qdrant), \
+         patch("scripts.cuaderno.despertar.get_connection", return_value=db), \
+         patch("scripts.cuaderno.despertar.get_random_memory", return_value=None) as semilla, \
          patch("scripts.cuaderno.despertar.telebot.TeleBot"), \
          patch("sys.argv", ["despertar", "--dry-run"]):
         main()
 
-    colecciones = {c.kwargs.get("collection_name") for c in qdrant.scroll.call_args_list}
-    assert colecciones == {"coleccion_x"}
+    semilla.assert_called_once_with(db, "815566372")
+    assert not hasattr(modulo, "QdrantClient")
+
+
+def test_propietario_de_la_memoria_del_cuaderno_respeta_la_config():
+    from scripts.cuaderno.despertar import _propietario
+    assert _propietario({"cuaderno_chat_id": 1, "memoria": {"propietario_vault": 2}}) == "2"
+    assert _propietario({"cuaderno_chat_id": 815566372}) == "815566372"

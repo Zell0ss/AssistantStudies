@@ -11,10 +11,11 @@ from datetime import datetime
 from pathlib import Path
 
 from anthropic import Anthropic
-from qdrant_client import QdrantClient
 import telebot
 
 from logcentral_client import get_logger
+from core.memoria.ajustes import propietario_vault
+from db.connection import close_connection, get_connection
 from scripts.cuaderno.protocol import truncate_notebook, parse_response, format_entry
 from scripts.cuaderno.seeds import get_random_memory, get_random_note_title
 from utils.config import get_config
@@ -48,9 +49,14 @@ Si quieres decirle algo a Josem, escríbelo dentro de un bloque <telegram>...</t
 compromiso vale menos que un silencio honesto. Josem no espera nada — esa es precisamente la gracia."""
 
 
-def _build_seeds_block(vault_path, qdrant_client, memory_collection: str) -> str:
+def _propietario(config: dict) -> str:
+    """De quién es la memoria que ve el cuaderno: el propietario del vault (por defecto, `cuaderno_chat_id`: D37)."""
+    return propietario_vault(config)
+
+
+def _build_seeds_block(vault_path, db, user_id: str) -> str:
     lines = [f"Fecha y hora: {datetime.now().strftime('%Y-%m-%d %H:%M')}"]
-    memory = get_random_memory(qdrant_client, memory_collection)
+    memory = get_random_memory(db, user_id)
     if memory:
         lines.append(f"Un hecho que Josem le ha pedido recordar a Sebastian (no un hecho sobre Sebastian): {memory}")
     note_title = get_random_note_title(vault_path)
@@ -59,14 +65,13 @@ def _build_seeds_block(vault_path, qdrant_client, memory_collection: str) -> str
     return "\n".join(lines)
 
 
-def despertar(client, qdrant_client, bot, notebook_path, vault_path, chat_id,
-              memory_collection: str, dry_run: bool = False) -> dict:
+def despertar(client, db, user_id: str, bot, notebook_path, vault_path, chat_id, dry_run: bool = False) -> dict:
     notebook_path = Path(notebook_path)
     notebook_text = notebook_path.read_text(encoding="utf-8") if notebook_path.exists() else ""
     prompt_notebook = truncate_notebook(notebook_text, _MAX_NOTEBOOK_CHARS, _HEAD_CHARS, _TAIL_CHARS)
     was_truncated = prompt_notebook != notebook_text
 
-    seeds_block = _build_seeds_block(vault_path, qdrant_client, memory_collection)
+    seeds_block = _build_seeds_block(vault_path, db, user_id)
     user_content = f"{seeds_block}\n\n--- Tu cuaderno ---\n{prompt_notebook}"
 
     response = client.messages.create(
@@ -126,19 +131,21 @@ def main() -> None:
 
     config = get_config()
     client = Anthropic(api_key=config["anthropic_apikey"], timeout=60.0)
-    qdrant_client = QdrantClient(url="http://localhost:6333")
+    db = get_connection()
     bot = telebot.TeleBot(config["telegram_apikey"])
     notebook_path = Path(config["vault_docs_path"]) / "claude" / "cuaderno.md"
     vault_path = Path(config["vault_docs_path"]).parent
     chat_id = _resolve_chat_id(config)
-    memory_collection = config["memory_collection"]  # D20: sin valor por defecto
-    logger.info(f"Cuaderno despierta | memory_collection={memory_collection}")
+    user_id = _propietario(config)
+    logger.info(f"Cuaderno despierta | memoria de {user_id} (MariaDB)")
 
-    result = despertar(
-        client=client, qdrant_client=qdrant_client, bot=bot,
-        notebook_path=notebook_path, vault_path=vault_path, chat_id=chat_id,
-        memory_collection=memory_collection, dry_run=args.dry_run,
-    )
+    try:
+        result = despertar(
+            client=client, db=db, user_id=user_id, bot=bot,
+            notebook_path=notebook_path, vault_path=vault_path, chat_id=chat_id, dry_run=args.dry_run,
+        )
+    finally:
+        close_connection()
 
     print(f"spoke={result['spoke']}")
     if result["spoke"]:
