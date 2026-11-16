@@ -109,6 +109,17 @@ _REGLA_ACCIONES_CON_HISTORIAL = (
 )
 
 
+# Fase 3 (D45, D52): #74 y #76 acababan en `mark_as_memorable` porque «si tomo X tengo que…» parece un dato duradero.
+# Lo que el usuario tiene que HACER (con día, hora o condición) es un compromiso, no memoria; y un resultado médico o un
+# diagnóstico no se guarda en ningún sitio. Va después de la regla de acciones para que no la pise.
+_REGLA_COMPROMISOS = (
+    "\n\nLo que el usuario tiene que HACER con un día, una hora o una condición («recuérdame que…», los pasos de una "
+    "preparación, «si tomo X tengo que dejarlo…») no es un dato de memoria: es un compromiso (`compromisos_crear`), o, "
+    "si depende de algo que no sabes, se pregunta con `request_clarification`. Un resultado médico o un diagnóstico "
+    "no se guarda en ninguna tool."
+)
+
+
 def _planner_system(indice_memoria: str = "") -> str:
     """Return planner system prompt with today's date and current time injected.
 
@@ -132,6 +143,7 @@ def _planner_system(indice_memoria: str = "") -> str:
         f"{_CAPABILITIES_DIGEST}"
         + (f"\n\n{indice_memoria}" if indice_memoria else "")
         + _REGLA_ACCIONES_CON_HISTORIAL
+        + _REGLA_COMPROMISOS
     )
 
 # D26: regla de honestidad sobre el usuario (ver también _planner_system).
