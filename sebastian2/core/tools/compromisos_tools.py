@@ -21,7 +21,7 @@ COMPROMISOS_TOOLS = [
             "`fecha_fin` si dura varios días). Devuelve cada compromiso con su momento ya calculado: repítelo al "
             "usuario con esas fechas. **No para citas** (eso es `calendar_add_event`), **ni para datos** (eso es "
             "`mark_as_memorable`), **ni para registros de salud** (eso es `salud`). Si un paso depende de algo que no "
-            'sabes ("si toma hierro"), pregunta antes con `request_clarification`; si no aplica, no lo crees.'
+            'sabes ("si toma zinc"), pregunta antes con `request_clarification`; si no aplica, no lo crees.'
         ),
         "input_schema": {
             "type": "object",

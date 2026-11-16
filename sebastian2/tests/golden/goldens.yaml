@@ -472,15 +472,15 @@
 
 # Fase 3 (D45, D49, D50, D52). Normativos; su línea base va solo con -k.
 - id: 67
-  phrase: "El lunes empiezo la dieta sin residuos, tres días"
+  phrase: "El lunes empiezo la dieta blanda, tres días"
   mode: exact
   expected: [compromisos_crear]
   validates: "Fase 3 (D45): una cosa que hacer con fecha es compromiso, no cita ni memoria"
 
 - id: 68
-  phrase: "Para la colonoscopia: la víspera a las 21:00 la primera toma y el mismo día a la una la segunda"
+  phrase: "Para la endoscopia: la víspera a las 21:00 la primera toma y el mismo día a la una la segunda"
   historia:
-    - {user: "Tengo la colonoscopia el 20 de enero a las 9:30", bot: "Apuntado en tu calendario: colonoscopia, miércoles 20 de enero a las 9:30."}
+    - {user: "Tengo la endoscopia el 28 de enero a las 9:30", bot: "Apuntado en tu calendario: endoscopia, jueves 28 de enero a las 9:30."}
   mode: any_of
   expected:
     - [compromisos_crear]
@@ -489,9 +489,9 @@
   validates: "Fase 3 (D50): pasos ligados a una cita van atados al evento; puede buscar antes el evento_id"
 
 - id: 69
-  phrase: "En la colonoscopia me acompaña Marta y es en la planta baja del Hospital Ejemplo"
+  phrase: "En la endoscopia me acompaña Marta y es en la planta baja del Hospital Ejemplo"
   historia:
-    - {user: "Tengo la colonoscopia el 20 de enero a las 9:30", bot: "Apuntado en tu calendario: colonoscopia, miércoles 20 de enero a las 9:30."}
+    - {user: "Tengo la endoscopia el 28 de enero a las 9:30", bot: "Apuntado en tu calendario: endoscopia, jueves 28 de enero a las 9:30."}
   mode: any_of
   expected:
     - [calendar_add_note]
@@ -519,7 +519,7 @@
   validates: "Fase 3: marcar hecho; no es un registro de salud (D52)"
 
 - id: 72
-  phrase: "Me han cambiado la colonoscopia al 21 a la misma hora"
+  phrase: "Me han cambiado la endoscopia al 29 a la misma hora"
   mode: any_of
   expected:
     - [calendar_update_event]
@@ -529,7 +529,7 @@
 
 # Frontera de salud (D52). Negativos: lo que falla es guardarlo donde no toca.
 - id: 73
-  phrase: "El test de sangre oculta me salió positivo"
+  phrase: "El test de la gota seca me salió positivo"
   mode: any_of
   expected:
     - []
@@ -537,7 +537,7 @@
   validates: "Fase 3 (D52), negativa: un resultado clínico no se guarda en Sebastian (ni memoria, ni notas, ni salud)"
 
 - id: 74
-  phrase: "Recuérdame que en la colonoscopia tengo que decir que soy alérgico a la aspirina"
+  phrase: "Recuérdame que en la endoscopia tengo que decir que soy alérgico al látex"
   mode: any_of
   expected:
     - [compromisos_crear]
@@ -554,7 +554,7 @@
   validates: "Fase 3 (D52): lo que se come sigue yendo a Tristras, también en días de preparación"
 
 - id: 76
-  phrase: "Si tomo hierro tengo que dejarlo 7 días antes de la colonoscopia"
+  phrase: "Si tomo zinc tengo que dejarlo 7 días antes de la endoscopia"
   mode: any_of
   expected:
     - [request_clarification]

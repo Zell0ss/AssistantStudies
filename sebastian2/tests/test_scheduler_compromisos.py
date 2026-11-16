@@ -2,7 +2,7 @@
 
 Contra `sebastian_test`, sin API, con un reloj inyectado y un bot falso que registra los envíos. **Ninguna prueba manda
 nada a Telegram de verdad**: una guarda (autouse) hace fallar el test si el bot real llega a construirse.
-El caso es el de la colonoscopia con datos INVENTADOS: la cita es el 17/12/2026 a las 9:30.
+El caso es el de una endoscopia con datos INVENTADOS (prueba, dieta, nombres y centro; la fecha de la cita, 17/12/2026, es la del calendario del plan).
 """
 from datetime import date, datetime, time
 from unittest.mock import patch
@@ -74,9 +74,9 @@ def _comp(conn, usuario=USUARIO):
 @pytest.fixture
 def caso(conn):
     """El caso: la cita del 17/12 a las 9:30 y sus pasos (inventados, sin datos personales)."""
-    cita = CalendarModule(conn, USUARIO).add_event("Colonoscopia", date(2026, 12, 17), "09:30")["event_id"]
+    cita = CalendarModule(conn, USUARIO).add_event("Endoscopia", date(2026, 12, 17), "09:30")["event_id"]
     ids = _comp(conn).crear([
-        {"texto": "Dieta sin residuos", "evento_id": cita, "dias_inicio": -3, "dias_fin": -1},
+        {"texto": "Dieta blanda", "evento_id": cita, "dias_inicio": -3, "dias_fin": -1},
         {"texto": "Solo líquidos claros", "evento_id": cita, "dias_inicio": -1},
         {"texto": "1.ª toma del preparado (sobre en ½ l)", "evento_id": cita, "dias_inicio": -1, "hora": "21:00"},
         {"texto": "2.ª toma del preparado (sobres A y B en ½ l)", "evento_id": cita, "dias_inicio": 0, "hora": "01:00"},
@@ -101,12 +101,12 @@ def _aviso_para(conn, compromiso_id):
 
 def test_resumen_14_dieta_dia_1(conn, caso):
     texto = armar_resumen(USUARIO, datetime(2026, 12, 14, 8, 0), conn=conn)
-    assert "Dieta sin residuos (día 1 de 3)" in texto
+    assert "Dieta blanda (día 1 de 3)" in texto
     assert "Para hoy" in texto
 
 
 def test_resumen_15_dieta_dia_2(conn, caso):
-    assert "Dieta sin residuos (día 2 de 3)" in armar_resumen(USUARIO, datetime(2026, 12, 15, 8, 0), conn=conn)
+    assert "Dieta blanda (día 2 de 3)" in armar_resumen(USUARIO, datetime(2026, 12, 15, 8, 0), conn=conn)
 
 
 def test_resumen_16_mira_a_manana(conn, caso):
@@ -115,7 +115,7 @@ def test_resumen_16_mira_a_manana(conn, caso):
     assert para_hoy < antes
     hoy, manana = texto[para_hoy:antes], texto[antes:]
     assert "Solo líquidos claros" in hoy and "21:00" in hoy and "1.ª toma del preparado" in hoy
-    assert "Dieta sin residuos (día 3 de 3)" in hoy
+    assert "Dieta blanda (día 3 de 3)" in hoy
     assert "01:00" in manana and "2.ª toma del preparado" in manana
     assert "06:30" in manana and "Última hora para líquidos" in manana
     assert "1.ª toma" not in manana and "Solo líquidos claros" not in manana
@@ -124,7 +124,7 @@ def test_resumen_16_mira_a_manana(conn, caso):
 
 def test_resumen_17_el_dia_de_la_prueba(conn, caso):
     texto = armar_resumen(USUARIO, datetime(2026, 12, 17, 8, 0), conn=conn)
-    assert "09:30 — Colonoscopia" in texto                                     # la agenda de siempre
+    assert "09:30 — Endoscopia" in texto                                     # la agenda de siempre
     assert "Llevar el parte de interconsulta" in texto                         # sin hora: «Para hoy»
     assert "06:30" not in texto and "01:00" not in texto                       # ya pasaron: nadie avisa tarde
     assert "Antes del próximo resumen" not in texto                            # y no hay nada antes del siguiente
@@ -200,7 +200,7 @@ def test_resumen_manda_a_cada_usuario_a_su_chat_y_un_fallo_no_para_a_los_demas(c
 def test_resumen_se_envia_al_chat_del_usuario(conn, caso, bot):
     _send_daily_reminder(bot, [USUARIO], reloj=_a(14, 8))
     assert len(bot.enviados) == 1 and bot.enviados[0][0] == int(USUARIO)
-    assert "Dieta sin residuos (día 1 de 3)" in bot.enviados[0][1]
+    assert "Dieta blanda (día 1 de 3)" in bot.enviados[0][1]
 
 
 # ── Avisos a su hora ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -210,7 +210,7 @@ def test_aviso_a_su_hora(conn, caso, bot):
     assert len(bot.enviados) == 1
     chat, texto = bot.enviados[0]
     assert chat == int(USUARIO)
-    assert texto == "⏰ 01:00 · 2.ª toma del preparado (sobres A y B en ½ l) — Colonoscopia"
+    assert texto == "⏰ 01:00 · 2.ª toma del preparado (sobres A y B en ½ l) — Endoscopia"
     assert _aviso_para(conn, caso["ids"]["2.ª toma del preparado (sobres A y B en ½ l)"]) == datetime(2026, 12, 17, 1, 0)
     enviar_avisos(bot, [USUARIO], reloj=_a(17, 1, 1))
     assert len(bot.enviados) == 1                                              # a las 01:01 no se repite
@@ -229,7 +229,7 @@ def test_aviso_no_sale_antes_de_su_hora(conn, caso, bot):
 
 def test_aviso_tras_reinicio_dentro_de_ventana(conn, caso, bot):
     enviar_avisos(bot, [USUARIO], reloj=_a(17, 2, 30), arranque=True)
-    assert [t for _, t in bot.enviados] == ["⏰ 01:00 · 2.ª toma del preparado (sobres A y B en ½ l) — Colonoscopia"]
+    assert [t for _, t in bot.enviados] == ["⏰ 01:00 · 2.ª toma del preparado (sobres A y B en ½ l) — Endoscopia"]
 
 
 def test_aviso_caducado_no_sale(conn, caso, bot):
@@ -275,7 +275,7 @@ def test_aviso_fallo_de_un_usuario_no_para_a_los_demas(conn, caso):
 def test_aviso_evento_movido_vuelve_a_avisar(conn, caso, bot):
     enviar_avisos(bot, [USUARIO], reloj=_a(17, 1, 0))
     assert len(bot.enviados) == 1
-    CalendarModule(conn, USUARIO).update_event("Colonoscopia", new_date=date(2026, 12, 18))
+    CalendarModule(conn, USUARIO).update_event("Endoscopia", new_date=date(2026, 12, 18))
     enviar_avisos(bot, [USUARIO], reloj=_a(17, 1, 1))
     assert len(bot.enviados) == 1                                              # el momento nuevo aún no ha llegado
     enviar_avisos(bot, [USUARIO], reloj=_a(18, 1, 0))
@@ -310,7 +310,7 @@ def test_aviso_de_un_compromiso_suelto_no_lleva_evento(conn, bot):
 
 
 def test_aviso_un_compromiso_que_no_se_puede_calcular_no_avisa_ni_rompe(conn, caso, bot):
-    CalendarModule(conn, USUARIO).update_event("Colonoscopia", new_date=date(2026, 12, 17), new_all_day=True)
+    CalendarModule(conn, USUARIO).update_event("Endoscopia", new_date=date(2026, 12, 17), new_all_day=True)
     enviar_avisos(bot, [USUARIO], reloj=_a(17, 1, 0))                          # los de minutos ya no tienen hora
     textos = [t for _, t in bot.enviados]
     assert not any("Última hora para líquidos" in t for t in textos)

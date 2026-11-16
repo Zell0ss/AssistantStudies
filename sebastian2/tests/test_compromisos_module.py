@@ -1,7 +1,7 @@
 """Fase 3, H1 (D45, D50, plan §2.1 y §3-H1): compromisos, su forma y su momento efectivo.
 
 Contra `sebastian_test`, sin API y con un reloj inyectado (nunca `datetime.now()` directo). El caso es el de la
-colonoscopia con datos INVENTADOS: la cita es el 17/12/2026 a las 9:30 y no hay ningún dato personal.
+endoscopia con datos INVENTADOS (prueba, dieta, nombres y centro; la fecha de la cita, 17/12/2026, es la del calendario del plan).
 """
 from datetime import date, datetime, time
 
@@ -46,13 +46,13 @@ def comp(conn):
 @pytest.fixture
 def cita(cal):
     """La cita del caso: jueves 17/12/2026 a las 9:30."""
-    return cal.add_event("Colonoscopia", date(2026, 12, 17), "09:30")["event_id"]
+    return cal.add_event("Endoscopia", date(2026, 12, 17), "09:30")["event_id"]
 
 
 def _caso(evento_id):
     """Los cinco momentos del caso, todos atados al evento."""
     return [
-        {"texto": "Dieta sin residuos", "evento_id": evento_id, "dias_inicio": -3, "dias_fin": -1},
+        {"texto": "Dieta blanda", "evento_id": evento_id, "dias_inicio": -3, "dias_fin": -1},
         {"texto": "Solo líquidos claros", "evento_id": evento_id, "dias_inicio": -1},
         {"texto": "1.ª toma del preparado", "evento_id": evento_id, "dias_inicio": -1, "hora": "21:00"},
         {"texto": "2.ª toma del preparado", "evento_id": evento_id, "dias_inicio": 0, "hora": "01:00"},
@@ -177,7 +177,7 @@ def test_momento_atado_dias_hora(comp, cita):
 
 
 def test_intervalo_dieta(comp, cita):
-    dieta = _por_texto(comp.crear(_caso(cita)))["Dieta sin residuos"]
+    dieta = _por_texto(comp.crear(_caso(cita)))["Dieta blanda"]
     assert dieta["fecha_inicio"] == "2026-12-14" and dieta["fecha_fin"] == "2026-12-16"   # ambos incluidos
     assert dieta["cuando"] is None                                                         # sin hora: todo el día
 
@@ -195,7 +195,7 @@ def test_crear_devuelve_momento_efectivo(comp, cita):
     por_texto = _por_texto(comp.crear(_caso(cita)))
     assert por_texto["2.ª toma del preparado"]["cuando_texto"] == "jueves 17/12 a las 01:00"
     assert por_texto["1.ª toma del preparado"]["cuando_texto"] == "miércoles 16/12 a las 21:00"
-    assert por_texto["Dieta sin residuos"]["cuando_texto"] == "del lunes 14/12 al miércoles 16/12"
+    assert por_texto["Dieta blanda"]["cuando_texto"] == "del lunes 14/12 al miércoles 16/12"
     assert por_texto["Solo líquidos claros"]["cuando_texto"] == "miércoles 16/12"
     for c in por_texto.values():
         assert isinstance(c["id"], int) and c["estado"] == "pendiente" and c["evento_id"] == cita
@@ -210,11 +210,11 @@ def test_cambio_de_hora(comp, cal):
 
 def test_evento_movido_mueve_compromisos(comp, cal, cita):
     antes = _por_texto(comp.crear(_caso(cita)))
-    assert cal.update_event("Colonoscopia", new_date=date(2026, 12, 18))["status"] == "updated"
+    assert cal.update_event("Endoscopia", new_date=date(2026, 12, 18))["status"] == "updated"
     despues = {c["texto"]: c for c in comp.listar(desde="2026-12-01", hasta="2026-12-31")["compromisos"]}
     assert len(despues) == 5
-    assert despues["Dieta sin residuos"]["fecha_inicio"] == "2026-12-15"
-    assert despues["Dieta sin residuos"]["fecha_fin"] == "2026-12-17"
+    assert despues["Dieta blanda"]["fecha_inicio"] == "2026-12-15"
+    assert despues["Dieta blanda"]["fecha_fin"] == "2026-12-17"
     assert despues["1.ª toma del preparado"]["cuando"] == "2026-12-17T21:00"
     assert despues["2.ª toma del preparado"]["cuando"] == "2026-12-18T01:00"
     assert despues["Última hora para líquidos"]["cuando"] == "2026-12-18T06:30"
@@ -224,14 +224,14 @@ def test_evento_movido_mueve_compromisos(comp, cal, cita):
 
 def test_evento_movido_de_hora_mueve_los_relativos_a_la_hora(comp, cal, cita):
     comp.crear([{"texto": "Fin de líquidos", "evento_id": cita, "minutos": -180}])
-    cal.update_event("Colonoscopia", new_time="11:00")
+    cal.update_event("Endoscopia", new_time="11:00")
     assert comp.listar(desde="2026-12-17", hasta="2026-12-17")["compromisos"][0]["cuando"] == "2026-12-17T08:00"
 
 
 def test_evento_que_pierde_su_hora_no_rompe_el_listado(comp, cal, cita):
     comp.crear([{"texto": "Fin de líquidos", "evento_id": cita, "minutos": -180}])
     # Pasar un evento a «todo el día» con fecha le quita la hora (start_datetime = NULL).
-    cal.update_event("Colonoscopia", new_date=date(2026, 12, 17), new_all_day=True)
+    cal.update_event("Endoscopia", new_date=date(2026, 12, 17), new_all_day=True)
     items = comp.listar(desde="2026-12-01", hasta="2026-12-31")["compromisos"]
     assert len(items) == 1                                                  # no explota ni se esconde
     assert items[0]["cuando"] is None and items[0]["problema"]              # y el problema se declara
@@ -241,7 +241,7 @@ def test_evento_que_pierde_su_hora_no_rompe_el_listado(comp, cal, cita):
 
 def test_evento_borrado_cancela_compromisos(comp, cal, cita, conn):
     ids = [c["id"] for c in comp.crear(_caso(cita))["compromisos"]]
-    assert cal.remove_event("Colonoscopia")["status"] == "removed"
+    assert cal.remove_event("Endoscopia")["status"] == "removed"
     cur = conn.cursor()
     cur.execute("SELECT estado, evento_id FROM compromisos WHERE id IN %s", (tuple(ids),))
     filas = cur.fetchall()
@@ -261,7 +261,7 @@ def test_evento_borrado_respeta_los_hechos_y_los_sueltos(comp, cal, cita, conn):
     atado, suelto = comp.crear([{"texto": "atado", "evento_id": cita, "dias_inicio": -1},
                                 {"texto": "suelto", "fecha_inicio": "2026-12-20"}])["compromisos"]
     comp.completar(atado["id"])
-    cal.remove_event("Colonoscopia")
+    cal.remove_event("Endoscopia")
     cur = conn.cursor()
     cur.execute("SELECT id, estado FROM compromisos WHERE user_id = %s", (USUARIO,))
     estados = {f["id"]: f["estado"] for f in cur.fetchall()}
@@ -276,8 +276,8 @@ def test_borrar_un_evento_sin_compromisos_sigue_funcionando(cal):
 
 def test_borrar_un_evento_de_otro_usuario_no_toca_mis_compromisos(comp, cal, cita, conn):
     cid = comp.crear(_caso(cita))["compromisos"][0]["id"]
-    CalendarModule(conn, OTRO).add_event("Colonoscopia", date(2026, 12, 17), "09:30")
-    CalendarModule(conn, OTRO).remove_event("Colonoscopia")
+    CalendarModule(conn, OTRO).add_event("Endoscopia", date(2026, 12, 17), "09:30")
+    CalendarModule(conn, OTRO).remove_event("Endoscopia")
     cur = conn.cursor()
     cur.execute("SELECT estado FROM compromisos WHERE id = %s", (cid,))
     assert cur.fetchone()["estado"] == "pendiente"
@@ -289,17 +289,17 @@ def test_listar_por_defecto_de_hoy_a_catorce_dias_en_orden(comp, cita):
     comp.crear(_caso(cita) + [{"texto": "Lejano", "fecha_inicio": "2027-02-01"}])
     textos = [c["texto"] for c in comp.listar()["compromisos"]]
     # El reloj es el 1/12: de ahí a 14 días llega al 15/12. Solo la dieta (14→16) cae dentro; «Lejano» no.
-    assert textos == ["Dieta sin residuos"]
+    assert textos == ["Dieta blanda"]
     todos = comp.listar(desde="2026-12-01", hasta="2026-12-31")["compromisos"]
     assert [c["texto"] for c in todos] == [
-        "Dieta sin residuos", "Solo líquidos claros", "1.ª toma del preparado",
+        "Dieta blanda", "Solo líquidos claros", "1.ª toma del preparado",
         "2.ª toma del preparado", "Última hora para líquidos"]
 
 
 def test_listar_el_intervalo_se_solapa_con_la_ventana(comp, cita):
     comp.crear(_caso(cita))
     en_el_15 = comp.listar(desde="2026-12-15", hasta="2026-12-15")["compromisos"]
-    assert [c["texto"] for c in en_el_15] == ["Dieta sin residuos"]       # el 15 está dentro de 14→16
+    assert [c["texto"] for c in en_el_15] == ["Dieta blanda"]       # el 15 está dentro de 14→16
 
 
 def test_listar_por_evento_y_solo_pendientes(comp, cal, cita):
@@ -381,7 +381,7 @@ def test_remove_event_informa_compromisos_cancelados(comp, cal, cita):
     comp.crear(_caso(cita))
     hecho = comp.listar(desde="2026-12-01", hasta="2026-12-31")["compromisos"][0]["id"]
     comp.completar(hecho)                                                   # los hechos no cuentan como cancelados
-    r = cal.remove_event("Colonoscopia")
+    r = cal.remove_event("Endoscopia")
     assert r["status"] == "removed" and r["compromisos_cancelados"] == 4
 
 
@@ -391,13 +391,13 @@ def test_remove_event_sin_compromisos_no_lleva_el_campo(cal):
 
 
 def test_remove_event_de_varios_eventos_suma_los_cancelados(comp, cal, cita):
-    otra = cal.add_event("Colonoscopia", date(2027, 1, 20), "09:30")["event_id"]
+    otra = cal.add_event("Endoscopia", date(2027, 1, 20), "09:30")["event_id"]
     comp.crear([{"texto": "a", "evento_id": cita, "dias_inicio": -1}, {"texto": "b", "evento_id": otra, "dias_inicio": -1}])
-    assert cal.remove_event("Colonoscopia")["compromisos_cancelados"] == 2
+    assert cal.remove_event("Endoscopia")["compromisos_cancelados"] == 2
 
 
 def test_la_cuenta_de_cancelados_no_incluye_hechos_ni_cancelados(comp, cal, cita):
     a, b, c = (x["id"] for x in comp.crear(_caso(cita)[:3])["compromisos"])
     comp.completar(a)
     comp.borrar(b, "cancelar")
-    assert cal.remove_event("Colonoscopia")["compromisos_cancelados"] == 1
+    assert cal.remove_event("Endoscopia")["compromisos_cancelados"] == 1

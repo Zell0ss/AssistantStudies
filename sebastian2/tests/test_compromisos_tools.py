@@ -59,7 +59,7 @@ def test_descripcion_de_crear_nombra_que_hacer_con_cada_cosa_que_no_es_suya():
     assert 'cosas que el usuario **tiene que hacer**'.replace("**", "") in d.replace("**", "")
     assert "evento_id" in d and "dias_inicio" in d and "minutos" in d
     assert "calendar_add_event" in d and "mark_as_memorable" in d and "`salud`" in d
-    assert "request_clarification" in d and "si toma hierro" in d.lower()
+    assert "request_clarification" in d and "si toma zinc" in d.lower()
     assert "no lo crees" in d.lower()
 
 
@@ -95,7 +95,7 @@ def conn():
 
 
 def test_el_ejecutor_despacha_las_cuatro_con_la_bd_real(conn):
-    cita = CalendarModule(conn, USUARIO).add_event("Colonoscopia", date(2026, 12, 17), "09:30")["event_id"]
+    cita = CalendarModule(conn, USUARIO).add_event("Endoscopia", date(2026, 12, 17), "09:30")["event_id"]
     ex = ToolExecutor(conn, USUARIO)
     creado = ex.execute("compromisos_crear", {"items": [
         {"texto": "2.ª toma", "evento_id": cita, "dias_inicio": 0, "hora": "01:00"},
