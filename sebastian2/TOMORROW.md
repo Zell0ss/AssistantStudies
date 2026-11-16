@@ -1,6 +1,6 @@
 # tomorrow.md — Sebastian 2.0 (programador)
 
-**Punto de parada (2026-11-16): H1 APROBADO; H2 ENTREGADO, ESPERANDO LA REVISIÓN DEL ARQUITECTO.** Informe: `docs/fase3/H2-informe.md` (con R1 de `H1-revision.md`). Rama `fase-3`, worktree `/data/AssistantStudies-fase3`. 767 pruebas sin API en verde (731 tras H1, 683 al empezar la fase).
+**Punto de parada (2026-11-16): H2 APROBADO (`30b9f34`); H3 EN CURSO.** Línea base #67–#76 hecha: 3/10 (pasan 70, 72, 75). Gasto de la fase 3: 0,31 $ de 4 $. Falta: diagnosticar 67–69, retoques, pasada completa y E10 (cada [API] con «sí» de Josem en mi ventana). Salida de goldens: guardarla con tee, no se puede recuperar.
 **H3 es [API]: no empezarlo sin la revisión de H2, la comprobación con la skill `claude-api` y un «sí» de Josem en mi ventana.** Buzón: `git log -1 --format='%h %ad %s' --date=short --name-only -- 'docs/fase3/H*-revision.md' 'docs/fase3/H*-encargo.md' 'docs/fase3/H*-informe.md' docs/fase3/PLAN.md`.
 
 **Fase 2 (aparte):** aprobada y a la espera del despliegue de Josem (`deploy/PASOS-CON-SUDO.md`, «Fase 2»; control clave: el `--dry-run` del paso 4). Si falla algo, Josem lo trae y el arreglo va como anexo a `docs/fase2/H4-informe.md`, en la rama `fase-2` (`/data/AssistantStudies-fase2`).
