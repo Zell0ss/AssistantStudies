@@ -223,3 +223,74 @@ H3 aún no aprobado. Haz **H3c**:
    el orden de §10, empezando por R10.
 3. La pasada completa solo si la tanda y E10 pasan.
 4. **Para** con un segundo anexo al final de `docs/fase3/H3-informe.md` («Anexo H3c»).
+
+---
+
+# Tercera revisión: anexo H3c
+
+> Responde a: 9fb1df0 (Anexo H3c). 2026-11-16, arquitecto. La revisé contra el código en `fd0851d`.
+
+**Veredicto: H3c aprobado en lo que hace.** Para cerrar H3 falta un último paso, cerrado y sin más
+vueltas de prompts (§13). D54 funciona: Alfred ya dice «solo he consultado» en vez de inventarse
+el cambio.
+
+## 11. Lo que comprobé
+
+- **Pruebas sin API:** `pytest -m "not golden"` da **833 en verde**.
+- **`_TOOLS_DE_LECTURA`/`_ESCRITURA`** son conjuntos explícitos, y la prueba obliga a clasificar
+  cada tool nueva.
+- **Vale `request_clarification` entre las de lectura:** el orquestador la intercepta antes de la
+  síntesis, así que nunca llega a la nota.
+- **El tope de 8 $ lo puso Josem en tu ventana.** Lo apunto en el ADR.
+
+## 12. Decisiones que pedías
+
+| # | Decisión |
+|---|---|
+| 1 | **#67: acepto `[request_clarification]` y `[]`.** Preguntar de más molesta, pero no hace daño, y con D44/D54 Alfred no finge haberlo hecho. **Riesgo conocido para la fase 4:** cuando el planner cierra con una pregunta en texto, esa pregunta se pierde y Alfred solo dice «no he podido registrar nada». Pasará a la fase 4 junto con el «busca y se para» del turno 3 de E10 (2 de 3), que también es del bucle del planner |
+| 2 | **#71: acepto** `[compromisos_listar, compromisos_completar, compromisos_listar]` |
+| 3 | **La segunda toma: sí, es lo más importante del anexo.** Es justo el aviso de las 01:00 que falsa D48: con `dias_inicio = -1` llegaría 24 h antes. Hacen falta R11 (descripción) y R12 (comprobación en E10, normativa). Si aun así falla alguna de las tres, **no hay otra vuelta**: H4 sigue con la mitigación de §14 |
+| 4 | **La pasada completa va, pero después de R11.** Lanzarla antes no tiene sentido, porque R11 toca el prompt. El tope lo decide Josem (§13) |
+| 5 | **De acuerdo:** no se despliega sin la pasada completa |
+
+## 13. Último paso de H3
+
+- **R11.** En `compromisos_crear`, en la descripción de `dias_inicio`/`dias_fin`:
+  - El día 0 es el de la cita.
+  - Una hora de madrugada que el usuario ata al día de la cita («el mismo día a la una», «la
+    noche antes, a la una») es `dias_inicio = 0` con esa hora.
+  - `-1` es el día anterior, a esa hora del reloj.
+  - Prueba sin API del texto.
+- **R12.** En E10, una comprobación **normativa**: el compromiso de la segunda toma lleva
+  `dias_inicio = 0` y `hora = 01:00`. No cambies la frase de E10, que es la del caso real.
+- **Goldens de §12:** #67 con `[]` y `[request_clarification]`; #71 con la secuencia de arriba.
+- **[API], en este orden:**
+  1. E10 ×3 (≈ 0,55 $).
+  2. La pasada completa #1–#76 (≈ 2,1 $).
+  - En total, ≈ 2,65 $ sobre ≈ 6,88 $, es decir, **≈ 9,5 $ en la fase**. Con el tope de 8 $ no
+    entra: Josem tiene que subirlo a 9,5 $ antes del primer [API].
+- **Criterio de cierre de H3:**
+  - En la pasada completa, ningún golden antiguo en rojo, salvo #28 y #43, que se repiten ×3.
+  - Los nuevos pasan.
+  - E10 en 3/3 por el criterio. La comprobación de R12 se cuenta, pero **no bloquea** (§14).
+
+## 14. Riesgos que se aceptan para H4 (y su mitigación)
+
+- **La segunda toma un día antes.** Si R12 no da 3/3:
+  - Josem dicta la preparación con fechas absolutas («el jueves 17 a la una de la madrugada, la
+    segunda toma»). Ajustaré yo el mensaje 3 de su nota.
+  - Después del dictado, compruebo en `sebastian_db` cada compromiso contra el caso.
+  - Además, Alfred repite cada paso con su fecha calculada, así que un error se ve al momento.
+- **«Busca y se para»** en la nota de la cita: ahora Alfred lo dice y Josem repite la orden. Pasa
+  a la fase 4.
+
+## Para el programador
+
+Responde a: 9fb1df0 (Anexo H3c)
+
+H3c aprobado. Último paso de H3:
+1. R11, R12 y los goldens de §12, con sus pruebas sin API.
+2. **Espera** a que Josem suba el tope a 9,5 $ y te dé el «sí». Lanza E10 ×3 y después la
+   pasada completa, en ese orden.
+3. **Para** con «Anexo H3d» al final de `docs/fase3/H3-informe.md`. Si se cumple el criterio de §13,
+   el siguiente hito es H4.
