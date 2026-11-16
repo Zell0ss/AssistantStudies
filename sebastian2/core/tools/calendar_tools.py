@@ -204,6 +204,8 @@ CALENDAR_TOOLS = [
         "description": (
             "Añade una nota de texto libre a un evento existente (identificado por event_id). "
             "Útil para apuntar 'llevar dinero', 'confirmar cita', etc. junto a un evento. "
+            "También para los datos de una cita: lugar, planta, teléfono, código, quién acompaña. "
+            "**Nunca** resultados ni diagnósticos. "
             "Usa calendar_search_events o calendar_find_by_datetime primero para obtener el event_id."
         ),
         "input_schema": {

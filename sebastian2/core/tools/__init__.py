@@ -10,6 +10,7 @@ from .docs_tools import DOCS_TOOLS, FAMILY_SUMMARY as DOCS_SUMMARY
 from .memory_tools import MEMORY_TOOLS, FAMILY_SUMMARY as MEMORY_SUMMARY
 from .youtube_tools import YOUTUBE_TOOLS, FAMILY_SUMMARY as YOUTUBE_SUMMARY
 from .salud_tools import SALUD_TOOLS, FAMILY_SUMMARY as SALUD_SUMMARY
+from .compromisos_tools import COMPROMISOS_TOOLS, FAMILY_SUMMARY as COMPROMISOS_SUMMARY
 
 ALL_TOOLS = (
     CALENDAR_TOOLS +
@@ -22,7 +23,8 @@ ALL_TOOLS = (
     DOCS_TOOLS +
     MEMORY_TOOLS +
     YOUTUBE_TOOLS +
-    SALUD_TOOLS
+    SALUD_TOOLS +
+    COMPROMISOS_TOOLS
 )
 
 # Each entry pairs a family's tool list with its human-curated summary line.
@@ -40,6 +42,7 @@ _TOOL_FAMILIES = [
     (MEMORY_TOOLS, MEMORY_SUMMARY),
     (YOUTUBE_TOOLS, YOUTUBE_SUMMARY),
     (SALUD_TOOLS, SALUD_SUMMARY),
+    (COMPROMISOS_TOOLS, COMPROMISOS_SUMMARY),
 ]
 
 

@@ -139,6 +139,8 @@ def golden_fixtures(test_db):
 
     # Wipe this user's data first — isolated schema, safe to nuke and reseed.
     cur.execute("DELETE FROM notes WHERE user_id = %s", (user_id,))
+    # Fase 3 (D50): los compromisos apuntan a events con una FK sin ON DELETE; van antes que los eventos.
+    cur.execute("DELETE FROM compromisos WHERE user_id = %s", (user_id,))
     cur.execute("DELETE FROM events WHERE user_id = %s", (user_id,))
     cur.execute(
         "DELETE FROM list_items WHERE list_id IN (SELECT id FROM lists WHERE user_id = %s)",

@@ -21,6 +21,7 @@ from core.memoria.servicio import ServicioMemoria
 from modules.project_registry import known_project_slugs
 from modules.youtube_transcript import extraer, SinSubtitulos, YtDlpDesactualizado, YtDlpError
 from modules.salud import SaludModule
+from modules.compromisos import CompromisosModule
 from utils.config import get_config
 
 _YOUTUBE_WORKDIR_DEFECTO = "/data/ytb-video-extracts"
@@ -28,7 +29,9 @@ _YOUTUBE_WORKDIR_DEFECTO = "/data/ytb-video-extracts"
 # D39-D42: nada de datos de salud en los logs, en ningún nivel. La tool `salud` se excluye
 # del logging genérico de abajo (inputs + resultado) y solo deja nombre + estado.
 # Fase 2 (memoria v1): lo que el usuario cuenta para recordar, y lo que se le devuelve, tampoco.
-_TOOLS_SIN_LOG_DE_CONTENIDO = {"salud", "mark_as_memorable", "search_memory"}
+# Fase 3 (D52): los compromisos pueden ser la preparación de una prueba médica; sus textos tampoco.
+_TOOLS_SIN_LOG_DE_CONTENIDO = {"salud", "mark_as_memorable", "search_memory",
+                               "compromisos_crear", "compromisos_listar", "compromisos_completar", "compromisos_borrar"}
 
 
 class ToolExecutor:
@@ -120,6 +123,11 @@ class ToolExecutor:
             # Memory
             "mark_as_memorable":         self._mark_as_memorable,
             "search_memory":             self._search_memory,
+            # Compromisos (fase 3, D45)
+            "compromisos_crear":         self._compromisos_crear,
+            "compromisos_listar":        self._compromisos_listar,
+            "compromisos_completar":     self._compromisos_completar,
+            "compromisos_borrar":        self._compromisos_borrar,
             # YouTube
             "youtube_transcript":        self._youtube_transcript,
             # Salud (D3, D39-D42): Tristras es dueño de los datos, Sebastian solo el canal
@@ -344,6 +352,21 @@ class ToolExecutor:
         query = inputs.get('query') or " ".join(x for x in (entidad, atributo) if x)
         return self._servicio_memoria().consultar(
             self._user_id, query, entidad=entidad, atributo=atributo, historial=bool(inputs.get('historial', False)))
+
+    # ── Compromisos ───────────────────────────────────────────────────────────
+
+    def _compromisos_crear(self, inputs: dict):
+        return CompromisosModule(self._db, self._user_id).crear(inputs.get('items'))
+
+    def _compromisos_listar(self, inputs: dict):
+        return CompromisosModule(self._db, self._user_id).listar(
+            desde=inputs.get('desde'), hasta=inputs.get('hasta'), evento_id=inputs.get('evento_id'))
+
+    def _compromisos_completar(self, inputs: dict):
+        return CompromisosModule(self._db, self._user_id).completar(inputs['id'])
+
+    def _compromisos_borrar(self, inputs: dict):
+        return CompromisosModule(self._db, self._user_id).borrar(inputs['id'], inputs.get('motivo'))
 
     # ── YouTube ───────────────────────────────────────────────────────────────
 
