@@ -187,6 +187,11 @@ def describir(m: Momento) -> Optional[str]:
     return _dia_texto(m.fecha_inicio)
 
 
+def _normalizar(texto: str) -> str:
+    """Para comparar textos de compromisos (R13): sin mayúsculas, sin espacios en los extremos y con los internos colapsados."""
+    return " ".join(texto.split()).casefold()
+
+
 def _serializar(fila: dict, m: Momento, evento_titulo: Optional[str] = None) -> Dict[str, Any]:
     return {
         "id": fila["id"],
@@ -258,6 +263,14 @@ class CompromisosModule(BaseModule):
         try:
             for item, evento in validados:
                 fila = self._fila_nueva(item, ahora)
+                existente = self._pendiente_igual(fila) if evento else None
+                if existente is not None:
+                    # R13: la cita se movió y sus pasos se movieron solos (D50); crearlos otra vez los duplicaría.
+                    existente.update(texto=existente["texto"], estado="pendiente")
+                    ya = _serializar(existente, momento_efectivo(existente, evento), evento["title"])
+                    ya["ya_existe"] = True
+                    creados.append(ya)
+                    continue
                 cursor = self.execute_query(
                     "INSERT INTO compromisos (user_id, texto, evento_id, fecha_inicio, fecha_fin, dias_inicio,"
                     " dias_fin, hora, minutos, estado, created_at, updated_at)"
@@ -270,8 +283,23 @@ class CompromisosModule(BaseModule):
         except Exception:
             self.db.rollback()
             raise
-        logger.info(f"Compromisos creados user={self.user_id} ids={[c['id'] for c in creados]}")
-        return {"status": "created", "compromisos": creados}
+        nuevos = [c["id"] for c in creados if not c.get("ya_existe")]
+        if nuevos:
+            logger.info(f"Compromisos creados user={self.user_id} ids={nuevos}")          # ids, nunca el texto (D52)
+        if len(nuevos) < len(creados):
+            logger.info(f"Compromisos que ya existían user={self.user_id} "
+                        f"ids={[c['id'] for c in creados if c.get('ya_existe')]}")
+        return {"status": "created" if nuevos else "exists", "compromisos": creados}
+
+    def _pendiente_igual(self, fila: dict) -> Optional[dict]:
+        """R13: un compromiso PENDIENTE del mismo usuario y del mismo evento con el mismo texto (normalizado: sin
+        mayúsculas, sin espacios en los extremos y con los internos colapsados). Los hechos y los cancelados no cuentan."""
+        buscado = _normalizar(fila["texto"])
+        cursor = self.execute_query(
+            "SELECT id, texto, evento_id, fecha_inicio, fecha_fin, dias_inicio, dias_fin, hora, minutos, estado"
+            " FROM compromisos WHERE user_id = %s AND evento_id = %s AND estado = 'pendiente' ORDER BY id",
+            (self.user_id, fila["evento_id"]))
+        return next((f for f in cursor.fetchall() if _normalizar(f["texto"]) == buscado), None)
 
     @staticmethod
     def _fila_nueva(item: dict, ahora: datetime) -> dict:

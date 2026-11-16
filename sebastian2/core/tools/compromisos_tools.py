@@ -21,7 +21,9 @@ COMPROMISOS_TOOLS = [
             "`fecha_fin` si dura varios días: «tres días desde el lunes 14» son el 14, el 15 y el 16, el día de inicio "
             "cuenta; no preguntes cuál es el último). Devuelve cada compromiso con su momento ya calculado: repítelo al "
             "usuario con esas fechas. Un intervalo («tres días antes y hasta la víspera») es **un solo compromiso** con "
-            "`dias_inicio` y `dias_fin`, no uno por día ni uno de «empezar» y otro de «mantener». **No para citas** (eso es `calendar_add_event`), **ni para datos** (eso es "
+            "`dias_inicio` y `dias_fin`, no uno por día ni uno de «empezar» y otro de «mantener». Si la cita se ha "
+            "movido, sus pasos ya se movieron solos (D50): no los crees otra vez; si repites uno que sigue pendiente "
+            "para esa cita, no se duplica y vuelve con `ya_existe`. **No para citas** (eso es `calendar_add_event`), **ni para datos** (eso es "
             "`mark_as_memorable`), **ni para registros de salud** (eso es `salud`). Si un paso depende de algo que no "
             'sabes ("si toma zinc"), pregunta antes con `request_clarification`; si no aplica, no lo crees.'
         ),

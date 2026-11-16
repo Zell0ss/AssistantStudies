@@ -135,6 +135,15 @@ def test_h3c_el_golden_40_acepta_compromiso_o_pregunta_y_el_76_acepta_solo_busca
     assert ["calendar_search_events"] in _golden(76)["expected"]
 
 
+def test_h3d_el_golden_49_acepta_solo_lecturas_y_nunca_escribir():
+    """H3-revision (cuarta), §15.2: mirar el inventario o la memoria antes de proponer una cena es una lectura inofensiva."""
+    g = _golden(49)
+    assert g["mode"] == "any_of" and g["phrase"] == "¿qué ceno hoy?"
+    assert g["expected"] == [[], ["inventory_list"], ["search_memory"], ["inventory_list", "search_memory"],
+                             ["search_memory", "inventory_list"]]
+    assert not any("salud" in seq or "mark_as_memorable" in seq for seq in g["expected"])
+
+
 def test_el_golden_62_sigue_exacto_y_el_74_no_cambia_sus_listas():
     assert _golden(62)["mode"] == "exact" and _golden(62)["expected"] == ["mark_as_memorable"]
     assert [["compromisos_crear"], ["calendar_search_events", "compromisos_crear"],

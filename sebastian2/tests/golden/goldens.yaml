@@ -343,7 +343,11 @@
   mode: any_of
   expected:
     - []
-  validates: "H3-revision §2.1, negativa cercana: pide una idea de cena, no cuenta lo que ha comido. Aceptado: lo observado en la línea base (ninguna tool); falla si llama a salud"
+    - [inventory_list]
+    - [search_memory]
+    - [inventory_list, search_memory]
+    - [search_memory, inventory_list]
+  validates: "H3-revision §2.1 y cuarta revisión §15.2, negativa cercana: pide una idea de cena, no cuenta lo que ha comido. Aceptado: ninguna tool o solo lecturas (inventario, memoria); falla si escribe algo, sobre todo salud"
 
 - id: 50
   phrase: "¿y mañana?"

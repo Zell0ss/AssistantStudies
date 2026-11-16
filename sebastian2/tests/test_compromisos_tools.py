@@ -96,6 +96,13 @@ def test_descripcion_de_crear_dice_que_el_dia_de_inicio_cuenta():
     assert "no preguntes cuál es el último" in d
 
 
+def test_descripcion_de_crear_dice_que_si_la_cita_se_movio_no_se_crean_otra_vez():
+    """H3d R13 (H3-revision cuarta, §16): al mover la cita, el planner de E10 recreó todos los pasos (8 en vez de 4)."""
+    d = " ".join(_desc("compromisos_crear").split()).lower()
+    assert "si la cita se ha movido, sus pasos ya se movieron solos (d50): no los crees otra vez" in d
+    assert "ya_existe" in d
+
+
 def test_descripcion_de_borrar_manda_los_datos_a_mark_as_memorable():
     """H3b R6: sin esta frase, «Olvida lo de las camisetas UV» (golden #62) acababa en `search_memory`, porque
     «olvida ese compromiso» competía con el camino de borrado de la memoria. Aislado con A–E (informe, anexo)."""

@@ -411,3 +411,83 @@ def test_la_cuenta_de_cancelados_no_incluye_hechos_ni_cancelados(comp, cal, cita
     comp.completar(a)
     comp.borrar(b, "cancelar")
     assert cal.remove_event("Endoscopia")["compromisos_cancelados"] == 1
+
+
+# ── R13 (H3-revision, cuarta, §16): crear no duplica ────────────────────────────────────────────────────────────────
+# El caso de E10, turno 5: al mover la cita sus pasos ya se movieron solos (D50) y el planner los volvió a crear.
+
+def _filas(conn, user=USUARIO):
+    conn.commit()                                                                # REPEATABLE READ
+    cur = conn.cursor()
+    cur.execute("SELECT id, texto, dias_inicio, estado FROM compromisos WHERE user_id = %s ORDER BY id", (user,))
+    return list(cur.fetchall())
+
+
+def test_crear_no_duplica_pendiente_del_mismo_evento(comp, cita, conn):
+    primero = comp.crear(_caso(cita))["compromisos"]
+    # Misma frase, otros desfases (lo que hizo el planner tras mover la cita): no se inserta nada.
+    segundo = comp.crear([{"texto": c["texto"], "evento_id": cita, "dias_inicio": -2} for c in primero])
+    assert segundo["status"] == "exists"
+    assert [c["id"] for c in segundo["compromisos"]] == [c["id"] for c in primero]
+    assert all(c["ya_existe"] is True for c in segundo["compromisos"])
+    assert all(c["cuando_texto"] for c in segundo["compromisos"])                # con su momento, para repetirlo al usuario
+    assert len(_filas(conn)) == len(primero)
+
+
+def test_crear_compara_el_texto_normalizado(comp, cita, conn):
+    creado = comp.crear([{"texto": "Dieta blanda", "evento_id": cita, "dias_inicio": -3, "dias_fin": -1}])["compromisos"][0]
+    r = comp.crear([{"texto": "  dieta   BLANDA ", "evento_id": cita, "dias_inicio": -3, "dias_fin": -1}])
+    assert r["status"] == "exists" and r["compromisos"][0]["id"] == creado["id"]
+    assert len(_filas(conn)) == 1
+
+
+def test_crear_si_el_otro_esta_hecho_o_cancelado_si_crea(comp, cita, conn):
+    a, b = (x["id"] for x in comp.crear([{"texto": "1.ª toma", "evento_id": cita, "dias_inicio": -1, "hora": "21:00"},
+                                         {"texto": "2.ª toma", "evento_id": cita, "dias_inicio": 0, "hora": "01:00"}])["compromisos"])
+    comp.completar(a)
+    comp.borrar(b, "cancelar")
+    r = comp.crear([{"texto": "1.ª toma", "evento_id": cita, "dias_inicio": -1, "hora": "21:00"},
+                    {"texto": "2.ª toma", "evento_id": cita, "dias_inicio": 0, "hora": "01:00"}])
+    assert r["status"] == "created" and not any(c.get("ya_existe") for c in r["compromisos"])
+    assert len(_filas(conn)) == 4
+
+
+def test_crear_otro_evento_si_crea(comp, cal, cita, conn):
+    otra = cal.add_event("Endoscopia", date(2027, 1, 20), "09:30")["event_id"]
+    comp.crear([{"texto": "Dieta blanda", "evento_id": cita, "dias_inicio": -3}])
+    r = comp.crear([{"texto": "Dieta blanda", "evento_id": otra, "dias_inicio": -3}])
+    assert r["status"] == "created" and len(_filas(conn)) == 2
+
+
+def test_crear_otro_usuario_no_cuenta_como_duplicado(conn, comp, cita):
+    comp.crear([{"texto": "Dieta blanda", "evento_id": cita, "dias_inicio": -3}])
+    # Un evento y un compromiso de otro usuario con el mismo texto no se ven entre sí.
+    ajeno = CalendarModule(conn, OTRO).add_event("Endoscopia", date(2026, 12, 17), "09:30")["event_id"]
+    r = CompromisosModule(conn, OTRO, reloj=lambda: AHORA).crear(
+        [{"texto": "Dieta blanda", "evento_id": ajeno, "dias_inicio": -3}])
+    assert r["status"] == "created" and len(_filas(conn, OTRO)) == 1
+
+
+def test_crear_sin_evento_no_compara_los_sueltos_se_pueden_repetir(comp, conn):
+    pan = {"texto": "Comprar pan", "fecha_inicio": "2026-12-10"}
+    comp.crear([pan])
+    r = comp.crear([{**pan, "fecha_inicio": "2026-12-11"}])
+    assert r["status"] == "created" and len(_filas(conn)) == 2
+
+
+def test_crear_lote_mixto_crea_lo_nuevo_y_marca_lo_que_ya_estaba(comp, cita, conn):
+    ya = comp.crear([{"texto": "Dieta blanda", "evento_id": cita, "dias_inicio": -3, "dias_fin": -1}])["compromisos"][0]
+    r = comp.crear([{"texto": "Dieta blanda", "evento_id": cita, "dias_inicio": -3, "dias_fin": -1},
+                    {"texto": "Llevar el volante", "evento_id": cita, "dias_inicio": -1}])
+    assert r["status"] == "created"
+    primero, segundo = r["compromisos"]                                          # en el orden en que se pidieron
+    assert primero["ya_existe"] is True and primero["id"] == ya["id"]
+    assert not segundo.get("ya_existe") and segundo["id"] != ya["id"]
+    assert [f["texto"] for f in _filas(conn)] == ["Dieta blanda", "Llevar el volante"]
+
+
+def test_crear_un_lote_invalido_no_deja_nada_aunque_algo_ya_existiera(comp, cita, conn):
+    comp.crear([{"texto": "Dieta blanda", "evento_id": cita, "dias_inicio": -3}])
+    r = comp.crear([{"texto": "Dieta blanda", "evento_id": cita, "dias_inicio": -3},
+                    {"texto": "Mal", "evento_id": cita}])                         # atado sin cuándo: inválido
+    assert r["status"] == "invalid" and len(_filas(conn)) == 1
