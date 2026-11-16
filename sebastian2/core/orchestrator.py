@@ -117,6 +117,11 @@ _REGLA_COMPROMISOS = (
     "preparación, «si tomo X tengo que dejarlo…») no es un dato de memoria: es un compromiso (`compromisos_crear`), o, "
     "si depende de algo que no sabes, se pregunta con `request_clarification`. Un resultado médico o un diagnóstico "
     "no se guarda en ninguna tool."
+    # Fase 3 H7 (R18, D58): «esta noche a la una» salió el 16/11 con la 01:00 de ese mismo día, que ya había pasado.
+    "\n\nHoras de madrugada: una hora entre las 00:00 y las 05:59 con «esta noche» es de la fecha de mañana (la noche que "
+    "viene; solo si ya es de madrugada y esa hora aún no ha llegado, es la de hoy). Si el usuario da una fecha explícita "
+    "(«martes 17 de noviembre»), esa fecha manda sobre «mañana» o «esta noche». En otro caso dudoso, elige la ocurrencia "
+    "más próxima que aún no ha pasado, sin preguntar: nunca una fecha y hora que ya ha pasado."
 )
 
 
@@ -186,6 +191,8 @@ herramienta que lo diga. Si el usuario pidió guardar, corregir u olvidar y en e
 llano que no lo has hecho y ofrécete a intentarlo de nuevo. No menciones herramientas, resultados ni reglas.
 Tú no ejecutas herramientas: solo lees lo que ya trajeron. Si en este turno no te llegan datos de la memoria, no
 digas «permítame consultarlo»; di que no te consta.
+Al confirmar un compromiso creado, di el día de la semana, el día y el mes tal como vienen en `cuando_texto` («martes 17/11
+a las 01:00»), nunca «mañana a la una» sin más.
 
 Estas son tus capacidades actuales — si el usuario pregunta qué sabes hacer o duda de si puedes algo, responde desde aquí:
 {_CAPABILITIES_DIGEST}"""
@@ -198,6 +205,24 @@ _TURNO_SIN_HERRAMIENTAS = (
     "[En este turno no se ha ejecutado ninguna herramienta: no has guardado, cambiado, borrado, apuntado ni creado nada. "
     "Si el usuario lo pidió, dile en llano que no lo has hecho y ofrécete a intentarlo.]"
 )
+
+
+# Fase 3 H7 (R17, D57): en producción (16/11) el planner cerró dos turnos SIN tool y con un texto corto, y ese texto se
+# descartaba: Alfred solo decía «no he podido». Ahora, si no se ejecutó ninguna tool, el texto le llega como NOTA, después de
+# `_TURNO_SIN_HERRAMIENTAS` y sin sustituirlo (que no se ha hecho nada sigue siendo cierto). No es un dato ni algo hecho.
+_NOTA_PLANNER_MAX = 600
+
+
+def _texto_del_planner(response) -> str:
+    """El texto (bloques `text`) de una respuesta del planner, sin espacios en los extremos. Vacío si no escribió ninguno."""
+    return " ".join(
+        b.text for b in response.content if getattr(b, "type", None) == "text" and isinstance(getattr(b, "text", None), str)
+    ).strip()
+
+
+def _nota_del_planner(texto: str) -> str:
+    return (f"[Nota de quien planifica este turno, no es un dato ni algo hecho: «{texto}». "
+            "Si es una pregunta para el usuario o le falta un dato, házsela tú en una frase.]")
 
 
 # Fase 3 H3c (D54, extiende D44): D44 solo vigila el turno SIN ninguna tool. E10 enseñó el hueco de al lado: el planner busca
@@ -402,6 +427,7 @@ class Orchestrator:
 
         # Resume the tool loop
         tool_results_summary = []
+        nota_planner = ""
         for iteration in range(_MAX_ITERATIONS):
             iterations_used = iteration + 1
             response = self._llamar_planner(messages)
@@ -409,6 +435,8 @@ class Orchestrator:
             tool_blocks = [b for b in response.content if b.type == 'tool_use']
 
             if response.stop_reason in ('end_turn', 'refusal') or not tool_blocks:
+                if not tool_results_summary:
+                    nota_planner = _texto_del_planner(response)        # R17 (D57)
                 break
 
             # Check if Haiku needs yet another clarification
@@ -460,7 +488,7 @@ class Orchestrator:
             messages.append({"role": "user", "content": tool_results})
 
         self._repo.delete(self._user_id)
-        text = self._synthesize(original_message, tool_results_summary)
+        text = self._synthesize(original_message, tool_results_summary, nota_planner=nota_planner)
         images = self._collect_images(tool_results_summary)
         self._log_turn_end(turn_start, iterations_used, "completed")
         return {"text": text, "images": images}
@@ -526,6 +554,7 @@ class Orchestrator:
         historial = self._cargar_historial()
         messages = historial + [{"role": "user", "content": user_message}]
         tool_results_summary = []
+        nota_planner = ""
 
         for iteration in range(_MAX_ITERATIONS):
             iterations_used = iteration + 1
@@ -534,7 +563,10 @@ class Orchestrator:
             tool_blocks = [b for b in response.content if b.type == 'tool_use']
 
             if response.stop_reason in ('end_turn', 'refusal') or not tool_blocks:
-                # Planner is done — move to synthesis
+                # Planner is done — move to synthesis. R17 (D57): si cierra SIN haber ejecutado ninguna tool, lo que escribió
+                # (a veces una pregunta) llega a Alfred; con tools, su cierre normal («Hecho…») no.
+                if not tool_results_summary:
+                    nota_planner = _texto_del_planner(response)
                 break
 
             # Execute each tool call and collect results
@@ -590,7 +622,7 @@ class Orchestrator:
             messages.append({"role": "assistant", "content": response.content})
             messages.append({"role": "user", "content": tool_results})
 
-        text = self._synthesize(user_message, tool_results_summary, historial)
+        text = self._synthesize(user_message, tool_results_summary, historial, nota_planner)
         images = self._collect_images(tool_results_summary)
         self._log_turn_end(turn_start, iterations_used, "completed")
         return {"text": text, "images": images}
@@ -609,8 +641,12 @@ class Orchestrator:
                         logger.warning(f"Failed to generate ticket image: {e}")
         return images
 
-    def _synthesize(self, user_message: str, tool_results: list, historial: list | None = None) -> str:
-        """Call Sonnet to synthesize a Spanish Alfred-style response."""
+    def _synthesize(self, user_message: str, tool_results: list, historial: list | None = None,
+                    nota_planner: str = "") -> str:
+        """Call Sonnet to synthesize a Spanish Alfred-style response.
+
+        `nota_planner` (R17, D57): lo que el planner escribió al cerrar un turno sin ninguna tool. Solo se usa sin
+        resultados de tools, va después de `_TURNO_SIN_HERRAMIENTAS` y nunca al log (D42): solo que hubo nota y su longitud."""
         if tool_results:
             context_lines = []
             for item in tool_results:
@@ -630,6 +666,11 @@ class Orchestrator:
             )
         else:
             synthesis_prompt = f"{_now_str()}\n{user_message}\n\n{_TURNO_SIN_HERRAMIENTAS}"
+            nota_planner = (nota_planner or "").strip()[:_NOTA_PLANNER_MAX]
+            if nota_planner:
+                synthesis_prompt += "\n\n" + _nota_del_planner(nota_planner)
+                logger.info(f"Planner cerró sin tool y con nota | user={self._user_id} | "
+                            f"planner_nota=1 chars={len(nota_planner)}")
 
         response = self._client.messages.create(
             model="claude-sonnet-4-6",

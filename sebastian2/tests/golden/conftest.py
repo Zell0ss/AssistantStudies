@@ -13,6 +13,7 @@ to the real 'sebastian_memory' base. Since fase 2 (H3) the memory is MariaDB
 session; there is no flat `sebastian_memory_test` collection any more.
 """
 import time
+from contextlib import ExitStack
 from datetime import date, datetime, timedelta
 
 import pymysql
@@ -89,6 +90,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             terminalreporter.write_line(f"  Planner sin tool: {texto[:400]!r}")
         if r.get("ventanas"):                                 # H5: informativo, no hace fallar nada
             terminalreporter.write_line(f"  time_window: {r['ventanas']}")
+        for entrada in r.get("creaciones", []):               # H7: qué fecha y hora se creó (solo en el informe del test)
+            terminalreporter.write_line(f"  compromisos_crear: {entrada}")
 
     passed_count = sum(1 for r in GOLDEN_RESULTS if r["passed"])
     total = len(GOLDEN_RESULTS)
@@ -327,10 +330,11 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
 
     from core.orchestrator import Orchestrator
     from core.tool_executor import ToolExecutor
+    from modules.compromisos import CompromisosModule
     from tests.golden.uso import USO
 
     def _run(phrase: str, historia: list | None = None, *, user_id: str | None = None, config: dict | None = None,
-             estado: dict | None = None):
+             estado: dict | None = None, ahora: str | None = None):
         user_id = user_id or user_id_por_defecto
         if historia:
             sembrar_historia(test_db, user_id, historia)
@@ -338,6 +342,7 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
             sembrar_estado(test_db, user_id, estado)
         calls = []
         ventanas = []     # H5: el `time_window` de cada `calendar_list_events`, que es lo que de verdad comprueba R14 (#77, #78)
+        creaciones = []   # H7: la entrada de cada `compromisos_crear` (#79, #80)
         original_execute = ToolExecutor.execute
         original_ask_user = Orchestrator._ask_user
         original_track_usage = Orchestrator._track_usage
@@ -347,6 +352,8 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
             calls.append(tool_name)
             if tool_name == "calendar_list_events":
                 ventanas.append(str(tool_input.get("time_window")))
+            if tool_name == "compromisos_crear":              # H7: #79 y #80 comprueban QUÉ día y hora se creó
+                creaciones.append(dict(tool_input))
             return original_execute(self, tool_name, tool_input)
 
         def recording_ask_user(self, question):
@@ -385,12 +392,21 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
                 pass
             return respuesta
 
-        with patch.object(Embeddings, "create", midiendo_embeddings), \
+        with ExitStack() as pila, \
+             patch.object(Embeddings, "create", midiendo_embeddings), \
              patch.object(Messages, "create", capturando_planner), \
              patch.object(ToolExecutor, "execute", recording_execute), \
              patch.object(Orchestrator, "_ask_user", recording_ask_user), \
              patch.object(Orchestrator, "_track_usage", midiendo_uso), \
              patch.object(Orchestrator, "_log_turn_end", midiendo_latencia):
+            if ahora:
+                # H7 (#79, #80): «esta noche a la una» depende de la hora del día. El planner ve esta hora en su prompt y
+                # `compromisos_crear` (R19) juzga contra ella: las dos tienen que ser la misma. Solo los goldens que
+                # traen `ahora` la fijan; el resto sigue con el reloj real.
+                fijo = datetime.fromisoformat(ahora)
+                pila.enter_context(patch("core.orchestrator._now_str",
+                                         lambda: f"Hoy es {fijo:%Y-%m-%d} y son las {fijo:%H:%M}."))
+                pila.enter_context(patch.object(CompromisosModule, "_ahora", lambda self: fijo))
             orch = Orchestrator(test_db, user_id, config=config or config_por_defecto)
             response = orch.handle(phrase)
 
@@ -398,6 +414,8 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
             response["planner_sin_tools"] = planner_sin_tools
         if isinstance(response, dict) and ventanas:
             response["ventanas"] = ventanas
+        if isinstance(response, dict) and creaciones:
+            response["creaciones"] = creaciones
         return calls, response
 
     return _run

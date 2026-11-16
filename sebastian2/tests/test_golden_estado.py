@@ -160,3 +160,43 @@ def test_el_golden_62_sigue_exacto_y_el_74_no_cambia_sus_listas():
     assert [["compromisos_crear"], ["calendar_search_events", "compromisos_crear"],
             ["calendar_find_by_datetime", "compromisos_crear"], ["calendar_add_note"],
             ["calendar_search_events", "calendar_add_note"]] == _golden(74)["expected"]
+
+
+# ── H7: goldens #79 y #80 y su criterio (qué se creó, no solo qué tools) ─────────────────────────────────────────────
+
+def test_h7_los_goldens_79_y_80_son_los_del_encargo_adaptados_al_arnes():
+    g79, g80 = _golden(79), _golden(80)
+    assert g79["phrase"] == "Recuérdame esta noche a la una de la madrugada que me duerma ya"
+    assert g80["phrase"] == "Recuérdame mañana martes 17 de noviembre a la 01:00 que me duerma ya"
+    assert g79["ahora"] == g80["ahora"] == "2026-11-16T16:30"                    # lunes, 16:30: la hora del encargo
+    assert g79["entrada"] == g80["entrada"] == {"fecha_inicio": "2026-11-17", "hora": "01:00"}
+    assert g79["alfred_menciona"] == ["17"] and "alfred_menciona" not in g80
+    assert [p["user"] for p in g80["historia"]] == [
+        "¿Qué tengo el mes que viene?", "Recuérdame el 17 a la una de la madrugada que me duerma ya",
+        "Borra el recordatorio «Duérmete ya» del 17 de diciembre"]
+    assert g80["estado"] == {"eventos": [{"titulo": "Endoscopia", "fecha": "2026-12-17", "hora": "09:30"}]}
+
+
+def _crea(fecha, hora="01:00", texto="Duerme ya"):
+    return [{"items": [{"texto": texto, "fecha_inicio": fecha, "hora": hora}]}]
+
+
+def test_h7_el_79_pasa_con_la_fecha_de_manana_y_alfred_diciendo_el_17():
+    from tests.golden.criterios import evaluar_compromiso
+    g = _golden(79)
+    assert evaluar_compromiso(g, ["compromisos_crear"], _crea("2026-11-17"), "Anotado: martes 17/11 a las 01:00, señor.")
+    assert not evaluar_compromiso(g, ["compromisos_crear"], _crea("2026-11-17"), "A la una de la madrugada le aviso.")
+    assert not evaluar_compromiso(g, ["compromisos_crear"], _crea("2026-11-16"), "Anotado: lunes 16/11, el 17 no.")
+    assert not evaluar_compromiso(g, ["compromisos_crear"], _crea("2026-11-17", "02:00"), "martes 17/11")
+    assert not evaluar_compromiso(g, [], [], "¿Lo quiere esta noche o mañana?")          # el 79 no admite preguntar
+
+
+def test_h7_el_80_acepta_crear_el_17_11_o_preguntar_y_rechaza_el_17_12_y_el_no_he_podido():
+    from tests.golden.criterios import evaluar_compromiso
+    g = _golden(80)
+    assert evaluar_compromiso(g, ["compromisos_crear"], _crea("2026-11-17"), "Anotado, señor.")
+    assert evaluar_compromiso(g, [], [], "¿Se refiere al martes 17 de noviembre o al 17 de diciembre, señor?")
+    assert evaluar_compromiso(g, ["request_clarification"], [], "¿A qué día se refiere, señor?")
+    assert not evaluar_compromiso(g, ["compromisos_crear"], _crea("2026-12-17"), "Anotado, señor.")
+    assert not evaluar_compromiso(g, [], [], "Lo siento, señor: no he podido programar ese recordatorio.")
+    assert not evaluar_compromiso(g, ["compromisos_crear", "compromisos_crear"], _crea("2026-11-17"), "Anotado.")

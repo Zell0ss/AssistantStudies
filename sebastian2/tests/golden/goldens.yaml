@@ -608,3 +608,29 @@
     - [calendar_list_events, compromisos_listar]
     - [compromisos_listar, calendar_list_events]
   validates: "Fase 3 H5 (R14): «el mes que viene» es next_month"
+
+# H7 (R17-R19). Adaptados del encargo al formato del arnés: `ahora` fija la hora del turno (lunes 2026-11-16, 16:30; el planner la
+# ve y `compromisos_crear` juzga contra ella) y el criterio mira lo que se creó (`criterios.py`), no solo las tools.
+- id: 79
+  phrase: "Recuérdame esta noche a la una de la madrugada que me duerma ya"
+  ahora: "2026-11-16T16:30"
+  mode: crea_con_fecha
+  expected: [compromisos_crear]
+  entrada: {fecha_inicio: "2026-11-17", hora: "01:00"}
+  alfred_menciona: ["17"]
+  validates: "Fase 3 H7 (R18, R19): «esta noche a la una», a las 16:30, es la 01:00 de mañana; Alfred dice la fecha"
+
+- id: 80
+  phrase: "Recuérdame mañana martes 17 de noviembre a la 01:00 que me duerma ya"
+  ahora: "2026-11-16T16:30"
+  historia:
+    - {user: "¿Qué tengo el mes que viene?", bot: "En diciembre: la endoscopia del jueves 17 a las 9:30 y pilates martes y jueves a las 19:00."}
+    - {user: "Recuérdame el 17 a la una de la madrugada que me duerma ya", bot: "Anotado, señor. Le aviso el jueves 17 a la 1:00."}
+    - {user: "Borra el recordatorio «Duérmete ya» del 17 de diciembre", bot: "Borrado, señor."}
+  estado:
+    eventos:
+      - {titulo: "Endoscopia", fecha: "2026-12-17", hora: "09:30"}
+  mode: crea_con_fecha_o_pregunta
+  expected: [compromisos_crear]
+  entrada: {fecha_inicio: "2026-11-17", hora: "01:00"}
+  validates: "Fase 3 H7 (R17): con el historial del 16/11, crea el 17/11 a la 01:00 o pregunta; nunca el 17/12 ni un «no he podido»"

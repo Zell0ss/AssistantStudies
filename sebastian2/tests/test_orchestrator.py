@@ -1075,3 +1075,116 @@ def test_un_turno_con_tool_no_pasa_el_aviso(mock_anthropic_cls, db):
     orch.handle("¿Qué alergias tiene Paco?")
 
     assert _AVISO not in mock_client.messages.create.call_args_list[2].kwargs["messages"][-1]["content"]
+
+
+# ── Fase 3 H7 (R17, D57): el texto del planner que cierra SIN tool llega a Alfred, y no al log ────────────────────────
+
+_PREGUNTA = "¿Lo quieres esta noche o mañana por la noche?"
+
+
+@patch('core.orchestrator.Anthropic')
+def test_r17_el_texto_del_planner_sin_tool_llega_a_alfred_despues_del_aviso(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response(_PREGUNTA), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("Recuérdame a la una que me duerma ya")
+
+    ultimo = mock_client.messages.create.call_args_list[1].kwargs["messages"][-1]["content"]
+    assert _PREGUNTA in ultimo and _AVISO in ultimo                       # el aviso sigue ahí: la nota no lo sustituye
+    assert ultimo.index(_AVISO) < ultimo.index(_PREGUNTA)                 # y va después
+    assert "no es un dato ni algo hecho" in ultimo
+
+
+@patch('core.orchestrator.Anthropic')
+def test_r17_si_el_turno_ejecuto_una_tool_el_cierre_normal_no_llega_a_alfred(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [
+        _make_tool_use_response("search_memory", "t1", {"query": "paco"}),
+        _make_text_response("Hecho, te recordaré mañana a la una."), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    orch._executor.execute = MagicMock(return_value={"hechos": []})
+    orch.handle("¿Qué alergias tiene Paco?")
+
+    sintesis = mock_client.messages.create.call_args_list[2].kwargs["messages"][-1]["content"]
+    assert "Hecho, te recordaré" not in sintesis and "Nota de quien planifica" not in sintesis
+
+
+@patch('core.orchestrator.Anthropic')
+def test_r17_sin_tool_y_sin_texto_el_prompt_queda_como_hoy(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("   "), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("Olvida lo del marisco de Paco")
+
+    ultimo = mock_client.messages.create.call_args_list[1].kwargs["messages"][-1]["content"]
+    assert ultimo.rstrip().endswith(_AVISO) and "Nota de quien planifica" not in ultimo
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_r17_el_texto_no_va_al_log_solo_que_hubo_nota_y_su_longitud(mock_anthropic_cls, mock_logger, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response(_PREGUNTA), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("Recuérdame a la una que me duerma ya")
+
+    volcado = " ".join(str(c) for c in mock_logger.mock_calls)
+    assert "esta noche o mañana" not in volcado and _PREGUNTA not in volcado
+    assert f"planner_nota=1 chars={len(_PREGUNTA)}" in volcado
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_r17_sin_nota_no_hay_linea_de_nota(mock_anthropic_cls, mock_logger, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response(""), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("Olvida lo del marisco de Paco")
+
+    assert "planner_nota" not in " ".join(str(c) for c in mock_logger.mock_calls)
+
+
+@patch('core.orchestrator.Anthropic')
+def test_r17_al_reanudar_un_plan_tambien_llega_la_nota(mock_anthropic_cls, db):
+    """`_resume_plan` comparte el camino de síntesis: lo que el planner escribe al cerrar sin tool tampoco se pierde."""
+    import time
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("¿A qué hora, exactamente?"), _make_text_response("ok")]
+
+    from core.orchestrator import Orchestrator
+    plan = {
+        "messages_json": _messages_to_json([
+            {"role": "user", "content": "Recuérdame lo del martes"},
+            {"role": "assistant", "content": [{"type": "tool_use", "id": "rc1", "name": "request_clarification",
+                                               "input": {"question": "¿Qué día?"}}]}]),
+        "original_message": "Recuérdame lo del martes",
+    }
+    Orchestrator(db, '99999')._resume_plan(plan, "el 17", time.perf_counter())
+
+    ultimo = mock_client.messages.create.call_args_list[1].kwargs["messages"][-1]["content"]
+    assert "¿A qué hora, exactamente?" in ultimo and _AVISO in ultimo
+
+
+# ── Fase 3 H7 (R18, D58): regla de madrugada y fecha completa en la confirmación ─────────────────────────────────────
+
+def test_r18_la_regla_de_madrugada_esta_en_el_planner():
+    from core.orchestrator import _REGLA_COMPROMISOS
+    for trozo in ("00:00", "05:59", "esta noche", "fecha de mañana", "fecha explícita", "más próxima", "ya ha pasado"):
+        assert trozo in _REGLA_COMPROMISOS, trozo
+    assert _REGLA_COMPROMISOS in _planner_system()
+
+
+def test_r18_alfred_confirma_con_dia_de_la_semana_dia_y_mes():
+    assert "cuando_texto" in _ALFRED_SYSTEM and "día de la semana" in _ALFRED_SYSTEM

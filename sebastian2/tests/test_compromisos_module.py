@@ -491,3 +491,72 @@ def test_crear_un_lote_invalido_no_deja_nada_aunque_algo_ya_existiera(comp, cita
     r = comp.crear([{"texto": "Dieta blanda", "evento_id": cita, "dias_inicio": -3},
                     {"texto": "Mal", "evento_id": cita}])                         # atado sin cuándo: inválido
     assert r["status"] == "invalid" and len(_filas(conn)) == 1
+
+
+# ── Fase 3 H7 (R19, D58): no se crea un compromiso en un momento que ya pasó ─────────────────────────────────────────
+# Reloj fijado en el lunes 2026-11-16 a las 16:30 (el caso de producción: «esta noche a la una» salió el 16/11 a la 01:00).
+
+LUNES = datetime(2026, 11, 16, 16, 30)
+
+
+@pytest.fixture
+def lunes(conn):
+    return CompromisosModule(conn, USUARIO, reloj=lambda: LUNES)
+
+
+def test_r19_una_hora_pasada_de_hoy_se_rechaza_y_sugiere_el_dia_siguiente(lunes, conn):
+    r = lunes.crear([{"texto": "Duerme ya", "fecha_inicio": "2026-11-16", "hora": "01:00"}])
+    assert r["status"] == "invalid" and r["indice"] == 0
+    assert "ya pasó" in r["message"] and "lunes 16/11 a las 01:00" in r["message"]
+    assert "martes 17/11 a las 01:00" in r["message"]                      # «¿querías el…?»
+    assert _filas(conn) == []
+
+
+def test_r19_la_misma_hora_de_manana_se_crea(lunes):
+    r = lunes.crear([{"texto": "Duerme ya", "fecha_inicio": "2026-11-17", "hora": "01:00"}])
+    assert r["status"] == "created" and r["compromisos"][0]["cuando_texto"] == "martes 17/11 a las 01:00"
+
+
+def test_r19_hoy_sin_hora_se_crea(lunes):
+    assert lunes.crear([{"texto": "Llamar a Marta", "fecha_inicio": "2026-11-16"}])["status"] == "created"
+
+
+def test_r19_un_rango_que_incluye_hoy_se_crea(lunes):
+    r = lunes.crear([{"texto": "Dieta blanda", "fecha_inicio": "2026-11-15", "fecha_fin": "2026-11-17"}])
+    assert r["status"] == "created"
+
+
+def test_r19_un_rango_ya_terminado_se_rechaza_sin_sugerencia(lunes, conn):
+    r = lunes.crear([{"texto": "Dieta blanda", "fecha_inicio": "2026-11-10", "fecha_fin": "2026-11-15"}])
+    assert r["status"] == "invalid" and "ya pasó" in r["message"] and "querías" not in r["message"]
+    assert _filas(conn) == []
+
+
+def test_r19_un_paso_atado_con_el_rango_a_caballo_de_hoy_vale(lunes, cal):
+    cita_18 = cal.add_event("Endoscopia", date(2026, 11, 18), "09:30")["event_id"]
+    r = lunes.crear([{"texto": "Dieta blanda", "evento_id": cita_18, "dias_inicio": -3, "dias_fin": -1}])
+    assert r["status"] == "created"                    # 15/11–17/11: empezó ayer y acaba mañana
+
+
+def test_r19_un_paso_atado_con_la_hora_ya_pasada_se_rechaza(lunes, cal, conn):
+    cita_hoy = cal.add_event("Endoscopia", date(2026, 11, 16), "09:00")["event_id"]
+    r = lunes.crear([{"texto": "Última hora para líquidos", "evento_id": cita_hoy, "minutos": -60}])
+    assert r["status"] == "invalid" and "ya pasó" in r["message"] and "lunes 16/11 a las 08:00" in r["message"]
+    assert "martes 17/11 a las 08:00" in r["message"]
+    assert _filas(conn) == []
+
+
+def test_r19_todos_o_ninguno_si_uno_del_lote_ya_paso(lunes, conn):
+    r = lunes.crear([{"texto": "Llamar a Marta", "fecha_inicio": "2026-11-17", "hora": "10:00"},
+                     {"texto": "Duerme ya", "fecha_inicio": "2026-11-16", "hora": "01:00"}])
+    assert r["status"] == "invalid" and r["indice"] == 1 and r["message"].startswith("compromiso 2:")
+    assert _filas(conn) == []
+
+
+def test_r19_un_paso_que_ya_existe_no_se_vuelve_a_juzgar_por_la_fecha(conn, cal):
+    """R13 se comprueba antes: un pendiente igual se devuelve `ya_existe` aunque su momento ya haya pasado."""
+    cita_18 = cal.add_event("Endoscopia", date(2026, 11, 18), "09:30")["event_id"]
+    paso = {"texto": "Última hora para líquidos", "evento_id": cita_18, "minutos": -180}
+    assert CompromisosModule(conn, USUARIO, reloj=lambda: LUNES).crear([paso])["status"] == "created"
+    r = CompromisosModule(conn, USUARIO, reloj=lambda: datetime(2026, 11, 18, 8, 0)).crear([paso])   # ya son las 08:00 del 18
+    assert r["status"] == "exists" and r["compromisos"][0]["ya_existe"] is True

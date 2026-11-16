@@ -259,6 +259,16 @@ class CompromisosModule(BaseModule):
             validados.append((item, evento))
 
         ahora = self._ahora()
+        # R19 (D58): antes de escribir nada, para que siga siendo «todos o ninguno». R13 va primero: un pendiente que ya
+        # existe (su cita se movió y se movió con ella) se devuelve tal cual, aunque su momento haya pasado.
+        for i, (item, evento) in enumerate(validados):
+            fila = self._fila_nueva(item, ahora)
+            if evento and self._pendiente_igual(fila) is not None:
+                continue
+            motivo = self._rechazo_por_pasado(momento_efectivo(fila, evento), ahora)
+            if motivo:
+                return {"status": "invalid", "indice": i, "message": f"compromiso {i + 1}: {motivo}"}
+
         creados = []
         try:
             for item, evento in validados:
@@ -266,7 +276,6 @@ class CompromisosModule(BaseModule):
                 existente = self._pendiente_igual(fila) if evento else None
                 if existente is not None:
                     # R13: la cita se movió y sus pasos se movieron solos (D50); crearlos otra vez los duplicaría.
-                    existente.update(texto=existente["texto"], estado="pendiente")
                     ya = _serializar(existente, momento_efectivo(existente, evento), evento["title"])
                     ya["ya_existe"] = True
                     creados.append(ya)
@@ -290,6 +299,22 @@ class CompromisosModule(BaseModule):
             logger.info(f"Compromisos que ya existían user={self.user_id} "
                         f"ids={[c['id'] for c in creados if c.get('ya_existe')]}")
         return {"status": "created" if nuevos else "exists", "compromisos": creados}
+
+    @staticmethod
+    def _rechazo_por_pasado(m: Momento, ahora: datetime) -> Optional[str]:
+        """R19: el motivo si el momento ya pasó, o None. Con hora exacta (`cuando`) cuenta el instante y se sugiere la misma
+        hora del día siguiente; sin ella (un día o un intervalo) solo cuenta que `fecha_fin` sea anterior a hoy."""
+        if m.fecha_fin is None:
+            return None
+        if m.cuando is not None:
+            if m.cuando >= ahora:
+                return None
+            siguiente = Momento(m.fecha_inicio + timedelta(days=1), m.fecha_fin + timedelta(days=1), m.hora,
+                                m.cuando + timedelta(days=1))
+            return f"ese momento ya pasó ({describir(m)}); ¿querías el {describir(siguiente)}?"
+        if m.fecha_fin < ahora.date():
+            return f"ese momento ya pasó ({describir(m)})"
+        return None
 
     def _pendiente_igual(self, fila: dict) -> Optional[dict]:
         """R13: un compromiso PENDIENTE del mismo usuario y del mismo evento con el mismo texto (normalizado: sin
