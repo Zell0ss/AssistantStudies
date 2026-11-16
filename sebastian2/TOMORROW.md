@@ -1,20 +1,18 @@
 # tomorrow.md — Sebastian 2.0 (programador)
 
-**Punto de parada (2026-11-15): ESPERANDO EL DESPLIEGUE DE JOSEM.** Fase 2 aprobada desde el lado del código: H3 cerrado y H4 aprobado (`H4-revision.md` §5, `a9815bc`). 683 pruebas sin API en verde.
-No hay trabajo del programador pendiente. No se ha desplegado, fusionado ni reiniciado nada y no se ha tocado producción.
+**Punto de parada (2026-11-16): H1 DE LA FASE 3 ENTREGADO, ESPERANDO LA REVISIÓN DEL ARQUITECTO.** Informe: `docs/fase3/H1-informe.md`. Rama `fase-3`, worktree `/data/AssistantStudies-fase3`. 731 pruebas sin API en verde (683 antes).
+**No empezar H2 sin la revisión de H1.** Buzón: `git log -1 --format='%h %ad %s' --date=short --name-only -- 'docs/fase3/H*-revision.md' 'docs/fase3/H*-encargo.md' 'docs/fase3/H*-informe.md' docs/fase3/PLAN.md`.
 
-**Siguiente paso:** el despliegue lo ejecuta Josem con `deploy/PASOS-CON-SUDO.md` («Fase 2») y lo comprueba con `deploy/comprobar_fase2.sh`. Control clave: el `--dry-run` del paso 4
-(`migrar_sprint3.py`) tiene que enseñar exactamente tres hechos (alergia al ácido acetilsalicílico, camisetas UV y presión de 2,30) y ningún «sin mapa» que deba migrarse; si no, parar.
-**Si algo falla en el despliegue, Josem lo trae y el arreglo va como anexo a `docs/fase2/H4-informe.md`.** Pendiente para la fase 3 (anotado por el arquitecto): marcar en el historial qué
-herramientas usó cada turno (D43/D44), la redacción de «no he podido apuntarlo» (#28) y la regla C frente a E9.
+**Fase 2 (aparte):** aprobada y a la espera del despliegue de Josem (`deploy/PASOS-CON-SUDO.md`, «Fase 2»; control clave: el `--dry-run` del paso 4). Si falla algo, Josem lo trae y el arreglo va como anexo a `docs/fase2/H4-informe.md`, en la rama `fase-2` (`/data/AssistantStudies-fase2`).
 
-**Gotchas:**
-- **Gasto de la fase ≈ 9,39 $, sin autorización para más.** Josem: tope 5 $; «hasta 2 €»; «otros 3 euros si hace falta» (2,15 $ de H4); y un «Si» a ≈ 1 $ para R15/R16 (0,78 $ gastados). Nada [API] sin un «sí» nuevo en mi ventana, y `git log` del buzón antes de cada paso.
-- `migrar_sprint3.py` casa por palabras normalizadas y **no he visto los textos reales de producción**: el `--dry-run` del paso 4 es el control (los pasos le dicen a Josem que pare si algo sale «sin mapa»).
-- `indexar_catalogo.py` y el paso 5 son una adición mía al plan (en producción nadie indexa los atributos semilla).
-- La regla del planner (D43) vive en `_REGLA_ACCIONES_CON_HISTORIAL` (`core/orchestrator.py`), al final del prompt. Evidencia: puede mandar el primer turno de E9 a `salud`.
-- `-k "golden_1"` casa también `golden_10`…: usar ids exactos. Un fallo de tool en goldens vuelca miles de líneas: filtrar con `grep -v 'INFO\|DEBUG\|^ *│\|^ *└\|Turn end'`.
-- Dos venv: `sebastian2/.venv` (3.12 + anthropic 1.14) es el de este worktree; el de producción, el de H0 si Josem ya lo desplegó (el paso 0 de los pasos lo comprueba).
-- Migración 012 aplicada a `sebastian_test` y `sebastian_dev`, **no a producción**. `git commit` siempre por rutas. Automensaje activo: pareja `sebastian2-56`.
+**Gotchas (fase 3):**
+- **Gasto de la fase 3: 0,00 $ de 4 $** (Josem, 2026-11-16, en la ventana del arquitecto). Cada paso [API] se confirma además en mi ventana. Antes del primer [API] de H3: comprobar con la skill `claude-api` que `claude-haiku-4-5-20251001` y `claude-sonnet-4-6` siguen servidos y los precios (1/5 $ y 3/15 $ por millón).
+- Migración 013 aplicada a `sebastian_test` y `sebastian_dev`, **no a producción** (el despliegue es H4, de Josem). `git commit` siempre por rutas.
+- `.venv` y `config.yaml` del worktree de la fase 3 son copias propias (el `config.yaml` apunta a `sebastian_test`).
+- La FK `compromisos.evento_id → events` no tiene ON DELETE y bloquea el borrado del evento aunque el compromiso esté cancelado: `cancelar_por_eventos_borrados` pone `evento_id = NULL` (desviación 1 del informe; pendiente de la respuesta del arquitecto). Cualquier `DELETE FROM events` nuevo (fixtures incluidos) tiene que pasar por ahí o borrar antes los compromisos.
+- Los datos de las pruebas son inventados: el caso de la colonoscopia usa fechas y pasos, ningún nombre, teléfono ni centro reales.
+- PyMySQL devuelve las columnas TIME como `timedelta`: `_hora()` en `modules/compromisos.py` las normaliza.
+- H2 usará `CompromisosModule.pendientes()` (momentos tipados) y `armar_resumen(usuario, ahora)` como función pura, con bot falso y reloj inyectado; ninguna prueba manda a Telegram de verdad.
+- Heredado de la fase 2: `-k "golden_1"` casa también `golden_10`…: usar ids exactos. Un fallo de tool en goldens vuelca miles de líneas: filtrar con `grep -v 'INFO\|DEBUG\|^ *│\|^ *└\|Turn end'`.
 
-**Bloqueos:** ninguno propio; el gasto nuevo y el despliegue esperan a Josem.
+**Bloqueos:** ninguno propio; H2 espera la revisión de H1.
