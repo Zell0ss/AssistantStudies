@@ -87,3 +87,24 @@ def test_alfred_no_ofrece_guardar_resultados_medicos():
     t = _plano(_ALFRED_SYSTEM)
     assert ("Si el usuario cuenta un resultado o un diagnóstico médico, no ofrezcas guardarlo: "
             "Sebastian no los guarda") in t
+
+
+# --- Fase 3 H3c (R8, R9): apuntar a una cita en una sola llamada, y buscar no termina el turno. Sin API. ---
+
+def test_add_note_se_puede_hacer_con_titulo_y_dia_sin_buscar_antes():
+    t = _tool("calendar_add_note")
+    props = t["input_schema"]["properties"]
+    assert {"event_id", "title", "date", "note_text"} <= set(props) and props["event_id"]["type"] == "integer"
+    assert t["input_schema"]["required"] == ["note_text"]                 # el id ya no es obligatorio
+    d = _plano(t["description"])
+    assert "`title` y `date`" in d and "sin buscar antes" in d and "no lo crees de nuevo" in d
+    assert "Nunca** resultados ni diagnósticos".replace("**", "") in d.replace("**", "")   # D52 sigue ahí
+
+
+def test_el_planner_dice_que_buscar_no_termina_el_turno():
+    """R9: la forma que ya funcionó en D43 (la regla, al final, justo antes de decidir)."""
+    from core.orchestrator import _planner_system
+    p = _plano(_planner_system())
+    frase = ("Buscar no termina el turno. Si el usuario pidió cambiar algo (una cita, su nota, un compromiso) y la "
+             "búsqueda lo encontró, llama en este mismo turno a la tool que lo cambia")
+    assert p.rstrip().endswith(frase + ".")                                   # al final, no en medio

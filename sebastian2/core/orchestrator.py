@@ -120,6 +120,15 @@ _REGLA_COMPROMISOS = (
 )
 
 
+# Fase 3 H3c (R9): E10 mostró al planner buscando la cita (`calendar_search_events`) y cerrando el turno sin llamar a la tool
+# que la cambia, y a Alfred contando como hecho lo que no se hizo (D54 cubre lo segundo). Mismo patrón que D43: al final,
+# justo antes de decidir.
+_REGLA_BUSCAR_NO_TERMINA = (
+    "\n\nBuscar no termina el turno. Si el usuario pidió cambiar algo (una cita, su nota, un compromiso) y la búsqueda lo "
+    "encontró, llama en este mismo turno a la tool que lo cambia."
+)
+
+
 def _planner_system(indice_memoria: str = "") -> str:
     """Return planner system prompt with today's date and current time injected.
 
@@ -144,6 +153,7 @@ def _planner_system(indice_memoria: str = "") -> str:
         + (f"\n\n{indice_memoria}" if indice_memoria else "")
         + _REGLA_ACCIONES_CON_HISTORIAL
         + _REGLA_COMPROMISOS
+        + _REGLA_BUSCAR_NO_TERMINA
     )
 
 # D26: regla de honestidad sobre el usuario (ver también _planner_system).
@@ -188,6 +198,37 @@ _TURNO_SIN_HERRAMIENTAS = (
     "[En este turno no se ha ejecutado ninguna herramienta: no has guardado, cambiado, borrado, apuntado ni creado nada. "
     "Si el usuario lo pidió, dile en llano que no lo has hecho y ofrécete a intentarlo.]"
 )
+
+
+# Fase 3 H3c (D54, extiende D44): D44 solo vigila el turno SIN ninguna tool. E10 enseñó el hueco de al lado: el planner busca
+# (`calendar_search_events`), cierra el turno, y Alfred contaba como hecho lo que no se hizo. Si todas las tools del turno son
+# de lectura, a Alfred se le dice. Dos conjuntos explícitos, y una prueba (`test_toda_tool_esta_clasificada_lectura_o_escritura`)
+# que obliga a clasificar toda tool nueva: ninguna se adivina por el nombre. `request_clarification` no cambia nada: va con las
+# de lectura (el orquestador la intercepta y el turno no llega a `_synthesize` con ella).
+_TOOLS_DE_LECTURA = frozenset({
+    "calendar_search_events", "calendar_list_events", "calendar_find_by_datetime", "calendar_get_tickets",
+    "weather_get", "weather_forecast", "weather_forecast_for_date",
+    "inventory_list", "inventory_check_low_stock", "list_items",
+    "notes_search", "notes_get", "tasks_list", "consult_docs", "search_memory",
+    "compromisos_listar", "request_clarification",
+})
+_TOOLS_DE_ESCRITURA = frozenset({
+    "calendar_add_event", "calendar_remove_event", "calendar_update_event", "calendar_clear_tickets", "calendar_add_note",
+    "inventory_add", "inventory_remove", "inventory_set_quantity", "inventory_update_quantity",
+    "list_add_item", "list_remove_item", "list_clear",
+    "notes_create", "notes_append", "notes_add_tag", "notes_remove_tag", "notes_delete",
+    "tasks_create", "tasks_complete", "mark_as_memorable", "youtube_transcript", "salud",
+    "compromisos_crear", "compromisos_completar", "compromisos_borrar",
+})
+
+
+def _nota_turno_solo_lectura(tool_results: list) -> str:
+    """La nota de D54, o '' si el turno escribió algo (o no corrió ninguna tool: eso es de D44)."""
+    nombres = list(dict.fromkeys(item["tool"] for item in tool_results))
+    if not nombres or any(n not in _TOOLS_DE_LECTURA for n in nombres):
+        return ""
+    return (f"[En este turno solo has consultado ({', '.join(nombres)}): no has guardado, cambiado, borrado, apuntado ni "
+            "creado nada. Si el usuario pedía un cambio, dile que no lo has hecho y ofrécete a hacerlo.]")
 
 
 class Orchestrator:
@@ -578,10 +619,13 @@ class Orchestrator:
                     f"{json.dumps(item['result'], default=str, ensure_ascii=False)}"
                 )
             context = "\n\n".join(context_lines)
+            nota = _nota_turno_solo_lectura(tool_results)          # D54: vacía si el turno escribió algo
+            bloque_nota = f"{nota}\n\n" if nota else ""
             synthesis_prompt = (
                 f"{_now_str()}\n"
                 f"El usuario preguntó: {user_message}\n\n"
                 f"Datos recogidos:\n{context}\n\n"
+                f"{bloque_nota}"
                 f"Responde al usuario en español, de forma concisa y útil."
             )
         else:

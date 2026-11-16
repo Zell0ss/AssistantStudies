@@ -126,6 +126,13 @@ def test_el_golden_67_pone_fecha_explicita_y_el_76_acepta_preguntar_en_texto():
     assert [] in _golden(76)["expected"] and _golden(76)["mode"] == "any_of"
 
 
+def test_h3c_el_golden_40_acepta_compromiso_o_pregunta_y_el_76_acepta_solo_buscar():
+    """H3-revision (segunda), §9, tal cual: #40 es compromiso, cita o pregunta por el día (lo único que falla es salud)."""
+    assert _golden(40)["expected"] == [["calendar_add_event"], [], ["compromisos_crear"], ["request_clarification"]]
+    assert _golden(40)["validates"] == "Fase 3: «recuérdame» es compromiso, cita o pregunta por el día; lo único que falla es salud"
+    assert ["calendar_search_events"] in _golden(76)["expected"]
+
+
 def test_el_golden_62_sigue_exacto_y_el_74_no_cambia_sus_listas():
     assert _golden(62)["mode"] == "exact" and _golden(62)["expected"] == ["mark_as_memorable"]
     assert [["compromisos_crear"], ["calendar_search_events", "compromisos_crear"],

@@ -276,7 +276,9 @@
   expected:
     - [calendar_add_event]
     - []
-  validates: "Fase 3 H3, negativa: recordatorio futuro, no una comida. Aceptado: lo que el planner hizo en el paso B (calendar_add_event) o nada; lo único que falla es llamar a salud"
+    - [compromisos_crear]
+    - [request_clarification]
+  validates: "Fase 3: «recuérdame» es compromiso, cita o pregunta por el día; lo único que falla es salud"
 
 - id: 41
   phrase: "busca una receta de lentejas"
@@ -578,4 +580,5 @@
     - [request_clarification]
     - [compromisos_crear]
     - [calendar_search_events, compromisos_crear]
+    - [calendar_search_events]
   validates: "Fase 3 (D52): un paso condicional se pregunta o se crea; nunca va a memoria ni a salud"

@@ -456,6 +456,57 @@ class TestAddNote:
         assert result['status'] == 'not_found'
 
 
+class TestAddNotePorTitulo:
+    """Fase 3 H3c (R8): `add_note` por título y día, como `update_event`; el `event_id` sigue mandando. Así el paso que más
+    fallaba en E10 (buscar y luego apuntar) se hace con una sola llamada."""
+
+    def test_add_note_por_id_sigue_igual_y_devuelve_el_id(self, cal):
+        eid = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")['event_id']
+        r = cal.add_note(event_id=eid, note_text="planta baja")
+        assert r['status'] == 'noted' and r['event_id'] == eid
+        assert cal.get_event_notes(eid)['note'] == 'planta baja'
+
+    def test_add_note_por_titulo_y_dia(self, cal):
+        eid = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")['event_id']
+        cal.add_event(title="Endoscopia", event_date=date(2027, 2, 4), event_time="09:30")
+        r = cal.add_note(note_text="acompaña Marta", title="endoscopia", event_date=date(2027, 1, 28))
+        assert r['status'] == 'noted' and r['event_id'] == eid
+        assert cal.get_event_notes(eid)['note'] == 'acompaña Marta'
+
+    def test_add_note_por_titulo_sin_dia_con_un_solo_evento(self, cal):
+        eid = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")['event_id']
+        assert cal.add_note(note_text="planta baja", title="Endoscopia")['event_id'] == eid
+
+    def test_add_note_ambiguo_devuelve_candidatos_y_no_escribe(self, cal):
+        a = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")['event_id']
+        b = cal.add_event(title="Endoscopia", event_date=date(2027, 2, 4), event_time="10:00")['event_id']
+        r = cal.add_note(note_text="planta baja", title="Endoscopia")
+        assert r['status'] == 'ambiguous'
+        assert {c['event_id'] for c in r['candidates']} == {a, b}
+        assert all({'event_id', 'title', 'date', 'time'} <= set(c) for c in r['candidates'])
+        assert cal.get_event_notes(a) is None and cal.get_event_notes(b) is None
+
+    def test_add_note_not_found_dice_que_no_lo_cree_de_nuevo(self, cal):
+        for kwargs in ({"title": "NoExiste"}, {"event_id": 999999999}, {}):
+            r = cal.add_note(note_text="x", **kwargs)
+            assert r['status'] == 'not_found'
+            assert "pregunta al usuario" in r['message'] and "no lo crees de nuevo" in r['message']
+
+    def test_add_note_de_otro_usuario_no_toca_nada(self, cal, db_conn):
+        eid = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")['event_id']
+        intruso = CalendarModule(db_conn, "test_user_calendar_otro")
+        por_id = intruso.add_note(event_id=eid, note_text="intruso")
+        por_titulo = intruso.add_note(note_text="intruso", title="Endoscopia", event_date=date(2027, 1, 28))
+        assert por_id['status'] == 'not_found' and por_titulo['status'] == 'not_found'
+        assert cal.get_event_notes(eid) is None
+
+    def test_el_id_manda_sobre_el_titulo(self, cal):
+        a = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")['event_id']
+        b = cal.add_event(title="Dentista", event_date=date(2027, 1, 28), event_time="12:00")['event_id']
+        assert cal.add_note(event_id=a, note_text="x", title="Dentista")['event_id'] == a
+        assert cal.get_event_notes(b) is None
+
+
 class TestFindByDatetime:
     def test_find_single_event_by_date_and_time(self, cal):
         """find_by_datetime() returns event dict for a matching single event."""

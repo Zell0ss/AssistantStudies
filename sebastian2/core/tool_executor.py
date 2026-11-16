@@ -193,7 +193,15 @@ class ToolExecutor:
 
     def _calendar_add_note(self, inputs: dict):
         module = CalendarModule(self._db, self._user_id)
-        return module.add_note(event_id=inputs['event_id'], note_text=inputs['note_text'])
+        # H3c R8: con `event_id`, la llamada es la de siempre; sin él, título y día (igual que `calendar_update_event`).
+        extra = {}
+        if inputs.get('event_id') is not None:
+            extra['event_id'] = inputs['event_id']
+        if inputs.get('title'):
+            extra['title'] = inputs['title']
+        if inputs.get('date'):
+            extra['event_date'] = date.fromisoformat(inputs['date'])
+        return module.add_note(note_text=inputs['note_text'], **extra)
 
     def _calendar_get_tickets(self, inputs: dict):
         module = CalendarModule(self._db, self._user_id)

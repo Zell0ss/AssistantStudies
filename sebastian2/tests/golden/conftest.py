@@ -85,6 +85,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         terminalreporter.write_line(f"  Real:      {r['actual']}")
         terminalreporter.write_line(f"  Valida:    {r['validates']}")
         terminalreporter.write_line(f"  Alfred:    {r['response_text'][:200]}")
+        for texto in r.get("planner_sin_tools", []):          # H3c R10: solo en el informe del test, nunca en el log (D42)
+            terminalreporter.write_line(f"  Planner sin tool: {texto[:400]!r}")
 
     passed_count = sum(1 for r in GOLDEN_RESULTS if r["passed"])
     total = len(GOLDEN_RESULTS)
@@ -318,6 +320,7 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
     """
     from unittest.mock import patch
 
+    from anthropic.resources.messages import Messages
     from openai.resources.embeddings import Embeddings
 
     from core.orchestrator import Orchestrator
@@ -362,7 +365,23 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
             USO.registrar_embeddings(getattr(getattr(respuesta, "usage", None), "total_tokens", 0))
             return respuesta
 
+        # H3c (R10): lo que dice el planner cuando cierra una llamada SIN tool_use (el modo «sin tool» de #50, #67 y E10).
+        # Solo se guarda en la respuesta del test, para el informe: nunca va al log (D42).
+        original_messages_create = Messages.create
+        planner_sin_tools = []
+
+        def capturando_planner(self, *args, **kwargs):
+            respuesta = original_messages_create(self, *args, **kwargs)
+            try:                                              # informativa: un fallo aquí nunca rompe una ejecución de pago
+                if kwargs.get("tools") and not any(getattr(b, "type", None) == "tool_use" for b in respuesta.content):
+                    planner_sin_tools.append(
+                        " ".join(b.text for b in respuesta.content if getattr(b, "type", None) == "text"))
+            except Exception:
+                pass
+            return respuesta
+
         with patch.object(Embeddings, "create", midiendo_embeddings), \
+             patch.object(Messages, "create", capturando_planner), \
              patch.object(ToolExecutor, "execute", recording_execute), \
              patch.object(Orchestrator, "_ask_user", recording_ask_user), \
              patch.object(Orchestrator, "_track_usage", midiendo_uso), \
@@ -370,6 +389,8 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
             orch = Orchestrator(test_db, user_id, config=config or config_por_defecto)
             response = orch.handle(phrase)
 
+        if isinstance(response, dict) and planner_sin_tools:
+            response["planner_sin_tools"] = planner_sin_tools
         return calls, response
 
     return _run

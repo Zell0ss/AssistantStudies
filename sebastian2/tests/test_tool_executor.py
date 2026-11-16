@@ -701,6 +701,16 @@ def test_youtube_transcript_usa_youtube_clippings_path_si_esta(mock_extraer, db,
     assert str(mock_extraer.call_args[0][3]) == str(tmp_path / "otros_clippings")
 
 
+@patch('modules.calendar.CalendarModule.add_note')
+def test_calendar_add_note_por_titulo_y_dia(mock_add_note, db):
+    """Fase 3 H3c (R8): sin `event_id`, el título y el día llegan al módulo; con id, la llamada es la de siempre."""
+    from datetime import date
+    mock_add_note.return_value = {'status': 'noted', 'note': 'x'}
+    from core.tool_executor import ToolExecutor
+    ToolExecutor(db, '99999').execute("calendar_add_note", {"title": "Endoscopia", "date": "2027-01-28", "note_text": "x"})
+    mock_add_note.assert_called_once_with(note_text="x", title="Endoscopia", event_date=date(2027, 1, 28))
+
+
 @patch('modules.calendar.CalendarModule.update_event')
 def test_calendar_update_event_pasa_event_id_y_no_exige_titulo(mock_update, db):
     """Fase 3 H3b (R2): el id llega al módulo; sin id, la llamada es la de siempre (prueba de arriba)."""

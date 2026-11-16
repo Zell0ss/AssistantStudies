@@ -513,24 +513,60 @@ class CalendarModule(BaseModule):
         logger.info(f"Cleared {count} ticket(s) from event {event_id}")
         return {'status': 'cleared', 'count': count}
 
-    def add_note(self, event_id: int, note_text: str) -> Dict[str, Any]:
+    def add_note(
+        self,
+        event_id: Optional[int] = None,
+        note_text: str = "",
+        title: Optional[str] = None,
+        event_date: Optional[date] = None,
+    ) -> Dict[str, Any]:
         """
         Store a free-text note on an event's notes JSON (key 'note').
 
         Args:
-            event_id: Event ID
+            event_id: Event ID. Si viene, manda sobre `title` y `event_date`.
             note_text: Text to store
+            title: (H3c R8) sin `event_id`, el evento se busca por título (sin mayúsculas) y, si viene, `event_date`.
+            event_date: Día del evento, para desambiguar.
 
         Returns:
-            Dict with status: 'noted' | 'not_found'
+            Dict with status: 'noted' (con `event_id`) | 'not_found' | 'ambiguous' (con `candidates`, sin escribir).
         """
-        cursor = self.execute_query(
-            "SELECT id, notes FROM events WHERE id = %s AND user_id = %s",
-            (event_id, self.user_id)
-        )
-        row = cursor.fetchone()
+        if event_id is not None:
+            cursor = self.execute_query(
+                "SELECT id, notes FROM events WHERE id = %s AND user_id = %s",
+                (event_id, self.user_id)
+            )
+            row = cursor.fetchone()
+            rotulo = f"con id {event_id}"
+        elif title:
+            consulta = ("SELECT id, title, event_date, start_datetime, notes FROM events "
+                        "WHERE user_id = %s AND LOWER(title) = LOWER(%s)")
+            params = [self.user_id, title]
+            if event_date:
+                consulta += " AND (DATE(start_datetime) = %s OR event_date = %s)"
+                params += [event_date, event_date]
+            filas = self.execute_query(consulta + " ORDER BY id", tuple(params)).fetchall()
+            if len(filas) > 1:
+                # Sin escribir: el modelo tiene que preguntar cuál (o repetir con `date`/`event_id`).
+                return {
+                    'status': 'ambiguous',
+                    'message': f"Hay {len(filas)} eventos '{title}': pregunta al usuario cuál, o repite con su día o su event_id",
+                    'candidates': [{
+                        'event_id': f['id'], 'title': f['title'],
+                        'date': (f['start_datetime'].date() if f['start_datetime'] else f['event_date']),
+                        'time': (f['start_datetime'].strftime('%H:%M') if f['start_datetime'] else None),
+                    } for f in filas],
+                }
+            row = filas[0] if filas else None
+            rotulo = f"'{title}'"
+        else:
+            row, rotulo = None, "sin id ni título"
         if not row:
-            return {'status': 'not_found', 'message': f"Evento {event_id} no encontrado"}
+            # Mismo texto que en `update_event` (R2): el modelo no debe responder a un not_found creando el evento.
+            return {'status': 'not_found',
+                    'message': f"No lo he encontrado ({rotulo}): pregunta al usuario, no lo crees de nuevo"}
+        event_id = row['id']
 
         notes = row['notes'] or {}
         if isinstance(notes, str):
@@ -543,7 +579,7 @@ class CalendarModule(BaseModule):
         )
         self.commit()
         logger.info(f"Added note to event {event_id}: {note_text[:60]}")
-        return {'status': 'noted', 'note': note_text}
+        return {'status': 'noted', 'note': note_text, 'event_id': event_id}
 
     def find_by_datetime(self, event_date: date, event_time: str) -> Optional[Dict[str, Any]]:
         """

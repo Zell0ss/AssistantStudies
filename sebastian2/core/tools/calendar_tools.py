@@ -216,25 +216,35 @@ CALENDAR_TOOLS = [
     {
         "name": "calendar_add_note",
         "description": (
-            "Añade una nota de texto libre a un evento existente (identificado por event_id). "
+            "Añade una nota de texto libre a un evento existente. "
             "Útil para apuntar 'llevar dinero', 'confirmar cita', etc. junto a un evento. "
             "También para los datos de una cita: lugar, planta, teléfono, código, quién acompaña. "
             "**Nunca** resultados ni diagnósticos. "
-            "Usa calendar_search_events o calendar_find_by_datetime primero para obtener el event_id."
+            "Identifica el evento por su `event_id` (de calendar_search_events) o, sin él, por `title` y `date`: "
+            "una sola llamada, sin buscar antes. Si dice que hay varios, pregunta al usuario cuál; si no lo ha "
+            "encontrado, pregunta: no lo crees de nuevo."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "event_id": {
                     "type": "integer",
-                    "description": "ID numérico del evento (obtenido con calendar_search_events)."
+                    "description": "ID numérico del evento (obtenido con calendar_search_events). Si viene, manda sobre el título."
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Título del evento (para identificarlo si no tienes el event_id). Ejemplo: 'Endoscopia'."
+                },
+                "date": {
+                    "type": "string",
+                    "description": "Día del evento YYYY-MM-DD (para desambiguar si hay varios con ese título)."
                 },
                 "note_text": {
                     "type": "string",
                     "description": "Texto de la nota a añadir al evento."
                 }
             },
-            "required": ["event_id", "note_text"]
+            "required": ["note_text"]
         }
     },
 ]
