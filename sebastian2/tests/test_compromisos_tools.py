@@ -68,6 +68,14 @@ def test_descripcion_de_borrar_distingue_olvidar_de_cancelar():
     assert "olvidar" in d and "cancelar" in d and "borra" in d
 
 
+def test_descripcion_de_crear_dice_que_el_dia_de_inicio_cuenta():
+    """H3c R10: en #67 («El lunes 14 de diciembre empiezo la dieta blanda, tres días») el planner preguntaba si acababa el
+    16 o el 17, 2 de 3 veces, aunque es claro. Sin esa pregunta no hay llamada y Alfred dice «no he podido registrar»."""
+    d = " ".join(_desc("compromisos_crear").split())
+    assert "«tres días desde el lunes 14» son el 14, el 15 y el 16" in d and "el día de inicio cuenta" in d
+    assert "no preguntes cuál es el último" in d
+
+
 def test_descripcion_de_borrar_manda_los_datos_a_mark_as_memorable():
     """H3b R6: sin esta frase, «Olvida lo de las camisetas UV» (golden #62) acababa en `search_memory`, porque
     «olvida ese compromiso» competía con el camino de borrado de la memoria. Aislado con A–E (informe, anexo)."""
