@@ -75,7 +75,10 @@ CALENDAR_TOOLS = [
             "Crea un nuevo evento en el calendario. "
             "Usa esta herramienta cuando el usuario quiera añadir una cita, recordatorio o evento. "
             "Si el usuario no da día y hora, no te los inventes: pregunta con `request_clarification`. "
-            'Un recordatorio sin hora ("recuérdame acostarme pronto") no es un evento.'
+            'Un recordatorio sin hora ("recuérdame acostarme pronto") no es un evento. '
+            "Busca antes si la cita ya existe con `calendar_search_events`: si el usuario habla de una cita que ya tiene "
+            "(para añadirle algo, moverla o ligar pasos a ella), no la crees otra vez. Si devuelve `exists`, usa ese "
+            "evento (su `event_id`), no lo crees de nuevo."
         ),
         "input_schema": {
             "type": "object",
@@ -86,7 +89,10 @@ CALENDAR_TOOLS = [
                 },
                 "date": {
                     "type": "string",
-                    "description": "Fecha en formato YYYY-MM-DD. Ejemplo: '2026-03-10'."
+                    "description": (
+                        "Fecha en formato YYYY-MM-DD. Ejemplo: '2026-03-10'. Si el usuario da solo día y mes, el año es "
+                        "el de la fecha de hoy, o el siguiente si ese día ya pasó."
+                    )
                 },
                 "time": {
                     "type": "string",
@@ -134,15 +140,21 @@ CALENDAR_TOOLS = [
         "name": "calendar_update_event",
         "description": (
             "Modifica un evento existente: cambia su título, fecha u hora. "
-            "Identifica el evento por su título actual (y opcionalmente fecha). "
-            "Proporciona solo los campos que cambien."
+            "Busca antes el evento con `calendar_search_events` y pasa su `event_id`: es lo más seguro. "
+            "Sin id, se identifica por su título actual (y opcionalmente fecha). "
+            "Proporciona solo los campos que cambien. "
+            "Si dice que no lo ha encontrado, pregunta al usuario: no lo crees de nuevo con `calendar_add_event`."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
+                "event_id": {
+                    "type": "integer",
+                    "description": "ID del evento (de calendar_search_events). Si viene, manda sobre el título."
+                },
                 "title": {
                     "type": "string",
-                    "description": "Título actual del evento (para identificarlo)."
+                    "description": "Título actual del evento (para identificarlo si no tienes el event_id)."
                 },
                 "date": {
                     "type": "string",
@@ -154,14 +166,16 @@ CALENDAR_TOOLS = [
                 },
                 "new_date": {
                     "type": "string",
-                    "description": "Nueva fecha YYYY-MM-DD (si se cambia)."
+                    "description": (
+                        "Nueva fecha YYYY-MM-DD (si se cambia). Si el usuario da solo el día («al 29»), el mes y el "
+                        "año son los de la fecha actual del evento, salvo que diga otros."
+                    )
                 },
                 "new_time": {
                     "type": "string",
                     "description": "Nueva hora HH:MM (si se cambia)."
                 }
-            },
-            "required": ["title"]
+            }
         }
     },
     {

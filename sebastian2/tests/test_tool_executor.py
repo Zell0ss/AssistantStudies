@@ -699,3 +699,15 @@ def test_youtube_transcript_usa_youtube_clippings_path_si_esta(mock_extraer, db,
     config = {**youtube_config, 'youtube_clippings_path': str(tmp_path / "otros_clippings")}
     ToolExecutor(db, '99999', config=config).execute("youtube_transcript", {"url": "u", "idioma": "es"})
     assert str(mock_extraer.call_args[0][3]) == str(tmp_path / "otros_clippings")
+
+
+@patch('modules.calendar.CalendarModule.update_event')
+def test_calendar_update_event_pasa_event_id_y_no_exige_titulo(mock_update, db):
+    """Fase 3 H3b (R2): el id llega al módulo; sin id, la llamada es la de siempre (prueba de arriba)."""
+    from datetime import date
+    mock_update.return_value = {'status': 'updated', 'message': 'Actualizado'}
+    from core.tool_executor import ToolExecutor
+    ToolExecutor(db, '99999').execute("calendar_update_event", {"event_id": 7, "new_date": "2027-01-29"})
+    mock_update.assert_called_once_with(
+        title=None, event_date=None, new_title=None, new_date=date(2027, 1, 29), new_time=None, event_id=7,
+    )

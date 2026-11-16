@@ -222,6 +222,16 @@ def test_evento_movido_mueve_compromisos(comp, cal, cita):
     assert antes["2.ª toma del preparado"]["cuando"] == "2026-12-17T01:00"            # y el día 17 ya no lo tiene
 
 
+def test_evento_movido_por_id_mueve_compromisos(comp, cal, cita):
+    """Fase 3 H3b (R2): lo mismo que arriba, pero identificando el evento por `event_id` (título equivocado a propósito)."""
+    comp.crear(_caso(cita))
+    assert cal.update_event(title="Colonoscopia", event_id=cita, new_date=date(2026, 12, 18))["status"] == "updated"
+    despues = {c["texto"]: c for c in comp.listar(desde="2026-12-01", hasta="2026-12-31")["compromisos"]}
+    assert len(despues) == 5
+    assert despues["1.ª toma del preparado"]["cuando"] == "2026-12-17T21:00"
+    assert despues["2.ª toma del preparado"]["cuando"] == "2026-12-18T01:00"
+
+
 def test_evento_movido_de_hora_mueve_los_relativos_a_la_hora(comp, cal, cita):
     comp.crear([{"texto": "Fin de líquidos", "evento_id": cita, "minutos": -180}])
     cal.update_event("Endoscopia", new_time="11:00")

@@ -180,13 +180,15 @@ class ToolExecutor:
         module = CalendarModule(self._db, self._user_id)
         event_date = date.fromisoformat(inputs['date']) if inputs.get('date') else None
         new_date = date.fromisoformat(inputs['new_date']) if inputs.get('new_date') else None
+        extra = {'event_id': inputs['event_id']} if inputs.get('event_id') is not None else {}   # H3b R2: el id manda
         return module.update_event(
-            title=inputs['title'],
+            title=inputs.get('title'),
             event_date=event_date,
             new_title=inputs.get('new_title'),
             new_date=new_date,
             new_time=inputs.get('new_time'),
             # new_all_day not exposed to agent in v2
+            **extra,
         )
 
     def _calendar_add_note(self, inputs: dict):

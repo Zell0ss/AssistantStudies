@@ -50,12 +50,32 @@ class CalendarModule(BaseModule):
             recurrence_end: Date when recurrence ends (None = forever)
 
         Returns:
-            Dict with status ('added') and message
+            Dict with status ('added') and message; o `status: 'exists'` con `event_id`, `time` y `message` si el usuario
+            ya tiene un evento ese mismo día con ese mismo título (H3b R3, sin distinguir mayúsculas).
         """
         start_datetime = None
         if event_date and event_time and not all_day:
             h, m = map(int, event_time.split(':'))
             start_datetime = datetime.combine(event_date, time(h, m))
+
+        # Fase 3 H3b (R3): crear no duplica. Solo mismo día y mismo título: nada difuso (lo difuso, a la fase 4 si el uso lo pide).
+        if event_date:
+            existente = self.execute_query(
+                """SELECT id, start_datetime FROM events
+                   WHERE user_id = %s AND LOWER(title) = LOWER(%s)
+                   AND (DATE(start_datetime) = %s OR event_date = %s)
+                   ORDER BY id LIMIT 1""",
+                (self.user_id, title, event_date, event_date)
+            ).fetchone()
+            if existente:
+                hora = existente['start_datetime'].strftime('%H:%M') if existente['start_datetime'] else None
+                logger.info(f"Event '{title}' already exists for user {self.user_id}: id={existente['id']}")
+                return {
+                    'status': 'exists',
+                    'message': f"Ya existe el evento '{title}' ese día: usa ese evento, no lo crees de nuevo",
+                    'event_id': existente['id'],
+                    'time': hora,
+                }
 
         query = """
             INSERT INTO events
@@ -159,12 +179,13 @@ class CalendarModule(BaseModule):
 
     def update_event(
         self,
-        title: str,
+        title: Optional[str] = None,
         event_date: Optional[date] = None,
         new_title: Optional[str] = None,
         new_date: Optional[date] = None,
         new_time: Optional[str] = None,
         new_all_day: Optional[bool] = None,
+        event_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Update fields of an existing event (or all occurrences of a recurring event).
@@ -176,11 +197,20 @@ class CalendarModule(BaseModule):
             new_date: Change the event date
             new_time: Change the event time as "HH:MM"
             new_all_day: Change the all-day flag
+            event_id: (H3b R2) el evento por su id; si viene, manda sobre `title` y `event_date`. Solo del propio usuario.
 
         Returns:
             Dict with status: 'updated' | 'not_found'
         """
-        if event_date:
+        if event_id is not None:
+            cursor = self.execute_query(
+                """SELECT id, title, event_date, start_datetime, all_day, recurrence_rule
+                   FROM events WHERE user_id = %s AND id = %s""",
+                (self.user_id, event_id)
+            )
+        elif not title:
+            cursor = None
+        elif event_date:
             cursor = self.execute_query(
                 """SELECT id, title, event_date, start_datetime, all_day, recurrence_rule
                    FROM events
@@ -195,9 +225,13 @@ class CalendarModule(BaseModule):
                 (self.user_id, title)
             )
 
-        rows = cursor.fetchall()
+        rows = cursor.fetchall() if cursor is not None else []
         if not rows:
-            return {'status': 'not_found', 'message': f"No encontré ningún evento llamado '{title}'"}
+            # H3b R2: el modelo no debe responder a un not_found creando el evento otra vez (E10, ejecución 3).
+            nombre = title if event_id is None else f"con id {event_id}"
+            return {'status': 'not_found',
+                    'message': f"No lo he encontrado ({nombre}): pregunta al usuario, no lo crees de nuevo"}
+        title = title or rows[0]['title']
 
         for row in rows:
             set_parts = ['updated_at = CURRENT_TIMESTAMP']

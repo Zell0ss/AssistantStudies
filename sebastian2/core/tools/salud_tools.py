@@ -12,8 +12,8 @@ SALUD_TOOLS = [
         "description": (
             "Registra lo que el usuario cuenta de su salud diaria: cómo ha dormido, lo que ha comido "
             "o picoteado, y si tiene hambre o está lleno; aunque lo diga con jerga o telegráfico. "
-            "Solo lo que ya pasó o siente ahora.Varias cosas de salud en un "
-            "mensaje son UNA llamada, con el texto entero; si pide algo más, llama también a"
+            "Solo lo que ya pasó o siente ahora. Varias cosas de salud en un "
+            "mensaje son UNA llamada, con el texto entero; si pide algo más, llama también a "
             "esa tool. NO es para recordatorios, compras, recetas, menús ni resultados de pruebas médicas "
             "(D52: no se guardan). Esta tool ya "
             "lo guarda: no lo repitas en notas ni en la memoria."

@@ -32,3 +32,58 @@ def test_el_golden_28_admite_ninguna_nota_o_aclaracion_y_cita_el_cambio():
     # El comentario que cita el cambio (del arquitecto, H4-revision) está justo encima del golden, sin otro golden por medio.
     cita = texto.index("H4-revision §2.2")
     assert "arquitecto" in texto[cita - 80:cita + 40] and "- id:" not in texto[cita:texto.index("- id: 28")]
+
+
+# --- Fase 3 H3b (R2, R3, R4, R5): mover por id, crear sin duplicar, el año y un intervalo es un compromiso. Sin API. ---
+
+def _tool(nombre):
+    return next(t for t in ALL_TOOLS if t["name"] == nombre)
+
+
+def _plano(texto):
+    return " ".join(texto.split())
+
+
+def test_update_event_admite_event_id_y_manda_buscar_antes():
+    t = _tool("calendar_update_event")
+    props = t["input_schema"]["properties"]
+    assert props["event_id"]["type"] == "integer"
+    assert "title" not in t["input_schema"].get("required", [])          # el id basta
+    d = _plano(t["description"])
+    assert "calendar_search_events" in d and "`event_id`" in d
+    assert "no lo crees de nuevo" in d.lower() or "no lo crees" in d.lower()
+
+
+def test_update_event_dice_que_mes_y_ano_toma_si_solo_dan_el_dia():
+    d = _plano(_tool("calendar_update_event")["input_schema"]["properties"]["new_date"]["description"])
+    assert "al 29" in d and "mes y el año" in d and "fecha actual del evento" in d
+
+
+def test_add_event_manda_buscar_antes_y_usar_el_existente():
+    d = _plano(_tool("calendar_add_event")["description"])
+    assert "Busca antes si la cita ya existe" in d and "calendar_search_events" in d
+    assert "exists" in d and "usa ese evento" in d.lower()
+
+
+def test_add_event_dice_que_ano_toma_si_solo_dan_dia_y_mes():
+    d = _plano(_tool("calendar_add_event")["input_schema"]["properties"]["date"]["description"])
+    assert "año" in d.lower() and "fecha de hoy" in d.lower()
+
+
+def test_compromisos_crear_un_intervalo_es_un_solo_compromiso():
+    d = _plano(_tool("compromisos_crear")["description"])
+    assert "un solo compromiso" in d and "dias_inicio" in d and "dias_fin" in d
+
+
+def test_salud_sin_palabras_pegadas():
+    d = _tool("salud")["description"]
+    assert "ahora.Varias" not in d and "llama a" + "esa" not in d
+    assert "ahora. Varias" in d and "llama también a esa tool" in d
+    assert len(d) <= 500                                                 # el tope de test_salud_tools
+
+
+def test_alfred_no_ofrece_guardar_resultados_medicos():
+    from core.orchestrator import _ALFRED_SYSTEM
+    t = _plano(_ALFRED_SYSTEM)
+    assert ("Si el usuario cuenta un resultado o un diagnóstico médico, no ofrezcas guardarlo: "
+            "Sebastian no los guarda") in t

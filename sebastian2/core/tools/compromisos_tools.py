@@ -19,7 +19,8 @@ COMPROMISOS_TOOLS = [
             "y desfases (`dias_inicio`, `minutos`) en vez de fechas, para que se muevan con la cita: busca antes el "
             "evento con `calendar_search_events` o `calendar_find_by_datetime`. Sin cita, usa `fecha_inicio` (y "
             "`fecha_fin` si dura varios días). Devuelve cada compromiso con su momento ya calculado: repítelo al "
-            "usuario con esas fechas. **No para citas** (eso es `calendar_add_event`), **ni para datos** (eso es "
+            "usuario con esas fechas. Un intervalo («tres días antes y hasta la víspera») es **un solo compromiso** con "
+            "`dias_inicio` y `dias_fin`, no uno por día ni uno de «empezar» y otro de «mantener». **No para citas** (eso es `calendar_add_event`), **ni para datos** (eso es "
             "`mark_as_memorable`), **ni para registros de salud** (eso es `salud`). Si un paso depende de algo que no "
             'sabes ("si toma zinc"), pregunta antes con `request_clarification`; si no aplica, no lo crees.'
         ),

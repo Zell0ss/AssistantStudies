@@ -68,6 +68,46 @@ class TestAddEvent:
         assert result['status'] == 'added'
 
 
+def _cuantos(cal, titulo):
+    cur = cal.db.cursor()
+    cur.execute("SELECT COUNT(*) AS n FROM events WHERE user_id = %s AND LOWER(title) = LOWER(%s)", (cal.user_id, titulo))
+    return cur.fetchone()["n"]
+
+
+class TestAddEventNoDuplica:
+    """Fase 3 H3b (R3): el mismo día y el mismo título (sin distinguir mayúsculas) no se inserta dos veces."""
+
+    def test_add_event_mismo_dia_y_titulo_devuelve_existente(self, cal):
+        primero = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")
+        segundo = cal.add_event(title="endoscopia", event_date=date(2027, 1, 28), event_time="10:00")
+        assert primero['status'] == 'added'
+        assert segundo['status'] == 'exists'
+        assert segundo['event_id'] == primero['event_id']
+        assert segundo['time'] == '09:30'                       # la hora del que ya existía, no la de la segunda petición
+        assert _cuantos(cal, "Endoscopia") == 1
+
+    def test_add_event_otro_dia_o_otro_titulo_si_inserta(self, cal):
+        base = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")
+        otro_dia = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 29), event_time="09:30")
+        otro_titulo = cal.add_event(title="Endoscopia de control", event_date=date(2027, 1, 28), event_time="09:30")
+        assert {otro_dia['status'], otro_titulo['status']} == {'added'}
+        assert len({base['event_id'], otro_dia['event_id'], otro_titulo['event_id']}) == 3
+
+    def test_add_event_de_otro_usuario_no_cuenta_como_existente(self, cal, db_conn):
+        cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")
+        otro = CalendarModule(db_conn, "test_user_calendar_otro")
+        try:
+            assert otro.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")['status'] == 'added'
+        finally:
+            db_conn.cursor().execute("DELETE FROM events WHERE user_id = %s", ("test_user_calendar_otro",))
+            db_conn.commit()
+
+    def test_add_event_de_todo_el_dia_tambien_se_reconoce(self, cal):
+        a = cal.add_event(title="Cumpleaños Rebe", event_date=date(2026, 3, 15), all_day=True)
+        b = cal.add_event(title="cumpleaños rebe", event_date=date(2026, 3, 15), all_day=True)
+        assert b['status'] == 'exists' and b['event_id'] == a['event_id'] and b['time'] is None
+
+
 class TestRemoveEvent:
     def test_remove_existing_event(self, cal):
         cal.add_event(title="Dentista", event_date=date(2026, 3, 10), event_time="17:00")
@@ -314,6 +354,35 @@ class TestUpdateEvent:
         """Updating a non-existent event returns not_found."""
         result = cal.update_event(title="NoExiste", new_time="10:00")
         assert result['status'] == 'not_found'
+
+    def test_update_event_por_id(self, cal):
+        """Fase 3 H3b (R2): con `event_id` no hace falta acertar el título, y el id manda si vienen los dos."""
+        cita = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")["event_id"]
+        otra = cal.add_event(title="Dentista", event_date=date(2027, 1, 28), event_time="12:00")["event_id"]
+        result = cal.update_event(title="Dentista", event_id=cita, new_date=date(2027, 1, 29))
+        assert result['status'] == 'updated'
+        fechas = {e['title']: e['date'] for e in cal.search_events("") if e['title'] in ("Endoscopia", "Dentista")}
+        assert fechas == {"Endoscopia": date(2027, 1, 29), "Dentista": date(2027, 1, 28)}
+        assert otra != cita
+
+    def test_update_event_por_id_sin_titulo(self, cal):
+        cita = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")["event_id"]
+        assert cal.update_event(event_id=cita, new_time="10:15")['status'] == 'updated'
+        assert cal.search_events("Endoscopia")[0]['time'] == '10:15'
+
+    def test_update_event_por_id_de_otro_usuario_no_toca_nada(self, cal, db_conn):
+        cita = cal.add_event(title="Endoscopia", event_date=date(2027, 1, 28), event_time="09:30")["event_id"]
+        intruso = CalendarModule(db_conn, "test_user_calendar_otro")
+        result = intruso.update_event(event_id=cita, new_date=date(2027, 2, 2), new_title="Otra cosa")
+        assert result['status'] == 'not_found'
+        ev = cal.search_events("Endoscopia")
+        assert len(ev) == 1 and ev[0]['date'] == date(2027, 1, 28) and ev[0]['time'] == '09:30'
+
+    def test_update_not_found_dice_que_no_lo_cree_de_nuevo(self, cal):
+        for kwargs in ({"title": "NoExiste"}, {"event_id": 999999999}, {}):
+            result = cal.update_event(new_time="10:00", **kwargs)
+            assert result['status'] == 'not_found'
+            assert "pregunta al usuario" in result['message'] and "no lo crees de nuevo" in result['message']
 
     def test_update_time_and_title_together(self, cal):
         """Update both time and title in one call."""
