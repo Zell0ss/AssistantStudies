@@ -6,6 +6,7 @@ import json
 from datetime import date, datetime, time
 from typing import Optional, List, Dict, Any
 from modules.base import BaseModule
+from modules.compromisos import CompromisosModule
 from logcentral_client import get_logger
 
 logger = get_logger("sebastian")
@@ -130,6 +131,8 @@ class CalendarModule(BaseModule):
         # Delete all matched rows
         ids = [r['id'] for r in rows]
         placeholders = ', '.join(['%s'] * len(ids))
+        # D50: los compromisos atados a estos eventos se cancelan en la misma transacción que el borrado.
+        CompromisosModule(self.db, self.user_id).cancelar_por_eventos_borrados(ids)
         self.execute_query(
             f"DELETE FROM events WHERE id IN ({placeholders})",
             tuple(ids)
@@ -141,6 +144,8 @@ class CalendarModule(BaseModule):
 
     def remove_event_by_id(self, event_id: int) -> bool:
         """Remove a specific event by ID."""
+        # D50: sus compromisos pendientes se cancelan antes (la FK no lleva ON DELETE), en la misma transacción.
+        CompromisosModule(self.db, self.user_id).cancelar_por_eventos_borrados([event_id])
         cursor = self.execute_query(
             "DELETE FROM events WHERE id = %s AND user_id = %s",
             (event_id, self.user_id)
