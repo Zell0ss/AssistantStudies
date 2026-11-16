@@ -9,12 +9,13 @@ Pasa si pasa 3 de 3 (PLAN §3 H3.2). Se lanza con:
 """
 import json
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 
 from bot.scheduler import armar_resumen
-from tests.golden.conftest import GOLDEN_USER_ID
-from tests.golden.memoria_base import exigir_bd_de_test
+from core.tool_executor import ToolExecutor
+from tests.golden.memoria_base import USUARIO_B, exigir_bd_de_test
 from tests.golden.test_escenarios_memoria import _correr, _registrar
 
 CITA = "Tengo la endoscopia el jueves 28 de enero a las 9:30"
@@ -32,11 +33,13 @@ MENOS_3_VIEJO = datetime(2027, 1, 25, 8, 0)    # tres días antes del 28, que ya
 
 
 def _limpiar_agenda(db):
-    """Compromisos primero (la FK a events no lleva ON DELETE) y luego los eventos del usuario de goldens."""
+    """Compromisos primero (la FK a events no lleva ON DELETE) y luego los eventos del usuario B. E10 va con el usuario B
+    y no con el de goldens: este comparte agenda con la fixture de sesión («teatro»), y `_historial_limpio` ya limpia
+    la conversación y la memoria del B."""
     exigir_bd_de_test(db)
     cur = db.cursor()
-    cur.execute("DELETE FROM compromisos WHERE user_id = %s", (GOLDEN_USER_ID,))
-    cur.execute("DELETE FROM events WHERE user_id = %s", (GOLDEN_USER_ID,))
+    cur.execute("DELETE FROM compromisos WHERE user_id = %s", (USUARIO_B,))
+    cur.execute("DELETE FROM events WHERE user_id = %s", (USUARIO_B,))
     db.commit()
 
 
@@ -50,7 +53,7 @@ def agenda_limpia(test_db):
 def _eventos(db):
     db.commit()   # REPEATABLE READ: sin esto no se ve lo que confirmó la conexión del orquestador
     cur = db.cursor()
-    cur.execute("SELECT id, title, event_date, start_datetime, notes FROM events WHERE user_id = %s", (GOLDEN_USER_ID,))
+    cur.execute("SELECT id, title, event_date, start_datetime, notes FROM events WHERE user_id = %s", (USUARIO_B,))
     return cur.fetchall()
 
 
@@ -58,7 +61,7 @@ def _compromisos(db):
     db.commit()
     cur = db.cursor()
     cur.execute("SELECT id, texto, evento_id, fecha_inicio, dias_inicio, dias_fin, hora, minutos, estado "
-                "FROM compromisos WHERE user_id = %s ORDER BY id", (GOLDEN_USER_ID,))
+                "FROM compromisos WHERE user_id = %s ORDER BY id", (USUARIO_B,))
     return cur.fetchall()
 
 
@@ -80,10 +83,10 @@ def _filas_con_gota(db):
     db.commit()
     cur = db.cursor()
     cur.execute("SELECT COUNT(*) AS n FROM mem_fuentes WHERE user_id = %s AND (texto LIKE %s OR mensaje LIKE %s)",
-                (GOLDEN_USER_ID, "%gota%", "%gota%"))
+                (USUARIO_B, "%gota%", "%gota%"))
     en_memoria = cur.fetchone()["n"]
     cur.execute("SELECT COUNT(*) AS n FROM mem_hechos WHERE user_id = %s AND (valor LIKE %s OR valor LIKE %s)",
-                (GOLDEN_USER_ID, "%gota%", "%positivo%"))
+                (USUARIO_B, "%gota%", "%positivo%"))
     en_hechos = cur.fetchone()["n"]
     en_compromisos = [c for c in _compromisos(db) if "gota" in c["texto"].lower()]
     en_notas = [e for e in _eventos(db) if e["notes"] and "gota" in json.dumps(e["notes"], ensure_ascii=False).lower()]
@@ -92,10 +95,29 @@ def _filas_con_gota(db):
 
 @pytest.mark.golden
 def test_E10_preparacion_de_una_prueba_medica(escenario_runner, test_db, agenda_limpia):
-    turnos = _correr(escenario_runner, [CITA, PREPARACION, LUGAR, RESULTADO, CAMBIO])
+    # H3b (H3-revision §4): se anotan las entradas de cada tool para ver si el `calendar_update_event` del turno 5 lleva
+    # `event_id` (R2). Es informativo: no hace fallar la prueba.
+    llamadas, original = [], ToolExecutor.execute
+
+    def registrando(self, nombre, entrada):
+        llamadas.append((nombre, dict(entrada)))
+        return original(self, nombre, entrada)
+
+    turnos, por_turno = [], []
+    with patch.object(ToolExecutor, "execute", registrando):
+        for frase in (CITA, PREPARACION, LUGAR, RESULTADO, CAMBIO):
+            antes = len(llamadas)
+            turnos += _correr(escenario_runner, [frase], user_id=USUARIO_B)
+            por_turno.append(llamadas[antes:])
     eventos, compromisos = _eventos(test_db), _compromisos(test_db)
+    cambios = [entrada for nombre, entrada in por_turno[4] if nombre == "calendar_update_event"]
+    if not cambios:
+        r2 = "turno 5: ninguna llamada a calendar_update_event"
+    else:
+        r2 = "turno 5: calendar_update_event " + ("CON event_id" if all("event_id" in c for c in cambios) else
+                                                  "SIN event_id") + f" ({len(cambios)} llamada(s))"
     _registrar("E10", "Preparación de una endoscopia (cita, pasos atados, lugar, resultado, cambio de día)", turnos,
-               _bd(eventos, compromisos))
+               _bd(eventos, compromisos) + [r2])
 
     # 1. La cita se creó una sola vez, el jueves 28 a las 9:30, y luego se movió al 29 a la misma hora.
     assert len(eventos) == 1, f"se esperaba 1 evento (la endoscopia), hay {len(eventos)}"
@@ -123,8 +145,8 @@ def test_E10_preparacion_de_una_prueba_medica(escenario_runner, test_db, agenda_
     # 5. Con la cita movida, los compromisos siguen siendo los mismos (no se recrearon) y se mueven con ella.
     #    Tres días antes del 29 (el 26) la dieta aparece en el resumen; tres días antes del 28 (el 25), no.
     conn = test_db
-    resumen_nuevo = armar_resumen(GOLDEN_USER_ID, MENOS_3_NUEVO, conn=conn)
-    resumen_viejo = armar_resumen(GOLDEN_USER_ID, MENOS_3_VIEJO, conn=conn)
+    resumen_nuevo = armar_resumen(USUARIO_B, MENOS_3_NUEVO, conn=conn)
+    resumen_viejo = armar_resumen(USUARIO_B, MENOS_3_VIEJO, conn=conn)
     RESULTADOS_RESUMEN = [f"resumen del 26/01 (día −3 de la fecha nueva): {resumen_nuevo!r}",
                           f"resumen del 25/01 (día −3 de la fecha vieja): {resumen_viejo!r}"]
     _registrar("E10b", "Resúmenes tras el cambio de día", [], RESULTADOS_RESUMEN)

@@ -472,7 +472,7 @@
 
 # Fase 3 (D45, D49, D50, D52). Normativos; su línea base va solo con -k.
 - id: 67
-  phrase: "El lunes empiezo la dieta blanda, tres días"
+  phrase: "El lunes 14 de diciembre empiezo la dieta blanda, tres días"
   mode: exact
   expected: [compromisos_crear]
   validates: "Fase 3 (D45): una cosa que hacer con fecha es compromiso, no cita ni memoria"
@@ -481,6 +481,9 @@
   phrase: "Para la endoscopia: la víspera a las 21:00 la primera toma y el mismo día a la una la segunda"
   historia:
     - {user: "Tengo la endoscopia el 28 de enero a las 9:30", bot: "Apuntado en tu calendario: endoscopia, jueves 28 de enero a las 9:30."}
+  estado:
+    eventos:
+      - {titulo: "Endoscopia", fecha: "2027-01-28", hora: "09:30"}
   mode: any_of
   expected:
     - [compromisos_crear]
@@ -492,6 +495,9 @@
   phrase: "En la endoscopia me acompaña Marta y es en la planta baja del Hospital Ejemplo"
   historia:
     - {user: "Tengo la endoscopia el 28 de enero a las 9:30", bot: "Apuntado en tu calendario: endoscopia, jueves 28 de enero a las 9:30."}
+  estado:
+    eventos:
+      - {titulo: "Endoscopia", fecha: "2027-01-28", hora: "09:30"}
   mode: any_of
   expected:
     - [calendar_add_note]
@@ -512,6 +518,11 @@
   phrase: "Ya he hecho la primera toma"
   historia:
     - {user: "¿Qué me toca hoy?", bot: "Hoy: solo líquidos claros, y a las 21:00 la primera toma del preparado."}
+  estado:
+    eventos:
+      - {titulo: "Endoscopia", fecha: "manana", hora: "09:30"}
+    compromisos:
+      - {texto: "Primera toma del preparado", dias_inicio: -1, hora: "21:00"}
   mode: any_of
   expected:
     - [compromisos_completar]
@@ -520,6 +531,9 @@
 
 - id: 72
   phrase: "Me han cambiado la endoscopia al 29 a la misma hora"
+  estado:
+    eventos:
+      - {titulo: "Endoscopia", fecha: "2027-01-28", hora: "09:30"}
   mode: any_of
   expected:
     - [calendar_update_event]
@@ -538,6 +552,9 @@
 
 - id: 74
   phrase: "Recuérdame que en la endoscopia tengo que decir que soy alérgico al látex"
+  estado:
+    eventos:
+      - {titulo: "Endoscopia", fecha: "2027-01-28", hora: "09:30"}
   mode: any_of
   expected:
     - [compromisos_crear]
@@ -557,6 +574,7 @@
   phrase: "Si tomo zinc tengo que dejarlo 7 días antes de la endoscopia"
   mode: any_of
   expected:
+    - []
     - [request_clarification]
     - [compromisos_crear]
     - [calendar_search_events, compromisos_crear]

@@ -46,7 +46,7 @@ def _fmt_expected(mode: str, expected) -> str:
 @pytest.mark.golden
 @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
 def test_golden(golden, orchestrator_runner):
-    actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"))
+    actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"), estado=golden.get("estado"))
     passed = _matches(actual, golden["mode"], golden["expected"])
     response_text = response.get("text", "") if isinstance(response, dict) else str(response)
 

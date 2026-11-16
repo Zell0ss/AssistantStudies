@@ -19,6 +19,7 @@ import pymysql
 import pytest
 
 from tests.golden.aislamiento import neutralizar_servicios_externos
+from tests.golden.estado import limpiar_agenda, limpiar_sembrado, sembrar_estado
 from tests.golden.memoria_base import (
     USUARIO_B, limpiar_atributos_de_conversacion, limpiar_memoria, sembrar_memoria_base,
 )
@@ -272,7 +273,13 @@ def _historial_limpio(request, test_db):
     # Fase 2: lo que mark_as_memorable escribió en un golden anterior (hechos, decisiones, entidades de los
     # usuarios de goldens) no puede condicionar al siguiente. Los atributos creados se quedan: son catálogo.
     limpiar_memoria(test_db, GOLDEN_USER_ID, USUARIO_B)
+    # H3b: el estado sembrado por un golden no condiciona al siguiente. Del usuario de goldens solo se borra lo sembrado
+    # (el «teatro» de `golden_fixtures` es de sesión); la agenda del usuario B (E10) se vacía entera.
+    limpiar_sembrado(test_db)
+    limpiar_agenda(test_db, USUARIO_B)
     yield
+    limpiar_sembrado(test_db)
+    limpiar_agenda(test_db, USUARIO_B)
     # Y también al terminar: lo que deja un golden (entidades del usuario de goldens) no puede ver el siguiente
     # `pytest` sin API, cuyas pruebas del catálogo cuentan entidades en toda la BD de test.
     limpiar_memoria(test_db, GOLDEN_USER_ID, USUARIO_B)
@@ -317,10 +324,13 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
     from core.tool_executor import ToolExecutor
     from tests.golden.uso import USO
 
-    def _run(phrase: str, historia: list | None = None, *, user_id: str | None = None, config: dict | None = None):
+    def _run(phrase: str, historia: list | None = None, *, user_id: str | None = None, config: dict | None = None,
+             estado: dict | None = None):
         user_id = user_id or user_id_por_defecto
         if historia:
             sembrar_historia(test_db, user_id, historia)
+        if estado:                                        # H3b: los eventos y compromisos que la historia da por hechos
+            sembrar_estado(test_db, user_id, estado)
         calls = []
         original_execute = ToolExecutor.execute
         original_ask_user = Orchestrator._ask_user
