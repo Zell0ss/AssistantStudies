@@ -278,3 +278,107 @@ sudo systemctl start sebastian.service
 
 La colección `sebastian_memory` (Sprint 3) **no se borra** en esta fase, así que el bot viejo sigue teniendo sus recuerdos.
 Lo que hayas pedido olvidar con el bot nuevo ya no se puede recuperar (D42 borra el texto): no es un fallo de la vuelta atrás.
+
+---
+
+## Fase 3 — Prospectiva: Sebastian habla primero (D45–D54)
+
+**Qué cambia al terminar:** Sebastian guarda **compromisos** (cosas que tienes que hacer un día o a una hora, sueltas o atadas a
+una cita, como los pasos de preparar una prueba médica) y **te escribe él primero**: un resumen a las 08:00 con lo de hoy y
+un aviso por Telegram a la hora de cada compromiso con hora (incluida la madrugada, D48). Cuatro tools nuevas
+(`compromisos_crear`, `_listar`, `_completar`, `_borrar`) y una tabla nueva, `compromisos` (migración 013). Si una cita se
+mueve, sus compromisos se mueven con ella (D50); crear uno que ya existe pendiente para esa cita no lo duplica (R13).
+
+**Qué NO cambia:** las unidades systemd, el `config.yaml` y Qdrant. La migración **solo crea una tabla**: no toca ninguna
+existente, así que el código anterior sigue funcionando con ella puesta.
+
+**Rutas:** `/data/AssistantStudies` (producción, siempre en `main`) y `/data/AssistantStudies-fase3` (worktree de la rama
+`fase-3`). Hasta el paso 2, el código nuevo solo está en el worktree: por eso el paso 1 se lanza desde allí.
+
+**Gasto:** ninguno de pago en los pasos. Después, cada mensaje por Telegram es uso normal de la API de Anthropic.
+
+**Plazo:** desplegar **antes del 10/12** y hacer la prueba real **antes del 7/12**. La dieta empieza el lunes 14/12 y la cita es el
+jueves 17/12 (el aviso de la 01:00 de ese día es el indicador de D48).
+
+### Paso 0 — Requisitos y copia de seguridad
+
+La rama `fase-3` incluye la fase 2: antes de seguir, la fase 2 tiene que estar desplegada y sana.
+
+```bash
+bash /data/AssistantStudies/sebastian2/deploy/comprobar_fase2.sh      # debe terminar con «Todo bien.»
+git -C /data/AssistantStudies rev-parse HEAD     # APUNTA este hash: es la vuelta atrás
+sudo mysqldump sebastian_db > ~/sebastian_db_backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### Paso 1 — Migración 013 en `sebastian_db` (sudo mysql)
+
+Es idempotente (`IF NOT EXISTS`) y no lleva `USE`: la BD la eliges tú aquí.
+
+```bash
+cd /data/AssistantStudies-fase3/sebastian2
+sudo mysql sebastian_db < db/migrations/013_compromisos.sql
+sudo mysql sebastian_db -e "SHOW COLUMNS FROM compromisos;"
+```
+
+Debe salir la tabla con 14 columnas (de `id` a `updated_at`, incluida `aviso_para`).
+
+### Paso 2 — Merge de `fase-3` en producción
+
+```bash
+cd /data/AssistantStudies && git status        # debe estar limpio y en main
+git merge --ff-only fase-3
+```
+
+El bot sigue con el código viejo en memoria hasta el reinicio del paso 3.
+
+### Paso 3 — Reiniciar
+
+```bash
+sudo systemctl restart sebastian.service
+```
+
+### Paso 4 — Comprobar (solo lectura)
+
+```bash
+bash /data/AssistantStudies/sebastian2/deploy/comprobar_fase3.sh
+```
+
+No usa sudo, no escribe en ninguna BD ni en Qdrant, no llama a ninguna API de pago y **no manda nada por Telegram**. Comprueba que
+producción está en `main` con la fase 3, que las dos unidades siguen fijando `sebastian_db`, que el log de arranque dice que el bot
+escribe en `sebastian_db` y que el planificador arrancó con los avisos cada minuto, que `sebastian_db` tiene `compromisos` con sus 14
+columnas, una prueba seca de `armar_resumen` con la fecha de mañana (construye el texto, no lo envía; con `MOSTRAR=1` te lo enseña
+en la terminal) y que no hay errores en LogCentral desde el reinicio. No imprime el texto de ningún compromiso (D52). Termina con
+`Todo bien.` o con la lista de FALLOS.
+
+### Paso 5 — Prueba real por Telegram (con el arquitecto)
+
+Es el caso de verdad, `CASO-COLONOSCOPIA.md`. **Dicta fechas absolutas** («el jueves 17 de diciembre a las 9:30», «el lunes 14 de
+diciembre empiezo la dieta, tres días») y **no le cuentes resultados de pruebas ni diagnósticos**: Sebastian no los guarda (D52)
+y, si se lo cuentas, el texto podría acabar en el registro de salud (Tristras). Tras cada mensaje, dile al arquitecto qué
+dictaste: él comprueba en `sebastian_db` que cada compromiso es el que debe (un solo evento, todos con `evento_id`, nada duplicado,
+la segunda toma a la 01:00 **del día de la cita**).
+
+1. Dicta la cita y, en otro mensaje, la preparación (dieta, tomas, última hora para líquidos).
+2. «¿Qué tengo que hacer esta semana?» → tiene que listar tus compromisos con sus fechas.
+3. Si mueves la cita («me la han cambiado al…»), comprueba que **no** aparecen los pasos duplicados.
+4. **Indicador de D48:** el aviso de la 01:00 del 17/12 tiene que llegar a su hora. Si no llega, díselo al arquitecto con la hora.
+
+Si algo no cuadra: `logcentral query --source sebastian --level error` y dímelo con la hora.
+
+### Si hay que deshacerlo
+
+La tabla `compromisos` no molesta al código viejo, así que basta con volver al `main` anterior (el hash del paso 0) y reiniciar:
+
+```bash
+sudo systemctl stop sebastian.service
+cd /data/AssistantStudies && git reset --hard <el hash del paso 0>
+sudo systemctl start sebastian.service
+```
+
+Dos cosas que hay que saber antes de hacerlo:
+
+- **No se ejecuta `DROP TABLE compromisos` sin preguntar**: borraría para siempre lo que hayas dictado, y la tabla no estorba.
+- El código viejo no sabe de compromisos. Una cita que tenga compromisos pendientes **no se podrá borrar** con el bot viejo (la FK de
+  `compromisos.evento_id` no lleva `ON DELETE`). Si hay que borrar una cita en ese estado, se pregunta antes cómo hacerlo.
+
+Las colecciones de Qdrant y la memoria de la fase 2 no cambian en esta fase.
