@@ -120,3 +120,106 @@ H3 no aprobado aún. Haz **H3b**:
 3. Los [API] en el orden de §5, cada uno con el «sí» de Josem. **No** lances la pasada completa.
 4. **Para** con un anexo al final de `docs/fase3/H3-informe.md`: resultados, gasto acumulado y si
    E10 lleva `event_id` en el turno 5. Si E10 no llega a 3/3, para y cuéntalo sin otra vuelta.
+
+---
+
+# Segunda revisión: anexo H3b
+
+> Responde a: 6fe370f (Anexo H3b). 2026-11-16, arquitecto. La revisé contra el código en `7deb3bb`.
+
+**Veredicto: H3 sigue sin aprobar. Haz una tercera vuelta (H3c).** El diagnóstico de #62 es muy
+bueno: la palabra «olvida» de `compromisos_borrar` le quitaba los casos a `mark_as_memorable`.
+
+## 6. Lo que comprobé
+
+- **Pruebas sin API:** `pytest -m "not golden"` da **799 en verde**, lo mismo que el anexo.
+- **R2:**
+  - El `event_id` filtra por `user_id` y manda sobre el título.
+  - Sin `title` ni `event_id`, la tool contesta `not_found`, que dice «no lo crees de nuevo».
+- **R3:** solo mira el mismo día y el mismo título, sin distinguir mayúsculas, y devuelve el
+  `event_id`. E10 lo confirma: **un solo evento en las tres ejecuciones**.
+- **El fallo que queda es otro, y lo ves bien:** el planner busca y cierra el turno, y Alfred cuenta
+  como hecho lo que no se hizo.
+  - D44 solo vigila los turnos **sin ninguna** tool. Aquí sí hubo una, la búsqueda.
+  - Eso es lo más grave del hito: rompe la promesa de honestidad (D26), no solo el camino corto.
+
+## 7. Decisiones que pedías
+
+| # | Decisión |
+|---|---|
+| 1 | **(b) y (a), sí. (c), no.** (c) obliga a que el código adivine si el mensaje pedía escribir, y eso sería otro clasificador. **(b) pasa a ser D54**, que extiende D44: si en el turno solo corrieron tools de lectura, Alfred lo sabe. **(a):** `calendar_add_note` admite `title` y `date`, como `calendar_update_event`, y el `event_id` sigue mandando. Así, el paso que más falla se hace con una sola llamada. Añade también **R9** (§8), que es una línea de prompt |
+| 2 | **#40 es culpa del golden, no del código.** Con la fase 3, «recuérdame comer a las 2» es un compromiso o una pregunta por el día. Lo único que falla sigue siendo `salud`. Lo cambio yo (§9). **#50 hay que diagnosticarlo** (R10): es el modo «el planner no llama a nada», el mismo de #67 |
+| 3 | **#76: acepto `[calendar_search_events]`.** Buscar la cita y preguntar en el texto vale, y con D54 Alfred no puede fingir que la apuntó. **#74 sigue igual.** El modo «sin tool» de #67 y #50 se diagnostica en R10 antes de tocar nada |
+| 4 | **La pasada completa sigue siendo obligatoria antes de H4.** El tope lo decide Josem; mi estimación está en §10 |
+| 5 | **Apuntada como D55 (vigente):** cada familia nueva de tools dice en su descripción qué **no** es suyo, sobre todo los verbos que ya tiene otra familia. Gracias |
+
+## 8. Retoques de H3c (sin API)
+
+- **R7 (D54). Turno con solo tools de lectura.**
+  - Escribe en el código un conjunto explícito de tools de solo lectura: `*_search*`, `*_list*`,
+    `calendar_find_by_datetime`, `calendar_get_tickets`, `search_memory`, `consult_docs`, etc.
+  - Ponlo junto a `_TURNO_SIN_HERRAMIENTAS`, con una prueba que obligue a clasificar toda tool nueva:
+    `test_toda_tool_esta_clasificada_lectura_o_escritura`.
+  - Si el turno solo ejecutó tools de ese conjunto, después del mensaje va una nota hermana de la
+    de D44: «[En este turno solo has consultado (…): no has guardado, cambiado, borrado, apuntado ni
+    creado nada. Si el usuario pedía un cambio, dile que no lo has hecho y ofrécete a hacerlo.]»
+  - Pruebas sin API:
+    - Con solo una búsqueda, la nota está.
+    - Con una búsqueda y una escritura, no está.
+    - Sin ninguna tool, sigue la de D44.
+- **R8. `calendar_add_note` por título y día.**
+  - `event_id` es opcional y manda. Si no viene, se busca por `title` y `date`, igual que en R2.
+  - Si hay más de un evento y no viene `date`, devuelve `ambiguous` con los candidatos, sin escribir.
+  - Con `not_found`, el mismo texto de R2.
+  - Pruebas: por id, por título y día, ambiguo, y de otro usuario.
+- **R9. Una línea en `_REGLA_ACCIONES_CON_HISTORIAL`** o justo detrás:
+  - «Buscar no termina el turno. Si el usuario pidió cambiar algo (una cita, su nota, un compromiso)
+    y la búsqueda lo encontró, llama en este mismo turno a la tool que lo cambia».
+  - Es la misma forma que ya funcionó en D43.
+- **R10. Diagnóstico del modo «sin tool»** ([API], barato):
+  - Guarda en la salida de los goldens el texto del planner cuando cierra sin tools. Va solo al
+    informe del test, nunca al log (D42).
+  - Ejecuta #50 y #67 ×3 y cuenta qué dice.
+  - Si la causa es clara y se arregla con una línea de prompt, arréglala. Si no, trae las salidas.
+
+## 9. Goldens (míos; cópialos tal cual)
+
+- **#40:**
+  - `expected: [[calendar_add_event], [], [compromisos_crear], [request_clarification]]`.
+  - `validates: "Fase 3: «recuérdame» es compromiso, cita o pregunta por el día; lo único que falla es salud"`.
+- **#76:** añade `[calendar_search_events]` a las listas aceptadas.
+- **#62:** sin cambios, sigue en `exact`.
+
+## 10. Gasto y orden de los [API]
+
+Gastado: **≈ 5,50 $ de 6 $.** Para todo lo que falta no llega.
+
+| Paso | Estimado |
+|---|---|
+| R10: #50 y #67 ×3 | ≈ 0,15 $ |
+| Tanda: #40, #50, #56–#76 | ≈ 0,8 $ |
+| E10 ×3 | ≈ 0,5 $ |
+| Pasada completa #1–#76 (solo si lo anterior pasa) | ≈ 2,1 $ |
+| **Total de H3c** | **≈ 3,5 $ → ≈ 9 $ en la fase** |
+
+**Lo sin API (R7–R9 y §9) hazlo ya.** No lances ningún [API] hasta que Josem suba el tope y te
+dé el «sí» en tu ventana. Se lo planteo yo ahora.
+
+**Criterio para cerrar H3:**
+- E10 en 3/3.
+- La tanda verde, salvo los intermitentes conocidos (#28 y #43), repetidos ×3.
+- Luego, la pasada completa sin ningún golden antiguo en rojo.
+
+Si E10 sigue por debajo de 3/3, para. En ese caso, lo siguiente es reducir el alcance de H4, no
+otra vuelta de prompts.
+
+## Para el programador
+
+Responde a: 6fe370f (Anexo H3b)
+
+H3 aún no aprobado. Haz **H3c**:
+1. R7–R9 de §8, con sus pruebas sin API. Copia tal cual los goldens de §9.
+2. **Espera** a que Josem suba el tope y te dé el «sí» en tu ventana. Después lanza los [API] en
+   el orden de §10, empezando por R10.
+3. La pasada completa solo si la tanda y E10 pasan.
+4. **Para** con un segundo anexo al final de `docs/fase3/H3-informe.md` («Anexo H3c»).
