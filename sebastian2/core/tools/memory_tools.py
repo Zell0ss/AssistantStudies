@@ -16,10 +16,13 @@ MEMORY_TOOLS = [
             "dato duradero sobre él, su gente, sus cosas o sus proyectos; cuando tome decisiones ('he "
             "decidido...'); cuando corrija algo dicho antes ('no, es...', 'me equivoqué', 'ya no...'); o "
             "cuando pida olvidar ('olvida lo de...'). NO la uses para lo operativo que ya tiene su propia "
-            "tool (notas, listas, calendario, tareas, inventario), ni para citas y eventos con fecha (una "
+            "tool (notas, listas, calendario, tareas, inventario), ni para lo que el usuario tiene que hacer "
+            "con un día u hora (pasos, preparativos, 'recuérdame que...': eso es `compromisos_crear`), ni "
+            "para el lugar o el acompañante de una cita (eso va a la nota del evento), ni para citas y eventos con fecha (una "
             "cita con día y mes va a `calendar_add_event`, aunque el usuario diga 'recuerda que...'; si falta "
             "la hora, se pregunta), ni para lo de salud (comidas, hambre, "
-            "sueño, dolores: eso es la tool `salud`). Devuelve qué guardó, qué sustituyó y qué categorías "
+            "sueño, dolores: eso es la tool `salud`). Sebastian no guarda resultados de pruebas médicas ni "
+            "diagnósticos (D52): ante uno, no la llames. Devuelve qué guardó, qué sustituyó y qué categorías "
             "nuevas abrió."
         ),
         "input_schema": {
