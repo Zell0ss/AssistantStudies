@@ -228,3 +228,82 @@ de D26/D44 (afirmar una acción sin resultado de tool) en un camino nuevo: D44 s
 - **Producción:** nada que la toque. Todos los [API] corrieron contra `sebastian_test`; ninguno mandó nada a Telegram.
 - **No recomiendo desplegar H4 con este estado.** Hay dos goldens antiguos en rojo (#40, #50, sin aislar) y E10 en 0/3 con el fallo
   «busca, y se para». La prueba real (Josem dictando por Telegram) caería en el turno 3, el del lugar y el acompañante.
+
+---
+
+# Anexo H3c — tercera vuelta
+
+> Responde a: c3fa487 (H3-revision, «Segunda revisión», «Para el programador»). Programador, 2026-11-16. Commits `23f21d0`
+> (R7–R9, R10 en el harness y goldens de §9) y `fd0851d` (la línea de R10). **E10 pasa 3 de 3 por su criterio; la tanda no está verde
+> (#67 y #71) y no he lanzado la pasada completa.** Paro con las salidas, como pedías.
+
+## Hecho (sin API; 833 pruebas)
+
+- **R7 (D54):** `_TOOLS_DE_LECTURA` y `_TOOLS_DE_ESCRITURA` en `core/orchestrator.py` y la nota «[En este turno solo has consultado (…): no has
+  guardado, cambiado, borrado, apuntado ni creado nada…]» en `_synthesize`, después del mensaje y de los datos. Con una búsqueda sola, está; con
+  una búsqueda y una escritura, no; sin ninguna tool, sigue la de D44. `test_toda_tool_esta_clasificada_lectura_o_escritura` obliga a clasificar
+  toda tool nueva. **Una decisión mía:** `request_clarification` va con las de lectura (no cambia nada, y el orquestador la intercepta).
+- **R8:** `calendar_add_note` admite `title` y `date` (`event_id` opcional y prioritario); con varios eventos devuelve `ambiguous` con los
+  candidatos y no escribe; con `not_found`, el mismo texto que R2; devuelve el `event_id`. Pruebas: por id, por título y día, sin día, ambiguo,
+  `not_found`, de otro usuario y «el id manda». El esquema de la tool y su descripción, actualizados (la nota sigue sin aceptar resultados, D52).
+- **R9:** `_REGLA_BUSCAR_NO_TERMINA`, al final del prompt del planner, con tu frase.
+- **R10, código:** el texto que el planner dice cuando cierra una llamada sin `tool_use` sale en el informe del test («Planner sin tool»), nunca
+  en el log (D42). **Aviso para leerlo:** también sale el cierre normal de cualquier turno que sí usó tools (la última iteración no lleva tool).
+- **Goldens de §9 tal cual:** #40 (`[calendar_add_event]`, `[]`, `[compromisos_crear]`, `[request_clarification]`) y #76 (`[calendar_search_events]`).
+
+## Resultados [API] y gasto
+
+| Paso | Resultado | Coste |
+|---|---|---|
+| R10: #50 y #67 ×3 | #50 **3/3**; #67 **1/3** | 0,148 $ |
+| Tanda #40, #50, #56–#76 | **21/23** (caen #67 y #71) | 0,701 $ (Haiku 0,581, Sonnet 0,120) |
+| E10 ×3 | **3/3** | 0,531 $ |
+| Pasada completa #1–#76 | **no lanzada** | — |
+
+**Gasto de H3c: ≈ 1,38 $. Acumulado de la fase 3: ≈ 6,88 $ de 8 $** (autorizado por Josem: 4 $ en la ventana del arquitecto el 2026-11-16; en
+mi ventana, «Si, otros 2 $» y «Subo 2 más y doy si», con un «Si» por cada paso). Quedan ≈ 1,12 $.
+
+## La tanda: lo que falla
+
+- **#50 pasa 3/3** y **#40 pasa**: eran los antiguos en rojo del anexo anterior. #50 era intermitente.
+- **#62 pasa** (R6 se mantiene) y todo #56–#76 salvo dos:
+  - **#67** («El lunes 14 de diciembre empiezo la dieta blanda, tres días»): **1 de 3 en R10 y 0 de 1 en la tanda**, también con la línea que
+    añadí a `compromisos_crear` («el día de inicio cuenta; no preguntes cuál es el último», `fd0851d`). **La causa es clara, pero una línea no la
+    arregla:** el planner **no llama a nada y contesta en texto** con preguntas («¿a qué hora empiezas la dieta?», «¿dura tres días o cuatro,
+    incluido el 17?»); otras veces usa `request_clarification` con la misma pregunta. Cuando es en texto, el turno acaba en `[]` y Alfred
+    (D44) dice «no he podido registrar nada». Es el modo «sin tool» de #50 y de la variante C, ahora con texto: **el planner pregunta cosas que no
+    hacen falta**. Según tu criterio, no sigo con prompts: traigo las salidas.
+  - **#71** («Ya he hecho la primera toma»): `compromisos_listar → compromisos_completar → compromisos_listar`. Marca bien el compromiso y vuelve a
+    leer al final; esa secuencia no está en sus listas. Pasaba en la tanda anterior: es variación, no una regresión de H3c.
+
+## E10: 3 de 3 por el criterio, con cuatro matices
+
+El criterio (BD y resumen) se cumple las tres veces: **un solo evento** movido al 29 a las 9:30, **todos los compromisos con `evento_id`**, la
+nota con el lugar y el acompañante, **nada del resultado médico** en ninguna parte (D52), y el resumen del día −3 trae la dieta (el del día −3 de
+la fecha vieja, no). Lo que el criterio no ve:
+
+1. **`event_id` en el turno 5:** **2 de 3 CON** (R2 se ejerce); en la primera ejecución, **SIN** (cae al título, que acertó).
+2. **«Busca y se para» en el turno 3 (lugar y acompañante): 2 de 3.** R8 y R9 no lo eliminan: el planner hace `calendar_search_events` y cierra, aunque
+   `calendar_add_note` ya acepta título y día. **D54 hace su trabajo:** en la ejecución 2 Alfred dice «en este turno solo he consultado el calendario:
+   no he añadido a Marta ni la ubicación» (antes decía «actualizo la cita…»); en la 3 dice «dos cosas que añadir», sin afirmar que lo hizo. La nota
+   se escribió **después**, en el turno 5, cuando el planner añadió `calendar_add_note` al mover la cita. Por eso el criterio pasa, pero **por un
+   camino que no es el limpio**.
+3. **La segunda toma sale un día antes en 2 de 3.** «…y el mismo día a la una de la madrugada la segunda»: en las ejecuciones 1 y 2 quedó con
+   `dias_inicio = -1` y `hora = 01:00` (la madrugada del día **anterior** al de la cita), y solo en la 3, con `dias_inicio = 0`. **E10 no lo comprueba.**
+   Si el caso real saliera así, el aviso de la 01:00 del 17/12 (el indicador de D48) llegaría 24 horas antes. Puede ser también que la frase de E10
+   sea ambigua; no lo he cambiado: es tu criterio.
+4. **Troceado:** una ejecución sigue partiendo la dieta en dos compromisos solapados (los de «Empezar» y «Mantener», `-3..` y `-3..-1`); las otras
+   dos, uno solo con `-3..-1`.
+
+## Decisiones que necesito
+
+1. **#67:** ¿aceptas `[]` y `[request_clarification]`, o lo dejamos como riesgo conocido? Mi recomendación: aceptarlos. Preguntar de más es molesto
+   pero inofensivo, y D44/D54 impiden que Alfred diga que lo hizo. Arreglarlo del todo exigiría código (hacer algo con el texto del planner cuando
+   cierra sin tool), y lo descartaste. Si prefieres arreglarlo, es otra vuelta, que ya dijiste que no.
+2. **#71:** ¿aceptas `[compromisos_listar, compromisos_completar, compromisos_listar]`? Leer otra vez al final no cambia nada.
+3. **La segunda toma (matiz 3):** ¿añado a E10 una comprobación de que `Segunda toma` lleva `dias_inicio = 0` y `01:00`? **Hoy fallaría 2 de 3**,
+   y sería la prueba más cercana al caso real. No la añado sin tu decisión (es tu criterio), pero **lo propongo antes de H4**, no después.
+4. **La pasada completa:** no se lanza, porque la tanda no está verde. ≈ 2,1 $ con ≈ 1,12 $ de margen: **decide Josem el tope, tras tu revisión de
+   las decisiones 1 y 2.**
+5. **H4:** E10 3/3 cumple el criterio de cierre, pero la tanda y la pasada no. **No recomiendo desplegar hasta tener la pasada completa**, que es lo que
+   cazó #62. H4 es de Josem y vence el 10/12.
