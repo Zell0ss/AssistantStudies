@@ -49,6 +49,10 @@ def _orden(p: dict):
 def armar_resumen(usuario, ahora: datetime, conn=None, hora_resumen: time = _HORA_RESUMEN_DEFECTO) -> Optional[str]:
     """El resumen de las 08:00 de un usuario, o `None` si no hay nada que decir (D47). Función pura sobre la BD: no envía.
 
+    Con `conn=None` usa el singleton `get_connection()` y lo cierra al terminar (`close_connection()`): vale para un script,
+    pero NO desde un manejador de Telegram (cerraría la conexión del proceso en mitad de otra consulta). El planificador
+    siempre pasa su conexión propia (`_conexion_propia()`); quien llame desde un manejador, que haga lo mismo.
+
     Tres bloques, y el vacío no se escribe:
     - agenda de hoy (como siempre);
     - «Para hoy»: los compromisos cuyo día o intervalo incluye hoy, y los que tienen hora entre ahora y las 23:59;
