@@ -373,3 +373,31 @@ def test_la_hora_vuelve_de_la_bd_como_hora(comp):
     assert c["hora"] == "17:30"
     listado = comp.listar(desde="2026-12-10", hasta="2026-12-10")["compromisos"][0]
     assert listado["hora"] == "17:30" and listado["cuando"] == "2026-12-10T17:30"
+
+
+# ── R1 (H1-revision §4): Alfred tiene que poder contar qué se ha cancelado ────────────────────────────────────────────
+
+def test_remove_event_informa_compromisos_cancelados(comp, cal, cita):
+    comp.crear(_caso(cita))
+    hecho = comp.listar(desde="2026-12-01", hasta="2026-12-31")["compromisos"][0]["id"]
+    comp.completar(hecho)                                                   # los hechos no cuentan como cancelados
+    r = cal.remove_event("Colonoscopia")
+    assert r["status"] == "removed" and r["compromisos_cancelados"] == 4
+
+
+def test_remove_event_sin_compromisos_no_lleva_el_campo(cal):
+    cal.add_event("Dentista", date(2026, 12, 5), "17:00")
+    assert "compromisos_cancelados" not in cal.remove_event("Dentista")
+
+
+def test_remove_event_de_varios_eventos_suma_los_cancelados(comp, cal, cita):
+    otra = cal.add_event("Colonoscopia", date(2027, 1, 20), "09:30")["event_id"]
+    comp.crear([{"texto": "a", "evento_id": cita, "dias_inicio": -1}, {"texto": "b", "evento_id": otra, "dias_inicio": -1}])
+    assert cal.remove_event("Colonoscopia")["compromisos_cancelados"] == 2
+
+
+def test_la_cuenta_de_cancelados_no_incluye_hechos_ni_cancelados(comp, cal, cita):
+    a, b, c = (x["id"] for x in comp.crear(_caso(cita)[:3])["compromisos"])
+    comp.completar(a)
+    comp.borrar(b, "cancelar")
+    assert cal.remove_event("Colonoscopia")["compromisos_cancelados"] == 1

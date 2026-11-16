@@ -140,7 +140,13 @@ def _dia_del_evento(evento: dict) -> Optional[date]:
 
 
 def momento_efectivo(fila: dict, evento: Optional[dict]) -> Momento:
-    """El momento de un compromiso (plan §2.1). `fila` es la fila de `compromisos`; `evento`, la de `events` o None."""
+    """El momento de un compromiso (plan §2.1). `fila` es la fila de `compromisos`; `evento`, la de `events` o None.
+
+    **Solo se llama sobre pendientes** (H1-revision §2): al borrar un evento, sus compromisos hechos o cancelados
+    quedan con `evento_id = NULL` y su `dias_*` o `minutos`, es decir, sin forma válida, y aquí fallarían.
+    `minutos` se suma en hora local sin zona: la noche del cambio de hora, «3 horas antes» es hora de reloj, no
+    tiempo real (dos noches al año, entre las 2 y las 3; aceptado, H1-revision §4).
+    """
     hora = _hora(fila["hora"]) if fila.get("hora") is not None else None
 
     if fila.get("evento_id") is None:                                     # suelto: lo que dice la fila
@@ -359,6 +365,9 @@ class CompromisosModule(BaseModule):
     def cancelar_por_eventos_borrados(self, evento_ids: List[int]) -> int:
         """Al borrar eventos (D50): sus compromisos pendientes pasan a `cancelado` y todos se desvinculan.
 
+        Devuelve cuántos pendientes ha cancelado (R1: Alfred se lo cuenta al usuario); los hechos y los ya
+        cancelados no cuentan.
+
         **No hace commit**: lo llama `CalendarModule` en la misma transacción que el DELETE del evento. La FK no lleva
         ON DELETE (plan §2.1) y además se aplica a las filas ya canceladas o hechas, así que hay que soltar el
         `evento_id` de todas, no solo de las pendientes. Lo hecho sigue hecho; solo pierde el enlace.
@@ -366,8 +375,11 @@ class CompromisosModule(BaseModule):
         if not evento_ids:
             return 0
         marcas = ", ".join(["%s"] * len(evento_ids))
-        cursor = self.execute_query(
+        pendientes = self.execute_query(
+            f"SELECT COUNT(*) AS n FROM compromisos WHERE user_id = %s AND estado = 'pendiente'"
+            f" AND evento_id IN ({marcas})", (self.user_id, *evento_ids)).fetchone()["n"]
+        self.execute_query(
             f"UPDATE compromisos SET estado = IF(estado = 'pendiente', 'cancelado', estado), evento_id = NULL,"
             f" updated_at = %s WHERE user_id = %s AND evento_id IN ({marcas})",
             (self._ahora(), self.user_id, *evento_ids))
-        return cursor.rowcount
+        return pendientes

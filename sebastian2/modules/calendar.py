@@ -132,7 +132,7 @@ class CalendarModule(BaseModule):
         ids = [r['id'] for r in rows]
         placeholders = ', '.join(['%s'] * len(ids))
         # D50: los compromisos atados a estos eventos se cancelan en la misma transacción que el borrado.
-        CompromisosModule(self.db, self.user_id).cancelar_por_eventos_borrados(ids)
+        cancelados = CompromisosModule(self.db, self.user_id).cancelar_por_eventos_borrados(ids)
         self.execute_query(
             f"DELETE FROM events WHERE id IN ({placeholders})",
             tuple(ids)
@@ -140,7 +140,11 @@ class CalendarModule(BaseModule):
         self.commit()
 
         logger.info(f"Removed {len(ids)} event(s) named '{title}' for user {self.user_id}")
-        return {'status': 'removed', 'message': f"Evento eliminado: {title}"}
+        resultado = {'status': 'removed', 'message': f"Evento eliminado: {title}"}
+        if cancelados:
+            # H1-revision R1: Alfred ve el campo y le cuenta al usuario que su preparación ha desaparecido.
+            resultado['compromisos_cancelados'] = cancelados
+        return resultado
 
     def remove_event_by_id(self, event_id: int) -> bool:
         """Remove a specific event by ID."""
