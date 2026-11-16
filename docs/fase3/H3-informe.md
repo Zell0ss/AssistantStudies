@@ -307,3 +307,87 @@ la fecha vieja, no). Lo que el criterio no ve:
    las decisiones 1 y 2.**
 5. **H4:** E10 3/3 cumple el criterio de cierre, pero la tanda y la pasada no. **No recomiendo desplegar hasta tener la pasada completa**, que es lo que
    cazó #62. H4 es de Josem y vence el 10/12.
+
+---
+
+# Anexo H3d (última vuelta de H3)
+
+Responde a: `98f1905` (H3-revision, tercera revisión, §11–14 y «Para el programador»).
+
+## Hecho (sin API; 835 pruebas)
+
+Commit `a738109`:
+- **R11:** descripción de `dias_inicio` y `dias_fin` en `compromisos_crear`: el día 0 es el de la cita; una hora de madrugada atada al día de la cita
+  («el mismo día a la una») es `dias_inicio` 0 con esa hora; −1 es el día anterior a esa hora del reloj.
+- **R12:** comprobación normativa al final de E10 (la segunda toma lleva `dias_inicio` 0 y `hora` 01:00; cuenta pero no bloquea, §14) y una línea `R12:`
+  en la salida del escenario. No toqué la frase de E10.
+- **Goldens de §12:** #67 acepta `[compromisos_crear]`, `[]` y `[request_clarification]`; #71 acepta la secuencia con `compromisos_listar` al final.
+  Pruebas en `tests/test_compromisos_tools.py` y `tests/test_golden_estado.py`.
+
+## Resultados [API] y gasto
+
+| Paso | Resultado | Coste |
+|---|---|---|
+| E10 ×3 | **2 de 3** (ejecuciones 1 y 2 pasan, la 3 falla, ver abajo) | 0,5127 $ |
+| R12 (segunda toma) | **3 de 3 «bien (día 0)»**: R11 funciona | — |
+| Pasada #1–#38 | **38 de 38** | 1,0558 $ (Haiku 0,8546, Sonnet 0,2013) |
+| Pasada #39–#57 | **18 de 19**: cae **#49** | 0,5374 $ |
+| Pasada #58–#76 | **18 de 19**: cae **#73** | 0,6099 $ (Haiku 0,5096, Sonnet 0,1003) |
+| **Pasada completa** | **74 de 76**: caen **#49** (antiguo) y **#73** (nuevo) | 2,2031 $ |
+| **Total H3d** | | **2,7158 $** |
+
+**Gasto de la fase 3: ≈ 9,59 $ de 10 $** (≈ 6,88 $ hasta H3c + 2,72 $ de H3d). Quedan ≈ 0,41 $.
+Autorizado por Josem: 4 $ en la ventana del arquitecto (PLAN); en mi ventana, «Si, otros 2 $» (→ 6 $), «Subo 2 más y doy si» (→ 8 $), «Subo y si» a mi
+petición de 9,5 $ (→ 9,5 $) y, tras avisarle de que la segunda mitad se pasaba, «Sube a 10 y prueba» (→ 10 $). Cada paso, con su «Si»: E10 ×3, pasada
+#1–#38, y #39–#76 en dos trozos (#39–#57 y #58–#76). No se ha gastado nada más.
+
+## Lo que falla
+
+**E10, ejecución 3 (la única roja): `resumen del día −3 viejo todavía trae la dieta`.** En el turno 5 («me han cambiado la endoscopia al 29») el planner
+hizo `calendar_update_event → calendar_add_note → compromisos_crear`: **volvió a crear todos los compromisos** (8 en vez de 4, duplicados con los
+`dias_*` desplazados), de modo que el resumen del 25/01 aún trae una dieta. Antes, en el turno 1 solo hizo `calendar_find_by_datetime` y la cita no se
+creó hasta el turno 2. Es el fallo que §13 y §14 prevén: **no hay otra vuelta de prompts** y H4 sigue con la mitigación de §14 (Josem dicta fechas
+absolutas; el arquitecto revisa cada compromiso en `sebastian_db`). Matiz: el turno 5 es justo el caso «mover la cita», el más delicado de D50; el
+riesgo es real y no está cerrado.
+
+**#49 («¿qué ceno hoy?», antiguo; `any_of [[]]`):** el planner llamó a `inventory_list` y `search_memory` (solo lecturas) y Alfred contestó con lo que hay
+en el inventario. **No llamó a `salud` ni escribió nada.** No es una regresión de compromisos: la lista del golden salió de la línea base de §2.1 («ninguna
+tool») y el planner ahora mira primero el inventario. Es variación del modelo, pero **no lo he repetido** (no lo había autorizado): no sé si es estable.
+
+**#73 («El test de la gota seca me salió positivo», nuevo; esperado `[]` o `[request_clarification]`): llamó a `salud`.** Alfred respondió «eso suena como
+un resultado médico a tener en cuenta. No es algo que apunte», que no es lo que hizo: **sí llamó a `salud`**. En las pruebas Tristras no responde
+(`ConnectionError`), así que no se guardó nada en ningún sitio; **en producción ese texto llegaría a Tristras.** Es justo la frontera de D52 («resultados,
+diagnósticos y episodios clínicos no se guardan»). #73 pasó una vez en la tanda de H3c; no lo he repetido, así que no sé la tasa. **Es el único rojo que
+me preocupa**: en E10 el resultado no llega a ninguna parte, pero en E10 va tras citas y compromisos; suelto, el planner lo trata como un registro de salud.
+Si se arreglara, sería otra vuelta de prompts (la línea R5 de `_ALFRED_SYSTEM` no basta: Alfred solo mira el texto después de que el planner ya llamó), y
+§13 la excluye.
+
+## Criterio de cierre (§13)
+
+| Condición | Resultado |
+|---|---|
+| Pasada completa sin antiguos en rojo salvo #28/#43 | **No**: #49 en rojo |
+| Goldens nuevos pasan | **No**: #73 en rojo |
+| E10 3/3 por el criterio | **No**: 2/3 |
+
+**El criterio de cierre de H3 no se cumple.** Lo que sí: R11/R12 funcionan (la segunda toma sale en el día 0 en 3 de 3, lo que en H3c fallaba 2 de 3),
+los 38 primeros goldens están verdes y no hay ningún rojo en lo que toca a compromisos salvo el turno 5 de E10.
+
+## Desviaciones
+
+- La segunda mitad de la pasada se partió en dos trozos de 19 por el tope (Josem lo subió a 10 $ después de avisarle). Los ids de `-k` van con dos
+  cifras (`golden_07`) porque `golden_7` casa también con `golden_70`…`golden_76`.
+- No he repetido #49, #73 ni E10 (el criterio no pide más vueltas y no tengo autorización de gasto para ello).
+
+## Decisiones que necesito
+
+1. **#73 (D52):** ¿lo aceptas como riesgo de H4, o quieres otra vuelta? Mi recomendación: **aceptar con una regla de uso**, no arreglar con prompts: hasta
+   que haya un guardia por código, **Josem no dicta resultados médicos a Sebastian por Telegram** (lo dice el caso de la colonoscopia: solo fechas y pasos).
+   Un guardia por código (que `salud` rechace textos que parezcan resultados) sería trabajo de H4, no de prompts.
+2. **#49:** ¿aceptas `inventory_list`/`search_memory` como lectura inofensiva (ampliar la lista del golden) o lo repetimos ×3 para ver la tasa? La repetición
+   cuesta ≈ 0,1 $ (cabe en los 0,41 $ que quedan); necesita el «sí» de Josem.
+3. **E10 2/3 y duplicados al mover la cita:** ¿aceptas la mitigación de §14 para H4 (fechas absolutas dictadas, revisión de cada compromiso en `sebastian_db`)?
+   Añado que, si el arquitecto prefiere un arreglo por código (que `compromisos_crear` rechace un compromiso idéntico al que ya hay para ese evento), es
+   un cambio pequeño y sin API; no lo hago sin su decisión (cambia el contrato de la tool).
+4. **H4:** con la pasada en 74/76 y el criterio no cumplido, **la decisión de desplegar es de Josem y del arquitecto**; yo no despliego, fusiono ni reinicio.
+   Plazo: despliegue antes del 10/12 (dieta el 14/12).
