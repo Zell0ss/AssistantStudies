@@ -1,7 +1,7 @@
 # tomorrow.md — Sebastian 2.0 (programador)
 
-**Punto de parada (2026-11-16): H2 APROBADO (`30b9f34`); H3 EN CURSO.** Línea base #67–#76 hecha: 3/10 (pasan 70, 72, 75). Gasto de la fase 3: 0,31 $ de 4 $. Falta: diagnosticar 67–69, retoques, pasada completa y E10 (cada [API] con «sí» de Josem en mi ventana). Salida de goldens: guardarla con tee, no se puede recuperar.
-**H3 es [API]: no empezarlo sin la revisión de H2, la comprobación con la skill `claude-api` y un «sí» de Josem en mi ventana.** Buzón: `git log -1 --format='%h %ad %s' --date=short --name-only -- 'docs/fase3/H*-revision.md' 'docs/fase3/H*-encargo.md' 'docs/fase3/H*-informe.md' docs/fase3/PLAN.md`.
+**Punto de parada (2026-11-16): H2 APROBADO (`30b9f34`); H3 EN CURSO.** Datos de prueba inventados (Josem lo confirmó; goldens y tests). Goldens #67–#76: línea base 3/10, tras retocar las descripciones de `mark_as_memorable` y `salud` (`3b267da`) otra vez 3/10 (pasan 70, 73, 75). Falla #74 y #76 (siguen a `mark_as_memorable`), #67 (hoy es lunes: «el lunes» ambiguo), #68/#69/#71/#72 (historial sin evento en la BD y variación). Gasto de la fase 3: 0,80 $ de 4 $. Falta: decidir con Josem la siguiente iteración (regla en el prompt del planner), pasada completa y E10 (cada [API] con «sí» de Josem en mi ventana). Salida de goldens: guardarla con redirección a un fichero del scratchpad.
+**H3 es [API]: cada paso necesita un «sí» de Josem en mi ventana (el de la comprobación de modelos ya está hecho: ids y precios iguales).** Buzón: `git log -1 --format='%h %ad %s' --date=short --name-only -- 'docs/fase3/H*-revision.md' 'docs/fase3/H*-encargo.md' 'docs/fase3/H*-informe.md' docs/fase3/PLAN.md`.
 
 **Fase 2 (aparte):** aprobada y a la espera del despliegue de Josem (`deploy/PASOS-CON-SUDO.md`, «Fase 2»; control clave: el `--dry-run` del paso 4). Si falla algo, Josem lo trae y el arreglo va como anexo a `docs/fase2/H4-informe.md`, en la rama `fase-2` (`/data/AssistantStudies-fase2`).
 
