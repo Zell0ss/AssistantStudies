@@ -119,3 +119,112 @@ las cuatro tools nuevas.
 - Nada que toque producción. Todos los pasos [API] corrieron contra `sebastian_test` y sus colecciones, sin Telegram real.
 - Salidas completas de cada ejecución en el scratchpad de mi sesión (`diag1.txt`, `base2.txt`, `base3.txt`, `pasada1.txt`, `g62_*.txt`,
   `e10_*.txt`), por si quieres ver los turnos.
+
+---
+
+# Anexo H3b — segunda vuelta
+
+> Responde a: 4ba8413 (H3-revision, «Para el programador»). Programador, 2026-11-16. Commits `f7e910c` (R2–R5 y espacios de
+> `salud`), `761bd57` (harness `estado:`, goldens de §4, E10) y `7deb3bb` (R6). **Paro sin pasada completa y con E10 en 0/3**, como
+> pedías: no hay tercera vuelta sin pasar por ti.
+
+## Hecho
+
+- **R2:** `calendar_update_event` admite `event_id` (prioritario, solo del propio usuario) y su `not_found` dice «pregunta al usuario,
+  no lo crees de nuevo». `title` ya no es obligatorio. Pruebas: `test_update_event_por_id`, `…_sin_titulo`,
+  `…_de_otro_usuario_no_toca_nada`, `test_update_not_found_dice_que_no_lo_cree_de_nuevo`, y `test_evento_movido_por_id_mueve_compromisos`
+  (D50, con id).
+- **R3:** `calendar_add_event` devuelve `status: 'exists'` con `event_id` y `time` si hay un evento del usuario ese día con ese título
+  (sin mayúsculas). Pruebas: mismo día y título, otro día u otro título (inserta), otro usuario (inserta) y todo el día.
+- **R4:** «Busca antes si la cita ya existe» y el año en `calendar_add_event`; el año en `new_date` de `calendar_update_event`; «un
+  intervalo es **un solo compromiso**» en `compromisos_crear`. **R5:** tu línea en `_ALFRED_SYSTEM`, con «Resultados médicos (D52).» delante.
+  Los dos espacios de `salud`, arreglados. Una prueba por cada texto.
+- **Goldens de §4 tal cual:** #67 (fecha explícita), #68, #69, #71, #72 y #74 con `estado:`, y `[]` en #76. **#72** ya traía
+  `[calendar_search_events, calendar_update_event]`: solo he añadido el estado. #62 y las listas de #74 no cambian
+  (`test_el_golden_62_sigue_exacto_y_el_74_no_cambia_sus_listas`).
+- **Harness `estado:`** (`tests/golden/estado.py`, `test_estado_se_siembra_y_se_limpia` y otras 11 en `tests/test_golden_estado.py`).
+  **Desviación:** limpia **solo lo que sembró** (por id), no toda la agenda del usuario de goldens: ese usuario comparte agenda con
+  la fixture de sesión `golden_fixtures` (el «teatro» y su entrada), y una limpieza total habría roto goldens antiguos. Por lo mismo,
+  **E10 va con el usuario B** (`USUARIO_B`), cuya agenda sí se vacía entera.
+- **E10** anota si el `calendar_update_event` del turno 5 lleva `event_id`, sin que falle por eso.
+- **`pytest -m "not golden"`: 799 pasan** (767 en H3 → +32). Sin fallos.
+
+## Resultados [API] y gasto
+
+| Paso | Resultado | Coste |
+|---|---|---|
+| #62 ×3 con R2–R5 | **0/3** (`search_memory`) | 0,083 $ |
+| #62 ×3 sin «ante uno, no la llames» en `mark_as_memorable` (tu 1.ª sospecha) | 0/3 | 0,083 $ |
+| #62 ×3 más «pedir que se olvide algo sigue siendo `mark_as_memorable`» en la regla (tu 2.ª) | 0/3 | 0,083 $ |
+| #62 ×3 en el worktree de la fase 2 (código aprobado) | **3/3** → es regresión de la fase 3 | 0,077 $ |
+| Aislar, una ejecución cada una: A (`mark_as_memorable` de la fase 2) · B (sin `_REGLA_COMPROMISOS`) · C (A+B) · D (sin tools de compromisos) · E (A+B+D) | A, B, C, D fallan; **E pasa** | 0,122 $ |
+| **R6:** #62 ×3 con la descripción nueva de `compromisos_borrar` | **3/3** | 0,092 $ |
+| #7, #8, #9, #40, #50 y #56–#76 | **21/26** | 0,785 $ (Haiku 0,649, Sonnet 0,136) |
+| E10 ×3 | **0/3** | 0,462 $ |
+
+**Gasto de H3b: ≈ 1,79 $. Acumulado de la fase 3: ≈ 5,50 $ de 6 $** (autorizado por Josem: 4 $ en la ventana del arquitecto el
+2026-11-16, y «Si, otros 2 $» en mi ventana el mismo día; cada paso, con su «Si» en mi ventana. Quedan ≈ 0,50 $). Los retoques de las
+dos sospechas y las variantes A–E eran temporales: **no están commiteados** y el árbol quedó limpio.
+
+### R6 (#62): la causa era `compromisos_borrar`
+
+Quitar la descripción de `mark_as_memorable` (A) o la regla (B) no bastaba, y quitar las tools sin más (D) tampoco, porque la regla y la
+descripción nombran tools que entonces no existen. **Solo revertirlo todo (E) lo arregló.** Las tools de compromisos, con las otras dos
+piezas o sin ellas, bastan para romper #62. La pista estaba en `compromisos_borrar`: decía «cuando el usuario dice **'olvida** ese
+compromiso' o 'borra eso'», y «olvida lo de las camisetas UV» competía con él. Ahora dice qué **es** un compromiso (algo que se hace con
+día u hora) y que un dato se retira con `mark_as_memorable`; test `test_descripcion_de_borrar_manda_los_datos_a_mark_as_memorable`.
+**Ni tu frase en `mark_as_memorable` ni la regla eran la causa.** `_REGLA_COMPROMISOS` se queda, porque ayuda a los goldens nuevos.
+
+### Los 21/26: lo que falla
+
+- **Antiguos que caen: #40 y #50** (ninguno es de los intermitentes conocidos: #62, #43, #28). No los he aislado (no hay presupuesto).
+  - **#40** («recuérdame comer a las 2»): `request_clarification` («¿qué día?»), que no está en sus listas. Puede ser la R16 de la fase 2
+    (el planner pregunta si falta el día) y no H3b; **#28** se amplió con esa respuesta y #40 no.
+  - **#50** («¿y mañana?» tras «¿Qué tengo hoy?»): el planner **no llama a ninguna tool** y Alfred dice «no he podido crear el aviso».
+    Es el mismo modo de fallo que #67 y que la variante C.
+- **Nuevos de §4 que caen:** **#67** (sin tool, mismo modo), **#74** (`calendar_search_events` y **dos** `compromisos_crear`: el fallo
+  real que decías que no cambia) y **#76** (solo `calendar_search_events`, y Alfred pregunta en texto cuándo es la cita).
+- **Pasan:** #7, #8, #9, #56–#66 (con #62 incluido), #68, #69, #70, #71, #72, #73 y #75. **De los diez nuevos (#67–#76), 7.**
+
+## E10: 0 de 3
+
+Lo que **sí** se cumple en las tres: **un solo evento** (R3 funciona), **todos los compromisos con `evento_id`** del mismo evento (D50),
+y **nada del resultado médico** en memoria, compromisos ni nota (D52).
+
+Lo que falla:
+
+- **Turno 3 (lugar y acompañante), 3/3:** el planner hace `calendar_search_events` y **termina el turno** (`iterations=2`) sin llamar a
+  `calendar_add_note`. Alfred dice «actualizo la cita con los datos…» y no ha escrito nada. Dos ejecuciones fallan por eso (la nota
+  queda vacía); la tercera la ve en el criterio 3.
+- **Turno 5 (mover al 29):** en dos ejecuciones hace solo `calendar_search_events` (o nada) y **no mueve la cita**; Alfred dice «muevo la
+  endoscopia…». En la tercera sí mueve, pero **`calendar_update_event` va SIN `event_id`**: R2 no se ejerció (cae al título, que acertó).
+- **Troceado del intervalo:** 2 de 3 siguen con «Empezar» + «Mantener dieta blanda»; en la tercera, un solo compromiso con `dias -3..-1`.
+
+**La causa que veo no es el título ni los duplicados, sino que el planner da por hecho el paso siguiente tras una búsqueda.** Con R3,
+los duplicados desaparecen, pero queda **«busca, y se para»**, y la síntesis cuenta como hecho lo que no se hizo. Eso es la clase de fallo
+de D26/D44 (afirmar una acción sin resultado de tool) en un camino nuevo: D44 solo vigila turnos **sin ninguna** tool, y aquí sí hubo una
+(la búsqueda).
+
+## Decisiones que necesito
+
+1. **E10 0/3: ¿qué cambio de diseño?** Las descripciones solas no lo han arreglado dos veces. Opciones, de menos a más código:
+   - **(a)** `calendar_add_note` acepta título y día como `calendar_update_event` (y `event_id` sigue valiendo), para que no dependa de
+     encadenar dos llamadas;
+   - **(b)** extender D44: si el turno solo ejecutó tools de lectura y el usuario pedía una acción, a Alfred se le dice que **no se hizo**;
+   - **(c)** que el bucle del planner no cierre el turno tras una búsqueda cuando el mensaje pedía escribir (cambio en `orchestrator.py`).
+   Recomiendo **(b)**, que protege la promesa de honestidad en cualquier camino, y **(a)**, que acorta la cadena que más falla. No hago
+   nada sin tu criterio.
+2. **#40 y #50 (antiguos):** ¿los aislamos antes de nada? No hay presupuesto para eso y para E10: con ≈ 0,50 $, solo cabe una de las dos cosas.
+3. **#67, #74, #76:** ¿aceptas `[calendar_search_events]` solo en #76 (preguntar tras buscar vale), y qué hacemos con el modo «el planner
+   no llama a ninguna tool» (#67, #50, variante C)? Aparece solo en esta fase, así que puede ser sensibilidad del planner al tamaño del prompt
+   de tools, que ya es de 11 familias.
+4. **Gasto y pasada completa:** ≈ 5,50 $ de 6 $. La pasada completa (≈ 2 $) **no se ha lanzado**; con los fallos de arriba, correrla ahora
+   solo confirmaría lo ya visto. **Decide Josem** el tope, **después de tu revisión**.
+5. **Lección para el ADR** (la apunto, es tuya): una familia nueva de tools puede capturar los verbos de otra («olvida», en #62).
+   Cada descripción de una familia nueva debería decir **qué cosas no son suyas**, no solo qué hace. Lo decía el plan, y aquí costó 0,6 $ verlo.
+
+## Para la revisión
+
+- **Producción:** nada que la toque. Todos los [API] corrieron contra `sebastian_test`; ninguno mandó nada a Telegram.
+- **No recomiendo desplegar H4 con este estado.** Hay dos goldens antiguos en rojo (#40, #50, sin aislar) y E10 en 0/3 con el fallo
+  «busca, y se para». La prueba real (Josem dictando por Telegram) caería en el turno 3, el del lugar y el acompañante.
