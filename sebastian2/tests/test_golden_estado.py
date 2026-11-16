@@ -199,4 +199,7 @@ def test_h7_el_80_acepta_crear_el_17_11_o_preguntar_y_rechaza_el_17_12_y_el_no_h
     assert evaluar_compromiso(g, ["request_clarification"], [], "¿A qué día se refiere, señor?")
     assert not evaluar_compromiso(g, ["compromisos_crear"], _crea("2026-12-17"), "Anotado, señor.")
     assert not evaluar_compromiso(g, [], [], "Lo siento, señor: no he podido programar ese recordatorio.")
+    # Observado en la pasada de H7 (ejecución 2): lleva «?» pero es el «no he podido» de producción con una oferta de reintento.
+    assert not evaluar_compromiso(
+        g, [], [], "Lo siento, señor — no he podido crear el recordatorio en este turno. ¿Lo intento de nuevo?")
     assert not evaluar_compromiso(g, ["compromisos_crear", "compromisos_crear"], _crea("2026-11-17"), "Anotado.")
