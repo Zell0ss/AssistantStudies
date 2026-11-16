@@ -87,6 +87,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         terminalreporter.write_line(f"  Alfred:    {r['response_text'][:200]}")
         for texto in r.get("planner_sin_tools", []):          # H3c R10: solo en el informe del test, nunca en el log (D42)
             terminalreporter.write_line(f"  Planner sin tool: {texto[:400]!r}")
+        if r.get("ventanas"):                                 # H5: informativo, no hace fallar nada
+            terminalreporter.write_line(f"  time_window: {r['ventanas']}")
 
     passed_count = sum(1 for r in GOLDEN_RESULTS if r["passed"])
     total = len(GOLDEN_RESULTS)
@@ -335,6 +337,7 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
         if estado:                                        # H3b: los eventos y compromisos que la historia da por hechos
             sembrar_estado(test_db, user_id, estado)
         calls = []
+        ventanas = []     # H5: el `time_window` de cada `calendar_list_events`, que es lo que de verdad comprueba R14 (#77, #78)
         original_execute = ToolExecutor.execute
         original_ask_user = Orchestrator._ask_user
         original_track_usage = Orchestrator._track_usage
@@ -342,6 +345,8 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
 
         def recording_execute(self, tool_name, tool_input):
             calls.append(tool_name)
+            if tool_name == "calendar_list_events":
+                ventanas.append(str(tool_input.get("time_window")))
             return original_execute(self, tool_name, tool_input)
 
         def recording_ask_user(self, question):
@@ -391,6 +396,8 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
 
         if isinstance(response, dict) and planner_sin_tools:
             response["planner_sin_tools"] = planner_sin_tools
+        if isinstance(response, dict) and ventanas:
+            response["ventanas"] = ventanas
         return calls, response
 
     return _run

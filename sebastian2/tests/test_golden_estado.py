@@ -144,6 +144,17 @@ def test_h3d_el_golden_49_acepta_solo_lecturas_y_nunca_escribir():
     assert not any("salud" in seq or "mark_as_memorable" in seq for seq in g["expected"])
 
 
+def test_h5_los_goldens_77_y_78_son_los_del_arquitecto_tal_cual():
+    """H5-encargo §3: copiados tal cual. Solo comparan nombres de tools; el `time_window` sale en el informe."""
+    lista = [["calendar_list_events"], ["calendar_list_events", "compromisos_listar"],
+             ["compromisos_listar", "calendar_list_events"]]
+    for ident, frase in ((77, "¿Cómo se presenta el mes de diciembre?"), (78, "¿Qué tengo el mes que viene?")):
+        g = _golden(ident)
+        assert g["phrase"] == frase and g["mode"] == "any_of" and g["expected"] == lista
+        assert "estado" not in g and "historia" not in g
+    assert _golden(77)["validates"].startswith("Fase 3 H5 (R14)") and "next_month" in _golden(78)["validates"]
+
+
 def test_el_golden_62_sigue_exacto_y_el_74_no_cambia_sus_listas():
     assert _golden(62)["mode"] == "exact" and _golden(62)["expected"] == ["mark_as_memorable"]
     assert [["compromisos_crear"], ["calendar_search_events", "compromisos_crear"],

@@ -153,7 +153,10 @@ class ToolExecutor:
 
     def _calendar_list_events(self, inputs: dict):
         module = CalendarModule(self._db, self._user_id)
-        return module.list_events(inputs['time_window'])
+        try:
+            return module.list_events(inputs.get('time_window'))
+        except ValueError as e:                    # H5, R16: un valor desconocido no se lee como «hoy» ni rompe el turno
+            return {'status': 'invalid', 'message': str(e)}
 
     def _calendar_find_by_datetime(self, inputs: dict):
         module = CalendarModule(self._db, self._user_id)

@@ -60,6 +60,7 @@ def test_golden(golden, orchestrator_runner):
         "validates": golden.get("validates", ""),
         "response_text": response_text,
         "planner_sin_tools": response.get("planner_sin_tools", []) if isinstance(response, dict) else [],
+        "ventanas": response.get("ventanas", []) if isinstance(response, dict) else [],
     })
 
     assert passed, (

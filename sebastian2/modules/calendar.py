@@ -3,6 +3,7 @@
 Calendar module - personal event management with recurrence support.
 """
 import json
+import re
 from datetime import date, datetime, time
 from typing import Optional, List, Dict, Any
 from modules.base import BaseModule
@@ -334,8 +335,19 @@ class CalendarModule(BaseModule):
 
         return None
 
+    VENTANAS_VALIDAS = ("today, tomorrow, week, month (este mes, desde hoy), next_month (el mes siguiente entero), "
+                        "weekend (el próximo fin de semana) o YYYY-MM (un mes concreto, entero)")
+
     def _time_window_to_range(self, time_window: str, hoy: Optional[date] = None):
-        """Convert time_window string to (start_date, end_date) tuple. `hoy` inyecta el día (por defecto, el del sistema)."""
+        """Convert time_window string to (start_date, end_date) tuple. `hoy` inyecta el día (por defecto, el del sistema).
+
+        Valores: 'today', 'tomorrow', 'week' (7 días desde hoy), 'month' (lo que queda del mes en curso, desde hoy),
+        'next_month' (el mes siguiente, entero), 'weekend' y 'YYYY-MM' (ese mes, entero).
+
+        'weekend' (H5, R15) es el próximo sábado y domingo. Si hoy es sábado, hoy y mañana; si es domingo, solo hoy.
+
+        Un valor desconocido lanza `ValueError` con los valores válidos (H5, R16): antes caía en «hoy» sin avisar.
+        """
         from datetime import timedelta
         today = hoy or date.today()
 
@@ -348,13 +360,21 @@ class CalendarModule(BaseModule):
         if time_window == 'month':
             last_day = cal_lib.monthrange(today.year, today.month)[1]
             return today, date(today.year, today.month, last_day)
-        # YYYY-MM format
-        if len(time_window) == 7 and '-' in time_window:
+        if time_window == 'next_month':
+            year, month = (today.year + 1, 1) if today.month == 12 else (today.year, today.month + 1)
+            return date(year, month, 1), date(year, month, cal_lib.monthrange(year, month)[1])
+        if time_window == 'weekend':
+            weekday = today.weekday()                       # lunes 0 … sábado 5, domingo 6
+            if weekday == 6:
+                return today, today
+            sabado = today if weekday == 5 else today + timedelta(days=5 - weekday)
+            return sabado, sabado + timedelta(days=1)
+        # YYYY-MM: cuatro cifras, guion y un mes de 01 a 12
+        if isinstance(time_window, str) and re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', time_window):
             year, month = map(int, time_window.split('-'))
-            last_day = cal_lib.monthrange(year, month)[1]
-            return date(year, month, 1), date(year, month, last_day)
+            return date(year, month, 1), date(year, month, cal_lib.monthrange(year, month)[1])
 
-        return today, today
+        raise ValueError(f"time_window {time_window!r} no es válido: usa {self.VENTANAS_VALIDAS}")
 
     def _row_to_event_dict(self, row: dict, recurring: bool) -> Dict[str, Any]:
         """Convert a DB row to a clean event dict."""
@@ -385,7 +405,8 @@ class CalendarModule(BaseModule):
         List events in the given time window, expanding recurring events.
 
         Args:
-            time_window: 'today' | 'tomorrow' | 'week' | 'month' | 'YYYY-MM'
+            time_window: 'today' | 'tomorrow' | 'week' | 'month' | 'next_month' | 'weekend' | 'YYYY-MM'
+                (cualquier otro valor lanza ValueError, ver `_time_window_to_range`)
 
         Returns:
             List of event dicts sorted by date and time, each with:

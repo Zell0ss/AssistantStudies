@@ -28,7 +28,10 @@ CALENDAR_TOOLS = [
         "name": "calendar_list_events",
         "description": (
             "Lista los eventos del calendario en un rango de tiempo. "
-            "Devuelve todos los eventos del período con id, título, fecha y hora."
+            "Devuelve todos los eventos del período con id, título, fecha y hora. "
+            "Para «el mes que viene», `next_month`; para un mes con nombre («diciembre», «en enero»), `YYYY-MM`, "
+            "con el año que toque desde hoy (si ya pasó ese mes este año, el siguiente). "
+            "Lo que el usuario tiene que hacer (pasos, preparaciones) no está aquí: está en `compromisos_listar`."
         ),
         "input_schema": {
             "type": "object",
@@ -37,10 +40,11 @@ CALENDAR_TOOLS = [
                     "type": "string",
                     "description": (
                         "Rango de tiempo. Valores válidos: "
-                        "'today' (hoy), 'tomorrow' (mañana), 'week' (esta semana), "
-                        "'month' (este mes), 'weekend' (próximo fin de semana)."
+                        "'today' (hoy), 'tomorrow' (mañana), 'week' (los próximos 7 días), "
+                        "'month' (lo que queda de este mes, desde hoy), 'next_month' (el mes siguiente, entero), "
+                        "'weekend' (próximo sábado y domingo) o 'YYYY-MM' (un mes concreto, entero; "
+                        "por ejemplo '2026-12'). Cualquier otro valor da error."
                     ),
-                    "enum": ["today", "tomorrow", "week", "month", "weekend"]
                 }
             },
             "required": ["time_window"]

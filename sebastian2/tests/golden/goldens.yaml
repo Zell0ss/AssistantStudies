@@ -590,3 +590,21 @@
     - [calendar_search_events, compromisos_crear]
     - [calendar_search_events]
   validates: "Fase 3 (D52): un paso condicional se pregunta o se crea; nunca va a memoria ni a salud"
+
+- id: 77
+  phrase: "¿Cómo se presenta el mes de diciembre?"
+  mode: any_of
+  expected:
+    - [calendar_list_events]
+    - [calendar_list_events, compromisos_listar]
+    - [compromisos_listar, calendar_list_events]
+  validates: "Fase 3 H5 (R14): un mes con nombre se lee entero; lo que hay que hacer, en compromisos"
+
+- id: 78
+  phrase: "¿Qué tengo el mes que viene?"
+  mode: any_of
+  expected:
+    - [calendar_list_events]
+    - [calendar_list_events, compromisos_listar]
+    - [compromisos_listar, calendar_list_events]
+  validates: "Fase 3 H5 (R14): «el mes que viene» es next_month"
