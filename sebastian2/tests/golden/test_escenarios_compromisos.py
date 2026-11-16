@@ -8,7 +8,7 @@ Pasa si pasa 3 de 3 (PLAN §3 H3.2). Se lanza con:
     pytest -m golden tests/golden/test_escenarios_compromisos.py -s
 """
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -116,8 +116,14 @@ def test_E10_preparacion_de_una_prueba_medica(escenario_runner, test_db, agenda_
     else:
         r2 = "turno 5: calendar_update_event " + ("CON event_id" if all("event_id" in c for c in cambios) else
                                                   "SIN event_id") + f" ({len(cambios)} llamada(s))"
+    # R12 (H3c, H3-revision §13): la segunda toma («el mismo día a la una de la madrugada») es el día 0 de la cita a las 01:00.
+    # Con `dias_inicio = -1` el aviso de la 01:00 llegaría 24 h antes (D48). Se anota aquí y se afirma al final.
+    madrugada = [c for c in compromisos if c["estado"] == "pendiente" and c["hora"] == timedelta(hours=1)]
+    r12 = ("R12: segunda toma (01:00) con dias_inicio " + ", ".join(str(c["dias_inicio"]) for c in madrugada)
+           + (" → bien (día 0)" if madrugada and all(c["dias_inicio"] == 0 for c in madrugada) else " → MAL (debía ser 0)")
+           if madrugada else "R12: ningún compromiso pendiente a las 01:00 → MAL")
     _registrar("E10", "Preparación de una endoscopia (cita, pasos atados, lugar, resultado, cambio de día)", turnos,
-               _bd(eventos, compromisos) + [r2])
+               _bd(eventos, compromisos) + [r2, r12])
 
     # 1. La cita se creó una sola vez, el jueves 28 a las 9:30, y luego se movió al 29 a la misma hora.
     assert len(eventos) == 1, f"se esperaba 1 evento (la endoscopia), hay {len(eventos)}"
@@ -153,3 +159,8 @@ def test_E10_preparacion_de_una_prueba_medica(escenario_runner, test_db, agenda_
     assert resumen_nuevo and "dieta" in resumen_nuevo.lower(), f"el resumen del día −3 nuevo no trae la dieta: {resumen_nuevo!r}"
     assert not resumen_viejo or "dieta" not in resumen_viejo.lower(), \
         f"el resumen del día −3 viejo todavía trae la dieta: {resumen_viejo!r}"
+
+    # 6. R12 (normativa; se cuenta pero no bloquea el cierre de H3, H3-revision §14): al final, para que el resto del criterio
+    #    ya esté comprobado cuando falle. «El mismo día a la una de la madrugada» es dias_inicio = 0, hora 01:00.
+    assert madrugada and all(c["dias_inicio"] == 0 for c in madrugada), \
+        f"R12: la segunda toma debía ser dias_inicio 0 a las 01:00 y es: {r12}"

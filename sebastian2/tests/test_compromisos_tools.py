@@ -68,6 +68,26 @@ def test_descripcion_de_borrar_distingue_olvidar_de_cancelar():
     assert "olvidar" in d and "cancelar" in d and "borra" in d
 
 
+def _props_de_item():
+    return _tool("compromisos_crear")["input_schema"]["properties"]["items"]["items"]["properties"]
+
+
+def test_dias_inicio_dice_que_una_hora_de_madrugada_atada_a_la_cita_es_el_dia_cero():
+    """H3c R11 (H3-revision §13): en E10, «el mismo día a la una de la madrugada» salía con `dias_inicio = -1` (24 h antes) en
+    2 de 3, y ese es el aviso de la 01:00 del 17/12 (D48). El día 0 es el de la cita; -1, el anterior a esa hora del reloj."""
+    d = " ".join(_props_de_item()["dias_inicio"]["description"].split())
+    assert "El día 0 es el de la cita" in d
+    assert "«el mismo día a la una»" in d and "«la noche antes, a la una»" in d
+    assert "`dias_inicio` 0 con esa hora" in d
+    assert "-1 es el día anterior, a esa hora del reloj" in d
+    assert "-3 = tres días antes" in d and "-1 = la víspera" in d              # lo que ya decía
+
+
+def test_dias_fin_remite_al_mismo_dia_cero():
+    d = " ".join(_props_de_item()["dias_fin"]["description"].split())
+    assert "dias_inicio -3, dias_fin -1" in d and "día 0" in d
+
+
 def test_descripcion_de_crear_dice_que_el_dia_de_inicio_cuenta():
     """H3c R10: en #67 («El lunes 14 de diciembre empiezo la dieta blanda, tres días») el planner preguntaba si acababa el
     16 o el 17, 2 de 3 veces, aunque es claro. Sin esa pregunta no hay llamada y Alfred dice «no he podido registrar»."""

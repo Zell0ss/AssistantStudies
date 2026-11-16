@@ -65,14 +65,18 @@ COMPROMISOS_TOOLS = [
                                 "type": "integer",
                                 "description": (
                                     "Solo con evento_id: días respecto al día del evento. -3 = tres días antes, "
-                                    "-1 = la víspera, 0 = el mismo día."
+                                    "-1 = la víspera, 0 = el mismo día. El día 0 es el de la cita. Una hora de "
+                                    "madrugada que el usuario ata al día de la cita («el mismo día a la una», «la "
+                                    "noche antes, a la una») es `dias_inicio` 0 con esa hora. -1 es el día anterior, "
+                                    "a esa hora del reloj."
                                 ),
                             },
                             "dias_fin": {
                                 "type": "integer",
                                 "description": (
                                     "Solo con evento_id: último día del intervalo, también respecto al evento "
-                                    "(la dieta de tres días antes hasta la víspera: dias_inicio -3, dias_fin -1)."
+                                    "(la dieta de tres días antes hasta la víspera: dias_inicio -3, dias_fin -1; "
+                                    "el día 0 es el de la cita, como en dias_inicio)."
                                 ),
                             },
                             "hora": {

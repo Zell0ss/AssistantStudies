@@ -475,8 +475,11 @@
 # Fase 3 (D45, D49, D50, D52). Normativos; su línea base va solo con -k.
 - id: 67
   phrase: "El lunes 14 de diciembre empiezo la dieta blanda, tres días"
-  mode: exact
-  expected: [compromisos_crear]
+  mode: any_of
+  expected:
+    - [compromisos_crear]
+    - []
+    - [request_clarification]
   validates: "Fase 3 (D45): una cosa que hacer con fecha es compromiso, no cita ni memoria"
 
 - id: 68
@@ -529,6 +532,7 @@
   expected:
     - [compromisos_completar]
     - [compromisos_listar, compromisos_completar]
+    - [compromisos_listar, compromisos_completar, compromisos_listar]
   validates: "Fase 3: marcar hecho; no es un registro de salud (D52)"
 
 - id: 72

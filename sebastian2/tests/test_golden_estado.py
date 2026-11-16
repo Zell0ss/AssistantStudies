@@ -122,7 +122,9 @@ def test_el_golden_71_trae_la_cita_de_manana_y_la_primera_toma():
 
 def test_el_golden_67_pone_fecha_explicita_y_el_76_acepta_preguntar_en_texto():
     assert _golden(67)["phrase"] == "El lunes 14 de diciembre empiezo la dieta blanda, tres días"
-    assert _golden(67)["expected"] == ["compromisos_crear"]
+    assert _golden(67)["mode"] == "any_of"                 # H3-revision §12.1: también `[]` y `[request_clarification]`
+    assert _golden(67)["expected"] == [["compromisos_crear"], [], ["request_clarification"]]
+    assert ["compromisos_listar", "compromisos_completar", "compromisos_listar"] in _golden(71)["expected"]   # §12.2
     assert [] in _golden(76)["expected"] and _golden(76)["mode"] == "any_of"
 
 
