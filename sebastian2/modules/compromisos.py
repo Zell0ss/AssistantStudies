@@ -330,6 +330,12 @@ class CompromisosModule(BaseModule):
         return {"status": "ok", "desde": d.isoformat(), "hasta": h.isoformat(),
                 "compromisos": [_serializar(p["fila"], p["momento"], p["evento_titulo"]) for p in elegidos]}
 
+    def registrar_aviso(self, compromiso_id: int, momento: datetime) -> None:
+        """D51: anota el momento para el que se avisó. No toca `updated_at`: avisar no es cambiar el compromiso."""
+        self.execute_query("UPDATE compromisos SET aviso_para = %s WHERE id = %s AND user_id = %s",
+                           (momento, compromiso_id, self.user_id))
+        self.commit()
+
     def _estado(self, compromiso_id: int) -> Optional[str]:
         fila = self.execute_query("SELECT estado FROM compromisos WHERE id = %s AND user_id = %s",
                                   (compromiso_id, self.user_id)).fetchone()

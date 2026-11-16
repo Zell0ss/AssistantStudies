@@ -300,10 +300,10 @@ class CalendarModule(BaseModule):
 
         return None
 
-    def _time_window_to_range(self, time_window: str):
-        """Convert time_window string to (start_date, end_date) tuple."""
+    def _time_window_to_range(self, time_window: str, hoy: Optional[date] = None):
+        """Convert time_window string to (start_date, end_date) tuple. `hoy` inyecta el día (por defecto, el del sistema)."""
         from datetime import timedelta
-        today = date.today()
+        today = hoy or date.today()
 
         if time_window == 'today':
             return today, today
@@ -346,7 +346,7 @@ class CalendarModule(BaseModule):
             'note': note,
         }
 
-    def list_events(self, time_window: str) -> List[Dict[str, Any]]:
+    def list_events(self, time_window: str, hoy: Optional[date] = None) -> List[Dict[str, Any]]:
         """
         List events in the given time window, expanding recurring events.
 
@@ -357,7 +357,7 @@ class CalendarModule(BaseModule):
             List of event dicts sorted by date and time, each with:
             {event_id, title, date, time, all_day, recurring}
         """
-        start_date, end_date = self._time_window_to_range(time_window)
+        start_date, end_date = self._time_window_to_range(time_window, hoy)
         start_dt = datetime.combine(start_date, time(0, 0))
         end_dt = datetime.combine(end_date, time(23, 59, 59))
 
