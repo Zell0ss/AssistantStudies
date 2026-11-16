@@ -469,3 +469,95 @@
   mode: exact
   expected: [mark_as_memorable]
   validates: "Fase 2 H3 (D43): con un historial que ya dice «Anotado…», olvidar sigue siendo mark_as_memorable; el historial es lo que se dijo, no lo que se hizo"
+
+# Fase 3 (D45, D49, D50, D52). Normativos; su línea base va solo con -k.
+- id: 67
+  phrase: "El lunes empiezo la dieta sin residuos, tres días"
+  mode: exact
+  expected: [compromisos_crear]
+  validates: "Fase 3 (D45): una cosa que hacer con fecha es compromiso, no cita ni memoria"
+
+- id: 68
+  phrase: "Para la colonoscopia: la víspera a las 21:00 la primera toma y el mismo día a la una la segunda"
+  historia:
+    - {user: "Tengo la colonoscopia el 20 de enero a las 9:30", bot: "Apuntado en tu calendario: colonoscopia, miércoles 20 de enero a las 9:30."}
+  mode: any_of
+  expected:
+    - [compromisos_crear]
+    - [calendar_search_events, compromisos_crear]
+    - [calendar_find_by_datetime, compromisos_crear]
+  validates: "Fase 3 (D50): pasos ligados a una cita van atados al evento; puede buscar antes el evento_id"
+
+- id: 69
+  phrase: "En la colonoscopia me acompaña Marta y es en la planta baja del Hospital Ejemplo"
+  historia:
+    - {user: "Tengo la colonoscopia el 20 de enero a las 9:30", bot: "Apuntado en tu calendario: colonoscopia, miércoles 20 de enero a las 9:30."}
+  mode: any_of
+  expected:
+    - [calendar_add_note]
+    - [calendar_search_events, calendar_add_note]
+    - [calendar_find_by_datetime, calendar_add_note]
+  validates: "Fase 3 (D49): los datos de una cita van a las notas del evento, no a la memoria"
+
+- id: 70
+  phrase: "¿Qué tengo que hacer esta semana?"
+  mode: any_of
+  expected:
+    - [compromisos_listar]
+    - [compromisos_listar, calendar_list_events]
+    - [calendar_list_events, compromisos_listar]
+  validates: "Fase 3: consultar lo pendiente lee compromisos"
+
+- id: 71
+  phrase: "Ya he hecho la primera toma"
+  historia:
+    - {user: "¿Qué me toca hoy?", bot: "Hoy: solo líquidos claros, y a las 21:00 la primera toma del preparado."}
+  mode: any_of
+  expected:
+    - [compromisos_completar]
+    - [compromisos_listar, compromisos_completar]
+  validates: "Fase 3: marcar hecho; no es un registro de salud (D52)"
+
+- id: 72
+  phrase: "Me han cambiado la colonoscopia al 21 a la misma hora"
+  mode: any_of
+  expected:
+    - [calendar_update_event]
+    - [calendar_search_events, calendar_update_event]
+    - [calendar_find_by_datetime, calendar_update_event]
+  validates: "Fase 3 (D50): se mueve el evento, y los compromisos se mueven solos; no se tocan uno a uno"
+
+# Frontera de salud (D52). Negativos: lo que falla es guardarlo donde no toca.
+- id: 73
+  phrase: "El test de sangre oculta me salió positivo"
+  mode: any_of
+  expected:
+    - []
+    - [request_clarification]
+  validates: "Fase 3 (D52), negativa: un resultado clínico no se guarda en Sebastian (ni memoria, ni notas, ni salud)"
+
+- id: 74
+  phrase: "Recuérdame que en la colonoscopia tengo que decir que soy alérgico a la aspirina"
+  mode: any_of
+  expected:
+    - [compromisos_crear]
+    - [calendar_search_events, compromisos_crear]
+    - [calendar_find_by_datetime, compromisos_crear]
+    - [calendar_add_note]
+    - [calendar_search_events, calendar_add_note]
+  validates: "Fase 3 (D52): avisar de la alergia en la cita es logística; la alergia ya es memoria"
+
+- id: 75
+  phrase: "Hoy he desayunado un caldo y un zumo de manzana colado"
+  mode: exact
+  expected: [salud]
+  validates: "Fase 3 (D52): lo que se come sigue yendo a Tristras, también en días de preparación"
+
+- id: 76
+  phrase: "Si tomo hierro tengo que dejarlo 7 días antes de la colonoscopia"
+  mode: any_of
+  expected:
+    - [request_clarification]
+    - [compromisos_crear]
+    - [calendar_search_events, compromisos_crear]
+  validates: "Fase 3 (D52): un paso condicional se pregunta o se crea; nunca va a memoria ni a salud"
