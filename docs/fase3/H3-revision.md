@@ -294,3 +294,66 @@ H3c aprobado. Último paso de H3:
    pasada completa, en ese orden.
 3. **Para** con «Anexo H3d» al final de `docs/fase3/H3-informe.md`. Si se cumple el criterio de §13,
    el siguiente hito es H4.
+
+---
+
+# Cuarta revisión: anexo H3d. H3 se cierra
+
+> Responde a: 0580897 (Anexo H3d). 2026-11-16, arquitecto.
+
+**Veredicto: cierro H3 con tres riesgos aceptados y un retoque de código sin API (R13).** El
+criterio de §13 no se cumple al pie de la letra, y lo digo así. Ninguno de los tres rojos pide
+otra vuelta de prompts, y ya dije que no la habría. Dos se cubren con código y con la revisión de la
+BD tras el dictado. El tercero era culpa del golden. R11 funciona: la segunda toma cae en el día 0
+en 3 de 3, y era el riesgo principal del caso.
+
+## 15. Decisiones que pedías
+
+| # | Decisión |
+|---|---|
+| 1 | **#73: riesgo aceptado, con regla de uso.** Josem no le cuenta resultados médicos a Sebastian; el caso solo dicta fechas y pasos. **Nada de guardia por código:** distinguir un resultado de un síntoma por el texto es tan difuso como el prompt, y daría falsos rechazos en `salud`. Lo que importa: en producción ese texto llegaría a Tristras, no a Sebastian. Si Tristras debe aceptar resultados o no lo decide su registro, y llevo allí la pregunta de D52, que sigue pendiente. Queda anotado en el ADR |
+| 2 | **#49: amplío el golden y no lo repito.** Mirar el inventario o la memoria antes de proponer una cena es una lectura inofensiva, y hasta útil. Lo que falla es escribir algo, sobre todo `salud`. Lista nueva: `[[], [inventory_list], [search_memory], [inventory_list, search_memory], [search_memory, inventory_list]]` |
+| 3 | **E10 turno 5: sí al arreglo por código (R13) y a la mitigación de §14.** Es el mismo patrón de R3, que funcionó: crear no duplica |
+| 4 | **H4 sigue adelante.** El despliegue lo decide y lo hace Josem. Mi recomendación es desplegar tras R13, porque el plazo del 10/12 deja margen para la prueba real |
+
+## 16. R13 y lo que falta para H4 (todo sin API)
+
+- **R13.** `compromisos_crear` no duplica.
+  - Si un compromiso del lote coincide en texto con uno **pendiente** del mismo usuario y el mismo
+    `evento_id`, no se inserta. El texto se compara normalizado: sin mayúsculas, sin espacios de
+    los extremos y con los espacios internos colapsados.
+  - En la salida, ese compromiso va como `ya_existe` con su id y su momento. El resto del lote sí
+    se crea.
+  - La descripción dice: «si la cita se ha movido, sus pasos ya se movieron solos (D50): no los
+    crees otra vez».
+  - Sin `evento_id`, no se compara: los sueltos pueden repetirse, como un «comprar pan» de dos días.
+  - Pruebas:
+    - `test_crear_no_duplica_pendiente_del_mismo_evento`.
+    - `…_si_el_otro_esta_hecho_o_cancelado_si_crea`.
+    - `…_otro_evento_si_crea`.
+    - `…_lote_mixto`.
+- **El golden #49** de §15.
+- **H4, preparación (PLAN §3-H4):**
+  - `deploy/comprobar_fase3.sh`.
+  - `deploy/PASOS-CON-SUDO.md`, con la sección de la fase 3: migración `013` en `sebastian_db`,
+    `ff-only` de `fase-3` en `/data/AssistantStudies` y reinicio. Añade también la vuelta atrás:
+    el commit de ahora en `main` y que `013` solo crea una tabla, así que deshacerla es un `DROP`
+    que **no** se ejecuta sin preguntar.
+- **Ningún [API] más en la fase 3.** Quedan ≈ 0,41 $ de los 10 $ que autorizó Josem. La prueba de
+  R13 con el modelo será la real.
+
+## 17. Gasto
+
+**≈ 9,59 $ de 10 $.** Josem fue subiendo el tope en tu ventana: 6, 8, 9,5 y 10 $. Queda en el ADR y
+en el diario.
+
+## Para el programador
+
+Responde a: 0580897 (Anexo H3d)
+
+H3 cerrado con riesgos aceptados (§15). Antes de H4:
+1. R13 y el golden #49 de §16, con sus pruebas sin API.
+2. `deploy/comprobar_fase3.sh` y la sección de la fase 3 de `deploy/PASOS-CON-SUDO.md`, con su
+   vuelta atrás.
+3. **Ningún [API].** No fusiones, no migres y no reinicies: eso lo hace Josem.
+4. **Para** con `docs/fase3/H4-informe.md`, con lo que Josem tiene que ejecutar y en qué orden.
