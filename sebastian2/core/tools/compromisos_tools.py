@@ -130,9 +130,11 @@ COMPROMISOS_TOOLS = [
     {
         "name": "compromisos_borrar",
         "description": (
-            "Quita un compromiso. Con motivo `olvidar` lo borra de verdad, sin dejar rastro: cuando el usuario dice "
-            "'olvida ese compromiso' o 'borra eso'. Con motivo `cancelar` lo deja cancelado: cuando dice 'ya no hace "
-            "falta'. Usa compromisos_listar primero para obtener el id."
+            "Quita un compromiso, es decir, algo que el usuario tiene que hacer con un día u hora (una toma, un paso "
+            "de preparación). Con motivo `olvidar` lo borra de verdad, sin dejar rastro: cuando dice 'olvida ese "
+            "compromiso' o 'borra eso'. Con motivo `cancelar` lo deja cancelado: cuando dice 'ya no hace falta'. "
+            "Usa compromisos_listar primero para obtener el id. Un dato sobre el usuario o sus cosas ('olvida lo de "
+            "las camisetas UV') no es un compromiso: se retira con `mark_as_memorable`."
         ),
         "input_schema": {
             "type": "object",

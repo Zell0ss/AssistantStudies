@@ -68,6 +68,14 @@ def test_descripcion_de_borrar_distingue_olvidar_de_cancelar():
     assert "olvidar" in d and "cancelar" in d and "borra" in d
 
 
+def test_descripcion_de_borrar_manda_los_datos_a_mark_as_memorable():
+    """H3b R6: sin esta frase, «Olvida lo de las camisetas UV» (golden #62) acababa en `search_memory`, porque
+    «olvida ese compromiso» competía con el camino de borrado de la memoria. Aislado con A–E (informe, anexo)."""
+    d = " ".join(_desc("compromisos_borrar").split())
+    assert "tiene que hacer con un día u hora" in d
+    assert "olvida lo de las camisetas UV" in d and "`mark_as_memorable`" in d
+
+
 def test_calendar_add_note_admite_datos_de_cita_y_nunca_resultados():
     """D49 y D52 (plan §2.2): la nota del evento lleva lugar, planta, teléfono, código y acompañante."""
     d = _desc("calendar_add_note")
