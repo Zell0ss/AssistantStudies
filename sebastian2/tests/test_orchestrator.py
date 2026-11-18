@@ -1188,3 +1188,127 @@ def test_r18_la_regla_de_madrugada_esta_en_el_planner():
 
 def test_r18_alfred_confirma_con_dia_de_la_semana_dia_y_mes():
     assert "cuando_texto" in _ALFRED_SYSTEM and "día de la semana" in _ALFRED_SYSTEM
+
+
+# ── Fase 3 H8 (R20-R21, D59): el planner cachea sus herramientas y el uso registra la caché ──────────────────────────
+
+def _tools_de_la_llamada(mock_client, n):
+    return mock_client.messages.create.call_args_list[n].kwargs["tools"]
+
+
+@patch('core.orchestrator.Anthropic')
+@patch('core.tool_executor.ToolExecutor.execute')
+def test_r20_la_ultima_tool_del_planner_lleva_cache_control_y_las_demas_no(mock_execute, mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_execute.return_value = [{'event_id': 42, 'title': 'Teatro'}]
+    mock_client.messages.create.side_effect = [
+        _make_tool_use_response('calendar_search_events', 'tool_1', {'query': 'teatro'}),
+        _make_text_response("Listo"),
+        _make_text_response("El teatro es el miércoles."),
+    ]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("¿cuándo es el teatro?")
+
+    for n in (0, 1):   # las dos vueltas del planner
+        tools = _tools_de_la_llamada(mock_client, n)
+        assert tools[-1]["cache_control"] == {"type": "ephemeral"}
+        assert all("cache_control" not in t for t in tools[:-1])
+
+
+@patch('core.orchestrator.Anthropic')
+def test_r20_all_tools_no_se_muta(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("Listo"), _make_text_response("Hola")]
+
+    from core.orchestrator import Orchestrator
+    from core.tools import ALL_TOOLS
+    Orchestrator(db, '99999').handle("Hola")
+
+    assert all("cache_control" not in t for t in ALL_TOOLS)
+
+
+def test_r20_sin_cache_control_es_lo_mismo_que_all_tools():
+    from core.orchestrator import _PLANNER_TOOLS
+    from core.tools import ALL_TOOLS
+    assert _PLANNER_TOOLS is not ALL_TOOLS and len(_PLANNER_TOOLS) == len(ALL_TOOLS)
+    sin_marca = [{k: v for k, v in t.items() if k != "cache_control"} for t in _PLANNER_TOOLS]
+    assert [t["name"] for t in sin_marca] == [t["name"] for t in ALL_TOOLS]
+    assert sin_marca == list(ALL_TOOLS)
+
+
+@patch('core.orchestrator.Anthropic')
+@patch('core.tool_executor.ToolExecutor.execute')
+def test_r20_dos_llamadas_del_mismo_turno_reciben_tools_identicas(mock_execute, mock_anthropic_cls, db):
+    """Guardia contra un invalidador silencioso de la caché: el prefijo de `tools` no cambia entre vueltas."""
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_execute.return_value = [{'event_id': 42, 'title': 'Teatro'}]
+    mock_client.messages.create.side_effect = [
+        _make_tool_use_response('calendar_search_events', 'tool_1', {'query': 'teatro'}),
+        _make_text_response("Listo"),
+        _make_text_response("El teatro es el miércoles."),
+    ]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("¿cuándo es el teatro?")
+
+    primera = json.dumps(_tools_de_la_llamada(mock_client, 0), sort_keys=False)
+    segunda = json.dumps(_tools_de_la_llamada(mock_client, 1), sort_keys=False)
+    assert primera == segunda
+
+
+def _uso(**campos):
+    from types import SimpleNamespace
+    return SimpleNamespace(**campos)
+
+
+@patch('core.orchestrator.Anthropic')
+def test_r21_track_usage_acumula_cache_read_y_creation(mock_anthropic_cls, db):
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    respuesta = MagicMock(usage=_uso(input_tokens=12, output_tokens=30,
+                                     cache_read_input_tokens=7000, cache_creation_input_tokens=0))
+    orch._track_usage(respuesta, 'claude-haiku-4-5-20251001')
+    orch._track_usage(MagicMock(usage=_uso(input_tokens=3, output_tokens=4,
+                                           cache_read_input_tokens=100, cache_creation_input_tokens=50)),
+                      'claude-haiku-4-5-20251001')
+    u = orch._turn_usage
+    assert (u["cache_read"], u["cache_creation"]) == (7100, 50)
+    assert u["tokens_in"] == 15   # solo lo no cacheado: la caché no se suma a tokens_in
+
+
+@patch('core.orchestrator.Anthropic')
+def test_r21_un_usage_sin_campos_de_cache_suma_cero(mock_anthropic_cls, db):
+    from core.orchestrator import Orchestrator
+    orch = Orchestrator(db, '99999')
+    orch._track_usage(MagicMock(usage=_uso(input_tokens=5, output_tokens=2)), 'claude-haiku-4-5-20251001')
+    orch._track_usage(MagicMock(usage=_uso(input_tokens=1, output_tokens=1,
+                                           cache_read_input_tokens=None, cache_creation_input_tokens=None)),
+                      'claude-haiku-4-5-20251001')
+    u = orch._turn_usage
+    assert (u["cache_read"], u["cache_creation"], u["tokens_in"]) == (0, 0, 6)
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_r21_la_linea_turn_end_lleva_cache_read_y_cache_creation(mock_anthropic_cls, mock_logger, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    planner = _make_text_response("Listo")
+    planner.usage = _uso(input_tokens=10, output_tokens=5, cache_read_input_tokens=7000, cache_creation_input_tokens=0)
+    alfred = _make_text_response("Hola")
+    alfred.usage = _uso(input_tokens=20, output_tokens=6)
+    mock_client.messages.create.side_effect = [planner, alfred]
+
+    from core.orchestrator import Orchestrator
+    Orchestrator(db, '99999').handle("Hola")
+
+    fin = [c for c in mock_logger.mock_calls if "Turn end" in str(c)]
+    assert fin, "no hay línea Turn end"
+    texto = str(fin[0])
+    assert "cache_read=7000" in texto and "cache_creation=0" in texto
+    campos = mock_logger.bind.call_args_list[-1].kwargs
+    assert campos["cache_read"] == 7000 and campos["cache_creation"] == 0 and campos["tokens_in"] == 30

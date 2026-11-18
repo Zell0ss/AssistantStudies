@@ -40,6 +40,17 @@ _PLANNER_MAX_TOKENS = 4096
 _PLAN_REPLY_MAX_TOKENS = 512  # SI/NO, pero con razonamiento previo que también cuenta
 _CAPABILITIES_DIGEST = build_capabilities_digest()
 
+# D59: las tools del planner van con un marcador de caché (TTL de 5 min) en la última, que cachea todo el
+# prefijo `tools`. Copia de ALL_TOOLS: solo se copia el último dict, y ALL_TOOLS no se muta (lo usan los
+# tests y el digest). El `system` empieza por la hora y cambia en cada llamada, pero va después de `tools`
+# en el orden de la caché, así que no la invalida. Mínimo cacheable de Haiku 4.5: 4096 tokens.
+_PLANNER_TOOLS = [*ALL_TOOLS[:-1], {**ALL_TOOLS[-1], "cache_control": {"type": "ephemeral"}}]
+
+
+def _uso_vacio() -> dict:
+    """Contadores de uso de un turno (telemetría)."""
+    return {"tokens_in": 0, "tokens_out": 0, "cache_read": 0, "cache_creation": 0, "models": set()}
+
 
 def _messages_to_json(messages: list) -> str:
     """Serialize Haiku messages to JSON. Converts SDK objects via model_dump()."""
@@ -271,7 +282,7 @@ class Orchestrator:
         historial_cfg = config.get("historial", {})
         self._historial_limite = historial_cfg.get("intercambios", 6)
         self._historial_ventana_min = historial_cfg.get("ventana_min", 120)
-        self._turn_usage = {"tokens_in": 0, "tokens_out": 0, "models": set()}
+        self._turn_usage = _uso_vacio()
         self._vault_path = config.get("vault_docs_path")
         self._propietario_vault = propietario_vault(config)
         self._indice_turno = None   # el índice de la memoria se calcula una vez por turno (D36)
@@ -296,6 +307,9 @@ class Orchestrator:
         if usage is not None:
             self._turn_usage["tokens_in"] += getattr(usage, "input_tokens", 0) or 0
             self._turn_usage["tokens_out"] += getattr(usage, "output_tokens", 0) or 0
+            # D59: `tokens_in` es solo lo no cacheado; la caché va aparte.
+            self._turn_usage["cache_read"] += getattr(usage, "cache_read_input_tokens", 0) or 0
+            self._turn_usage["cache_creation"] += getattr(usage, "cache_creation_input_tokens", 0) or 0
 
     def _llamar_planner(self, messages: list):
         """Una llamada al planner (D28): modelo único, esfuerzo bajo, uso contabilizado y vigilado."""
@@ -303,7 +317,7 @@ class Orchestrator:
             model=_MODELO_PLANNER,
             max_tokens=_PLANNER_MAX_TOKENS,
             system=_planner_system(self._indice_del_turno()),
-            tools=ALL_TOOLS,
+            tools=_PLANNER_TOOLS,
             messages=messages,
             **_PLANNER_EXTRA,
         )
@@ -368,11 +382,14 @@ class Orchestrator:
             models=models,
             tokens_in=usage["tokens_in"],
             tokens_out=usage["tokens_out"],
+            cache_read=usage["cache_read"],
+            cache_creation=usage["cache_creation"],
             latency_ms=latency_ms,
             outcome=outcome,
         ).info(
             f"Turn end | user={self._user_id} | outcome={outcome} | iterations={iterations} | "
             f"models={models} | tokens_in={usage['tokens_in']} | tokens_out={usage['tokens_out']} | "
+            f"cache_read={usage['cache_read']} | cache_creation={usage['cache_creation']} | "
             f"latency_ms={latency_ms}"
         )
 
@@ -532,7 +549,7 @@ class Orchestrator:
     def _handle_inner(self, user_message: str) -> dict:
         """Core message handling logic (API errors propagate to handle())."""
         turn_start = time.perf_counter()
-        self._turn_usage = {"tokens_in": 0, "tokens_out": 0, "models": set()}
+        self._turn_usage = _uso_vacio()
         self._indice_turno = None
         self._executor.mensaje_del_turno = user_message   # D41: la fuente de la memoria guarda el literal
         logger.bind(user_id=self._user_id).info(
