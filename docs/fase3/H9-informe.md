@@ -114,3 +114,31 @@ paraba a preguntar. Lo vi en la salida, lo comprobé en la BD (eventos 10375–1
    Vuelta atrás: `sudo systemctl stop sebastian.service; cd /data/AssistantStudies && git reset --hard <el hash apuntado>; sudo systemctl
    start sebastian.service`. Prueba de producción (la que pide el encargo): el evento 4947 sigue el 27/11; Josem lo mueve por Telegram con
    «Mueve la cena de Navidad de BNP al viernes 20…» y tiene que encontrarlo (`search` → `update`) sin decir que «no llegó a guardarse».
+
+## Anexo — retoques de la revisión (R25 y #81)
+
+> Responde a: 6d18453 (H9-revision, «Para el programador»). Programador, 2026-11-19. Rama `fase-3`. **Sin API, gasto 0 $**: la fase
+> sigue en ≈ 11,00 $ de 11,50 $. No he fusionado, reiniciado ni tocado producción. `main` sigue en `b735ca6`.
+
+**Commits:** `ed4ba1e` (R25) y `847098e` (#81). **Suite: 942 pasan** (antes 939; las 3 nuevas son las dos de R25 y la del formateador
+del informe de la pasada).
+
+1. **R25 (D61) — `bot/ticket_handler.py`.** Antes de coger `events[0]`, se descartan los que llevan `coincidencia == "parcial"`; si no
+   queda ninguno, `event_id` sigue en `None` y se sigue el flujo de preguntar, como antes de D61. Comentario con D61 junto al filtro.
+   `tests/test_ticket_handler.py` (no había ninguna prueba de `handle_media`): un `bot` y un mensaje falsos, `decode_image` simulado y la
+   BD de test con un usuario propio, que se limpia al acabar. **Las dos pruebas del encargo**, y vi la primera en rojo antes del cambio:
+   - Con solo «Cena de Navidad BNP - TBC» en la agenda, la leyenda «cena con Ana» **no asocia**: responde «Encontré 1 código(s)… ¿A qué
+     cita lo asocio?», con esa cena en la lista para que la elija él, y no se guarda ningún ticket en la BD.
+   - Con la leyenda «BNP» **asocia**: «✅ 1 código(s) guardado(s) en 'Cena de Navidad BNP - TBC'», y el ticket queda en `events.notes`.
+2. **#81 — decisión 1 (a).** `expected` pasa a `[[calendar_add_event], [calendar_add_event, calendar_add_note]]`; la `entrada` de fecha y
+   hora sigue exigiéndose en el `add_event`. `evaluar_calendario` acepta una secuencia o varias, y `_fmt_expected` imprime varias (con
+   prueba: sin ella, el informe de una pasada ya pagada habría roto al final). Pruebas del criterio: el orden contrario
+   (`add_note` antes), una nota de más, una fecha distinta o una secuencia con `search` delante **siguen rechazándose**.
+   **Resultado de volver a juzgar las 4 salidas guardadas, sin repetir la pasada** (`h9_paso1_1/2/3.txt` y `h9_paso2b.txt`, con un
+   guion que lee de cada fichero las tools, la entrada del `add_event` y el texto de Alfred): **#81 = 4/4 PASS.** En las cuatro: `[calendar_add_event,
+   calendar_add_note]`, `add_event` con `date: 2026-11-20` y `time: 20:30`, y Alfred dice «viernes 20/11».
+3. **Suite** pasada (942). Sin otras desviaciones. La salida de #84 y #85 sigue como en el informe: #84 1/1 limpio, #85 PASS con el criterio
+   de palabras completas.
+
+**Decisiones que necesito:** ninguna. El despliegue, de Josem tras tu revisión del anexo, con los pasos de arriba (hash de vuelta atrás:
+`b735ca6`).
