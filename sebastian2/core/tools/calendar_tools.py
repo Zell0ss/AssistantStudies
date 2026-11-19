@@ -9,16 +9,20 @@ CALENDAR_TOOLS = [
     {
         "name": "calendar_search_events",
         "description": (
-            "Busca eventos en el calendario del usuario por texto en el título. "
+            "Busca eventos en el calendario del usuario por palabras del título; usa una o dos palabras clave. "
             "Devuelve una lista de eventos con id, título, fecha (YYYY-MM-DD) y hora (HH:MM o null si todo el día). "
-            "Útil para encontrar cuándo tiene algo el usuario (teatro, dentista, vuelo, etc.)."
+            "Útil para encontrar cuándo tiene algo el usuario (teatro, dentista, vuelo, etc.). "
+            # D61: el segundo nivel de la búsqueda devuelve eventos que solo comparten alguna palabra.
+            'Un resultado con `coincidencia: "parcial"` puede no ser el evento: no lo muevas ni lo borres sin confirmarlo '
+            "con el usuario. Cero resultados no quiere decir que no exista: prueba con otra palabra o con "
+            "`calendar_list_events` del rango."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Texto a buscar en el título del evento. Ejemplo: 'teatro', 'dentista', 'vuelo'."
+                    "description": "Una o dos palabras del título del evento. Ejemplo: 'teatro', 'dentista', 'vuelo'."
                 }
             },
             "required": ["query"]

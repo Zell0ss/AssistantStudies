@@ -13,6 +13,23 @@ from logcentral_client import get_logger
 logger = get_logger("sebastian")
 from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY, MO, TU, WE, TH, FR, SA, SU
 import calendar as cal_lib
+import unicodedata
+
+# D61: palabras que no sirven para buscar un evento («cena de Navidad de BNP» → cena, navidad, bnp).
+_PALABRAS_VACIAS = frozenset(
+    "de del la las el los en a al y con para por un una mi mis".split()
+)
+
+
+def _normalizar_titulo(texto: str) -> str:
+    """Minúsculas, sin acentos y solo letras y dígitos separados por un espacio (D61)."""
+    sin_acentos = "".join(c for c in unicodedata.normalize("NFD", texto or "") if not unicodedata.combining(c))
+    return " ".join(re.split(r"[^a-z0-9]+", sin_acentos.lower())).strip()
+
+
+def _palabras_de_busqueda(consulta: str) -> List[str]:
+    """Las palabras útiles de una consulta: sin las vacías ni las de menos de 2 caracteres (D61)."""
+    return [p for p in _normalizar_titulo(consulta).split() if len(p) >= 2 and p not in _PALABRAS_VACIAS]
 
 
 class CalendarModule(BaseModule):
@@ -653,31 +670,9 @@ class CalendarModule(BaseModule):
         events = self.list_events('month')
         return events[:limit]
 
-    def search_events(self, query: str) -> List[Dict[str, Any]]:
-        """
-        Search events by title (case-insensitive, partial match).
-
-        For recurring events, returns the next upcoming occurrence.
-        Results sorted soonest first.
-
-        Args:
-            query: Search string
-
-        Returns:
-            List of event dicts
-        """
-        cursor = self.execute_query(
-            """
-            SELECT id, title, event_date, start_datetime, end_datetime,
-                   all_day, recurrence_rule, recurrence_end, notes
-            FROM events
-            WHERE user_id = %s AND LOWER(title) LIKE LOWER(%s)
-            ORDER BY start_datetime, event_date
-            """,
-            (self.user_id, f'%{query}%')
-        )
-        rows = cursor.fetchall()
-
+    def _eventos_de_filas(self, rows) -> List[Dict[str, Any]]:
+        """Filas de `events` → dicts de evento. Un recurrente da su próxima ocurrencia desde hoy (y ninguno si ya no
+        tiene). Sin ordenar."""
         today = date.today()
         results = []
 
@@ -704,5 +699,73 @@ class CalendarModule(BaseModule):
                 event['time'] = next_occ.strftime('%H:%M') if not row['all_day'] else None
                 results.append(event)
 
-        results.sort(key=lambda e: (e['date'], e['time'] or '00:00'))
         return results
+
+    def search_events(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Search events by the words of their title (D61).
+
+        Query and titles are normalised (lowercase, no accents, split on anything that is not a letter or digit);
+        stop words and 1-character words are dropped from the query.
+          - Level 1: events whose title contains ALL the words. If there are any, only those are returned.
+          - Level 2 (only if level 1 is empty): events containing SOME word, most matches first, then soonest.
+            Each carries `coincidencia: "parcial"` (level 1 events carry no such key).
+        If no word is left (empty query, or only stop words) it falls back to the old substring match
+        (`search_events("")` returns every event).
+
+        For recurring events, returns the next upcoming occurrence.
+        Results sorted soonest first.
+
+        Args:
+            query: Search string
+
+        Returns:
+            List of event dicts
+        """
+        palabras = _palabras_de_busqueda(query)
+        # D42: solo el tamaño de la consulta va al log, nunca el texto.
+        logger.info(f"Búsqueda de eventos | user={self.user_id} | query_chars={len(query or '')} palabras={len(palabras)}")
+
+        if not palabras:
+            cursor = self.execute_query(
+                """
+                SELECT id, title, event_date, start_datetime, end_datetime,
+                       all_day, recurrence_rule, recurrence_end, notes
+                FROM events
+                WHERE user_id = %s AND LOWER(title) LIKE LOWER(%s)
+                ORDER BY start_datetime, event_date
+                """,
+                (self.user_id, f'%{query}%')
+            )
+            results = self._eventos_de_filas(cursor.fetchall())
+            results.sort(key=lambda e: (e['date'], e['time'] or '00:00'))
+            return results
+
+        # Se filtra en Python: son los eventos de un solo usuario, pocos.
+        cursor = self.execute_query(
+            """
+            SELECT id, title, event_date, start_datetime, end_datetime,
+                   all_day, recurrence_rule, recurrence_end, notes
+            FROM events
+            WHERE user_id = %s
+            ORDER BY start_datetime, event_date
+            """,
+            (self.user_id,)
+        )
+        filas = []
+        for row in cursor.fetchall():
+            titulo = _normalizar_titulo(row['title'])
+            filas.append((row, sum(1 for p in palabras if p in titulo)))
+
+        completas = self._eventos_de_filas([row for row, n in filas if n == len(palabras)])
+        if completas:
+            completas.sort(key=lambda e: (e['date'], e['time'] or '00:00'))
+            return completas
+
+        # Segundo nivel: el evento se vincula a su fila por id para saber cuántas palabras casó.
+        aciertos = {row['id']: n for row, n in filas if n > 0}
+        parciales = self._eventos_de_filas([row for row, n in filas if n > 0])
+        for e in parciales:
+            e['coincidencia'] = "parcial"
+        parciales.sort(key=lambda e: (-aciertos[e['event_id']], e['date'], e['time'] or '00:00'))
+        return parciales

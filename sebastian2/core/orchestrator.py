@@ -10,7 +10,7 @@ Flow:
 """
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from logcentral_client import get_logger
 from anthropic import Anthropic, APIError, APIConnectionError, RateLimitError
 from core.memoria.ajustes import propietario_vault
@@ -102,10 +102,29 @@ def _log_tool_execution(tool_name: str, tool_input: dict, raw, latency_ms: float
     )
 
 
-def _now_str() -> str:
-    """Return the current date AND time as a Spanish sentence, for prompt injection."""
-    now = datetime.now()
-    return f"Hoy es {now.strftime('%Y-%m-%d')} y son las {now.strftime('%H:%M')}."
+# D60: nombres de los días escritos aquí, sin `locale` (el servidor no tiene por qué tener el español instalado).
+_DIAS_SEMANA = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+_DIAS_VISTOS = 14   # hoy y los 13 siguientes
+
+
+def _reloj() -> datetime:
+    """La hora de ahora; un solo sitio para fijarla en las pruebas (y en los goldens con `ahora`)."""
+    return datetime.now()
+
+
+def _contexto_fecha(ahora: datetime | None = None) -> str:
+    """D60: la fecha y hora de ahora con el día de la semana, y los próximos 14 días (día de la semana y d/m).
+
+    Al planner no se le puede pedir que calcule «este viernes» desde «2026-11-19»: el 19/11 salió el viernes 27 (H9).
+    Planner y Alfred ven el mismo texto."""
+    ahora = ahora or _reloj()
+    dias = []
+    for n in range(_DIAS_VISTOS):
+        d = ahora.date() + timedelta(days=n)
+        nombre = f"{_DIAS_SEMANA[d.weekday()]} {d.day}/{d.month}"
+        dias.append(f"hoy {nombre}" if n == 0 else f"mañana {nombre}" if n == 1 else nombre)
+    return (f"Hoy es {_DIAS_SEMANA[ahora.weekday()]} {ahora:%Y-%m-%d} y son las {ahora:%H:%M}.\n"
+            f"Próximos días: {', '.join(dias)}.")
 
 
 # D43: el historial lleva el texto del asistente («Anotado…», «Retirado…») y el planner lo imitaba: contestaba en texto
@@ -135,6 +154,13 @@ _REGLA_COMPROMISOS = (
     "más próxima que aún no ha pasado, sin preguntar: nunca una fecha y hora que ya ha pasado."
 )
 
+# Fase 3 H9 (R22, D60): «este viernes tengo cena…» dicho el jueves 19/11 creó el evento el 27/11 (el planner solo veía
+# «2026-11-19» y calculó mal el día de la semana). Ahora ve los próximos 14 días con su día de la semana (`_contexto_fecha`).
+_REGLA_FECHAS = (
+    "\n\n«Este viernes», «el lunes», «el martes que viene»: toma la fecha de la lista de próximos días de arriba. "
+    "«Este X» es el próximo X que aún no ha pasado. No calcules el día de la semana."
+)
+
 
 # Fase 3 H3c (R9): E10 mostró al planner buscando la cita (`calendar_search_events`) y cerrando el turno sin llamar a la tool
 # que la cambia, y a Alfred contando como hecho lo que no se hizo (D54 cubre lo segundo). Mismo patrón que D43: al final,
@@ -151,7 +177,7 @@ def _planner_system(indice_memoria: str = "") -> str:
     `indice_memoria` (D36): lo que consta del usuario, sin valores, después de las capacidades. No va en
     `_ALFRED_SYSTEM`: la síntesis solo afirma lo que trajeron las herramientas de este turno (D26)."""
     return (
-        f"{_now_str()}\n"
+        f"{_contexto_fecha()}\n"
         "Eres el núcleo de razonamiento de Sebastian, asistente personal.\n"
         "Tu único trabajo es decidir qué herramientas usar para responder la pregunta del usuario.\n"
         "Usa las herramientas necesarias para reunir la información. No respondas al usuario directamente.\n"
@@ -169,6 +195,7 @@ def _planner_system(indice_memoria: str = "") -> str:
         + (f"\n\n{indice_memoria}" if indice_memoria else "")
         + _REGLA_ACCIONES_CON_HISTORIAL
         + _REGLA_COMPROMISOS
+        + _REGLA_FECHAS
         + _REGLA_BUSCAR_NO_TERMINA
     )
 
@@ -204,6 +231,8 @@ Tú no ejecutas herramientas: solo lees lo que ya trajeron. Si en este turno no 
 digas «permítame consultarlo»; di que no te consta.
 Al confirmar un compromiso creado, di el día de la semana, el día y el mes tal como vienen en `cuando_texto` («martes 17/11
 a las 01:00»), nunca «mañana a la una» sin más.
+Si no encuentras algo que el usuario da por hecho (un evento, un compromiso), di que no lo encuentras con esa búsqueda, sin
+suponer por qué. No digas que no se guardó. Si ofreces crearlo, avisa de que podría quedar duplicado. (D62)
 
 Estas son tus capacidades actuales — si el usuario pregunta qué sabes hacer o duda de si puedes algo, responde desde aquí:
 {_CAPABILITIES_DIGEST}"""
@@ -675,14 +704,14 @@ class Orchestrator:
             nota = _nota_turno_solo_lectura(tool_results)          # D54: vacía si el turno escribió algo
             bloque_nota = f"{nota}\n\n" if nota else ""
             synthesis_prompt = (
-                f"{_now_str()}\n"
+                f"{_contexto_fecha()}\n"
                 f"El usuario preguntó: {user_message}\n\n"
                 f"Datos recogidos:\n{context}\n\n"
                 f"{bloque_nota}"
                 f"Responde al usuario en español, de forma concisa y útil."
             )
         else:
-            synthesis_prompt = f"{_now_str()}\n{user_message}\n\n{_TURNO_SIN_HERRAMIENTAS}"
+            synthesis_prompt = f"{_contexto_fecha()}\n{user_message}\n\n{_TURNO_SIN_HERRAMIENTAS}"
             nota_planner = (nota_planner or "").strip()[:_NOTA_PLANNER_MAX]
             if nota_planner:
                 synthesis_prompt += "\n\n" + _nota_del_planner(nota_planner)

@@ -1312,3 +1312,103 @@ def test_r21_la_linea_turn_end_lleva_cache_read_y_cache_creation(mock_anthropic_
     assert "cache_read=7000" in texto and "cache_creation=0" in texto
     campos = mock_logger.bind.call_args_list[-1].kwargs
     assert campos["cache_read"] == 7000 and campos["cache_creation"] == 0 and campos["tokens_in"] == 30
+
+
+# ── Fase 3 H9 (R22, D60): la fecha con el día de la semana y los próximos 14 días ────────────────────────────────────
+
+from datetime import datetime as _dt
+
+_JUEVES = _dt(2026, 11, 19, 8, 6)
+_SABADO = _dt(2026, 11, 28, 12, 0)
+
+
+def _dias_de(texto):
+    linea = next(l for l in texto.splitlines() if l.startswith("Próximos días:"))
+    return linea[len("Próximos días:"):].strip().rstrip(".").split(", ")
+
+
+def test_r22_el_texto_lleva_el_dia_de_la_semana_y_catorce_dias():
+    from core.orchestrator import _contexto_fecha
+    t = _contexto_fecha(_JUEVES)
+    assert t.startswith("Hoy es jueves 2026-11-19 y son las 08:06.")
+    assert "viernes 20/11" in t and "miércoles 2/12" in t
+    dias = _dias_de(t)
+    assert len(dias) == 14
+    assert dias[0] == "hoy jueves 19/11" and dias[1] == "mañana viernes 20/11" and dias[-1] == "miércoles 2/12"
+
+
+def test_r22_la_lista_cruza_al_mes_siguiente():
+    from core.orchestrator import _contexto_fecha
+    t = _contexto_fecha(_SABADO)
+    assert "hoy sábado 28/11" in t and "lunes 30/11" in t and "martes 1/12" in t
+    assert len(_dias_de(t)) == 14
+
+
+def test_r22_los_nombres_de_los_dias_no_dependen_del_locale():
+    import inspect
+    import core.orchestrator as o
+    assert "locale" not in inspect.getsource(o._contexto_fecha)
+    assert o._DIAS_SEMANA == ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+
+
+def test_r22_sin_argumento_usa_el_reloj_del_modulo():
+    from core.orchestrator import _contexto_fecha
+    with patch('core.orchestrator._reloj', return_value=_JUEVES):
+        assert _contexto_fecha() == _contexto_fecha(_JUEVES)
+
+
+def test_r22_el_planner_trae_la_regla_de_los_dias_de_la_semana():
+    from core.orchestrator import _REGLA_FECHAS
+    for trozo in ("este viernes", "el lunes", "el martes que viene", "próximos días", "aún no ha pasado",
+                  "No calcules el día de la semana"):
+        assert trozo.lower() in _REGLA_FECHAS.lower(), trozo
+    assert _REGLA_FECHAS in _planner_system()
+    assert _planner_system().index(_REGLA_FECHAS) > _planner_system().index("Lo que el usuario tiene que HACER")   # junto a la de compromisos
+
+
+@patch('core.orchestrator.Anthropic')
+@patch('core.tool_executor.ToolExecutor.execute')
+def test_r22_planner_y_alfred_ven_el_mismo_texto_de_fecha(mock_execute, mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_execute.return_value = [{'event_id': 42, 'title': 'Teatro'}]
+    mock_client.messages.create.side_effect = [
+        _make_tool_use_response('calendar_search_events', 'tool_1', {'query': 'teatro'}),
+        _make_text_response("Listo"),
+        _make_text_response("El teatro es el miércoles."),
+    ]
+    from core.orchestrator import Orchestrator, _contexto_fecha
+    with patch('core.orchestrator._reloj', return_value=_JUEVES):
+        Orchestrator(db, '99999').handle("¿cuándo es el teatro?")
+
+    esperado = _contexto_fecha(_JUEVES)
+    llamadas = mock_client.messages.create.call_args_list
+    assert esperado in llamadas[0].kwargs["system"]
+    assert esperado in llamadas[-1].kwargs["messages"][-1]["content"]          # Alfred (síntesis con datos)
+
+
+@patch('core.orchestrator.Anthropic')
+def test_r22_alfred_sin_herramientas_tambien_ve_la_fecha(mock_anthropic_cls, db):
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response(""), _make_text_response("Hola")]
+    from core.orchestrator import Orchestrator, _contexto_fecha
+    with patch('core.orchestrator._reloj', return_value=_JUEVES):
+        Orchestrator(db, '99999').handle("Hola")
+    assert _contexto_fecha(_JUEVES) in mock_client.messages.create.call_args_list[-1].kwargs["messages"][-1]["content"]
+
+
+def test_r22_las_tools_del_planner_no_llevan_la_fecha_y_siguen_siendo_las_de_d59():
+    """D59: la fecha va en el `system`, que viene después de `tools` en el orden de la caché."""
+    from core.orchestrator import _PLANNER_TOOLS, _contexto_fecha
+    volcado = json.dumps(_PLANNER_TOOLS, ensure_ascii=False)
+    assert "Próximos días" not in volcado and _contexto_fecha(_JUEVES).splitlines()[0] not in volcado
+    assert _PLANNER_TOOLS[-1]["cache_control"] == {"type": "ephemeral"}
+
+
+# ── Fase 3 H9 (R24, D62): Alfred no inventa el porqué ────────────────────────────────────────────────────────────────
+
+def test_r24_alfred_no_supone_por_que_no_encuentra_algo():
+    prompt = " ".join(_ALFRED_SYSTEM.split()).lower()      # el prompt corta las líneas a mano
+    for trozo in ("no lo encuentras con esa búsqueda", "sin suponer por qué", "No digas que no se guardó", "duplicado"):
+        assert trozo.lower() in prompt, trozo

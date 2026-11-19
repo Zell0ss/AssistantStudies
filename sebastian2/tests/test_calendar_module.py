@@ -529,3 +529,100 @@ class TestFindByDatetime:
         result = cal.find_by_datetime(next_monday, "19:00")
         assert result is not None
         assert 'Pilates' in result['title']
+
+
+class TestSearchEventsPorPalabras:
+    """Fase 3 H9 (R23, D61): la búsqueda es por palabras (sin acentos ni mayúsculas ni palabras vacías), en dos niveles."""
+
+    def _titulos(self, resultados):
+        return [e['title'] for e in resultados]
+
+    def _cena(self, cal):
+        cal.add_event(title="Cena de Navidad BNP - TBC", event_date=date(2026, 11, 27), event_time="20:30")
+
+    def test_la_frase_con_de_de_mas_encuentra_el_titulo_en_primer_nivel(self, cal):
+        self._cena(cal)
+        r = cal.search_events("cena de Navidad de BNP")
+        assert self._titulos(r) == ["Cena de Navidad BNP - TBC"]
+        assert 'coincidencia' not in r[0]
+
+    def test_una_sola_palabra(self, cal):
+        self._cena(cal)
+        assert self._titulos(cal.search_events("BNP")) == ["Cena de Navidad BNP - TBC"]
+
+    def test_mayusculas_y_acentos(self, cal):
+        self._cena(cal)
+        assert self._titulos(cal.search_events("CENA navidad")) == ["Cena de Navidad BNP - TBC"]
+        assert self._titulos(cal.search_events("navidád")) == ["Cena de Navidad BNP - TBC"]
+
+    def test_sin_acento_encuentra_con_acento(self, cal):
+        cal.add_event(title="Revisión dental", event_date=date(2026, 12, 1), event_time="10:00")
+        assert self._titulos(cal.search_events("revision")) == ["Revisión dental"]
+
+    def test_segundo_nivel_marca_parcial_si_no_hay_primero(self, cal):
+        self._cena(cal)
+        r = cal.search_events("cena con Ana")
+        assert self._titulos(r) == ["Cena de Navidad BNP - TBC"]
+        assert r[0]['coincidencia'] == "parcial"
+
+    def test_si_hay_primer_nivel_no_se_mezclan_parciales(self, cal):
+        self._cena(cal)
+        cal.add_event(title="Cena con Ana", event_date=date(2026, 11, 28), event_time="21:00")
+        r = cal.search_events("cena con Ana")
+        assert self._titulos(r) == ["Cena con Ana"]
+        assert 'coincidencia' not in r[0]
+
+    def test_parciales_ordenados_por_coincidencias_y_luego_por_fecha(self, cal):
+        cal.add_event(title="Cena", event_date=date(2026, 11, 20), event_time="21:00")
+        cal.add_event(title="Cena Navidad", event_date=date(2026, 12, 20), event_time="21:00")
+        cal.add_event(title="Navidad", event_date=date(2026, 11, 25), event_time="21:00")
+        r = cal.search_events("cena navidad empresa")
+        assert self._titulos(r) == ["Cena Navidad", "Cena", "Navidad"]
+        assert all(e['coincidencia'] == "parcial" for e in r)
+
+    def test_nada_que_ver_devuelve_vacio(self, cal):
+        self._cena(cal)
+        assert cal.search_events("xyz inexistente") == []
+
+    def test_consulta_vacia_devuelve_todos(self, cal):
+        self._cena(cal)
+        cal.add_event(title="Dentista", event_date=date(2026, 12, 1), event_time="10:00")
+        assert len(cal.search_events("")) == 2
+
+    def test_solo_palabras_vacias_mantiene_el_comportamiento_de_antes(self, cal):
+        """«de»: sin palabras útiles se busca el texto tal cual (subcadena), como hasta ahora."""
+        cal.add_event(title="Cena de Navidad", event_date=date(2026, 12, 1), event_time="10:00")
+        cal.add_event(title="Pilates", event_date=date(2026, 12, 2), event_time="10:00")
+        assert self._titulos(cal.search_events("de")) == ["Cena de Navidad"]
+
+    def test_palabras_de_una_letra_se_ignoran(self, cal):
+        cal.add_event(title="Dentista", event_date=date(2026, 12, 2), event_time="10:00")
+        assert self._titulos(cal.search_events("x dentista")) == ["Dentista"]
+
+    def test_no_mezcla_eventos_de_otros_usuarios(self, cal, db_conn):
+        CalendarModule(db_conn, "test_user_calendar_otro").add_event(
+            title="Cena de Navidad BNP", event_date=date(2026, 11, 27), event_time="20:30")
+        try:
+            assert cal.search_events("navidad") == []
+        finally:
+            c = db_conn.cursor()
+            c.execute("DELETE FROM events WHERE user_id = %s", ("test_user_calendar_otro",))
+            db_conn.commit()
+
+    def test_recurrente_en_primer_nivel_sigue_dando_su_proxima_ocurrencia(self, cal):
+        cal.add_event(title="Clase de inglés", event_date=date.today(), event_time="19:00", recurrence_rule="daily")
+        r = cal.search_events("clase ingles")
+        assert len(r) == 1 and r[0]['recurring'] is True and r[0]['date'] >= date.today()
+
+    def test_el_texto_de_la_consulta_no_va_a_ningun_log(self, cal):
+        from loguru import logger as loguru_logger
+        mensajes = []
+        ident = loguru_logger.add(lambda m: mensajes.append(str(m)), level="DEBUG")
+        try:
+            self._cena(cal)
+            cal.search_events("cena de Navidad de BNP secretisimo")
+        finally:
+            loguru_logger.remove(ident)
+        volcado = " ".join(mensajes)
+        assert "secretisimo" not in volcado and "cena de Navidad de BNP" not in volcado
+        assert "query_chars=" in volcado and "palabras=" in volcado
