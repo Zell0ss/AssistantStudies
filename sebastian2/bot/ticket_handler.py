@@ -163,7 +163,10 @@ def handle_media(message, bot):
         try:
             conn = get_connection()
             cal = CalendarModule(conn, user_id)
-            events = cal.search_events(caption)
+            # D61 (R25): la búsqueda por palabras también devuelve eventos que solo comparten alguna palabra
+            # (`coincidencia: "parcial"`). Asociar los códigos directo a uno de ellos los guardaría en la cita
+            # equivocada: solo vale la coincidencia completa; si solo hay parciales, se pregunta como siempre.
+            events = [e for e in cal.search_events(caption) if e.get('coincidencia') != 'parcial']
             if events:
                 event_id = events[0]['event_id']
                 event_title = events[0]['title']

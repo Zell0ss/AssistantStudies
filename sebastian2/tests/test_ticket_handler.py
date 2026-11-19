@@ -105,3 +105,74 @@ def test_422_de_validacion_de_fastapi_en_la_foto_da_el_mensaje_neutro(mock_post,
     assert _intentar_salud(b"\xff\xd8\xff") == (
         "No he podido mirar bien esa foto ahora. Si era de tu sueño o de tu comida, prueba en un rato."
     )
+
+
+# ── Fase 3 H9 (R25, D61): la leyenda de la foto solo asocia directo si la coincidencia es completa ──────────────────
+
+import json
+import pytest
+from datetime import date, timedelta
+
+from bot.ticket_handler import _clear_pending, handle_media
+from db.connection import close_connection, get_connection
+from modules.calendar import CalendarModule
+
+USUARIO = "test_ticket_handler_r25"
+
+
+@pytest.fixture
+def agenda():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM events WHERE user_id = %s", (USUARIO,))
+    conn.commit()
+    cal = CalendarModule(conn, USUARIO)
+    cal.add_event(title="Cena de Navidad BNP - TBC", event_date=date.today() + timedelta(days=3), event_time="20:30")
+    yield cal
+    _clear_pending(USUARIO)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM events WHERE user_id = %s", (USUARIO,))
+    conn.commit()
+    close_connection()
+
+
+def _foto(leyenda):
+    mensaje = MagicMock()
+    mensaje.chat.id = USUARIO
+    mensaje.caption = leyenda
+    bot = MagicMock()
+    bot.download_file.return_value = b"\xff\xd8\xff"
+    return mensaje, bot
+
+
+def _enviar(leyenda):
+    mensaje, bot = _foto(leyenda)
+    with patch('modules.ticket_decoder.decode_image', return_value=[{'type': 'qr', 'value': 'ABC123'}]):
+        handle_media(mensaje, bot)
+    return bot.reply_to.call_args.args[1]
+
+
+def _tickets_del_evento(cal):
+    """Los tickets guardados en `events.notes` del único evento del usuario (el dict del evento no los trae)."""
+    conn = get_connection()
+    conn.commit()                                                      # REPEATABLE READ
+    cur = conn.cursor()
+    cur.execute("SELECT notes FROM events WHERE user_id = %s", (USUARIO,))
+    notas = cur.fetchone()['notes'] or {}
+    if isinstance(notas, str):
+        notas = json.loads(notas)
+    return notas.get('tickets', [])
+
+
+def test_r25_una_leyenda_solo_parcial_no_asocia_y_pregunta(agenda):
+    respuesta = _enviar("cena con Ana")
+    assert respuesta.startswith("Encontré 1 código(s)") and "¿A qué cita lo asocio?" in respuesta
+    assert "Cena de Navidad BNP - TBC" in respuesta                    # la ofrece en la lista, para que la elija él
+    assert "guardado" not in respuesta
+    assert _tickets_del_evento(agenda) == []
+
+
+def test_r25_una_leyenda_con_coincidencia_completa_asocia_directo(agenda):
+    respuesta = _enviar("BNP")
+    assert respuesta.startswith("✅ 1 código(s) guardado(s) en 'Cena de Navidad BNP - TBC'")
+    assert [t['value'] for t in _tickets_del_evento(agenda)] == ["ABC123"]
