@@ -9,9 +9,11 @@ Modos:
 - `crea_con_fecha_o_pregunta`: lo mismo, o bien no crea nada y Alfred pregunta (R17: el texto del planner no se pierde).
   Falla si crea otra fecha, o si no crea nada y Alfred no pregunta (el «no he podido» de producción del 16/11, aunque
   acabe en «¿lo intento de nuevo?»).
+- `calendario` (H9, #81-#85): mira la secuencia de tools, la fecha y hora de lo que se creó o movió en el calendario y lo que
+  dice Alfred (`evaluar_calendario`).
 """
 
-MODOS = ("crea_con_fecha", "crea_con_fecha_o_pregunta")
+MODOS = ("crea_con_fecha", "crea_con_fecha_o_pregunta", "calendario")
 
 
 def _crea_lo_pedido(creaciones: list, entrada: dict) -> bool:
@@ -29,3 +31,29 @@ def evaluar_compromiso(golden: dict, tools: list, creaciones: list, texto_alfred
         # `?` pero es el fallo de producción con una oferta de reintento: no cuenta (H7, ejecución 2 de #80).
         return tools in ([], ["request_clarification"]) and "?" in texto and "no he podido" not in texto.lower()
     return False
+
+
+def _incluye(entradas: list, esperado: dict) -> bool:
+    """Hubo al menos una llamada y TODAS traen los pares `esperado` (como texto: «20:30» y 20:30 son lo mismo)."""
+    return bool(entradas) and all(all(str(e.get(k)) == str(v) for k, v in esperado.items()) for e in entradas)
+
+
+def evaluar_calendario(golden: dict, tools: list, entradas: dict, texto_alfred: str) -> bool:
+    """H9 (#81-#85, modo `calendario`). `entradas` es {tool: [entrada de cada llamada]} de las tools de escritura del calendario.
+
+    - Las tools: la secuencia exacta de `expected`, o, con `expected_any`, al menos una y solo de esa lista (solo lecturas).
+    - `entrada`: todas las llamadas a `calendar_add_event` la traen. `entrada_update`: igual con `calendar_update_event`.
+    - `alfred_menciona`: todo aparece. `alfred_no_menciona`: nada aparece (sin mirar mayúsculas)."""
+    texto = (texto_alfred or "").lower()
+    if "expected" in golden:
+        if tools != golden["expected"]:
+            return False
+    elif not tools or not set(tools) <= set(golden["expected_any"]):
+        return False
+    if "entrada" in golden and not _incluye(entradas.get("calendar_add_event", []), golden["entrada"]):
+        return False
+    if "entrada_update" in golden and not _incluye(entradas.get("calendar_update_event", []), golden["entrada_update"]):
+        return False
+    if not all(m.lower() in texto for m in golden.get("alfred_menciona", [])):
+        return False
+    return not any(m.lower() in texto for m in golden.get("alfred_no_menciona", []))

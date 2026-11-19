@@ -634,3 +634,57 @@
   expected: [compromisos_crear]
   entrada: {fecha_inicio: "2026-11-17", hora: "01:00"}
   validates: "Fase 3 H7 (R17): con el historial del 16/11, crea el 17/11 a la 01:00 o pregunta; nunca el 17/12 ni un «no he podido»"
+
+# H9 (R22-R24, D60-D62). Adaptados del encargo al formato del arnés: `ahora` fija la hora (el planner ve `_contexto_fecha`), el
+# estado se siembra con `fecha`/`hora` (no `inicio`), y el modo `calendario` (criterios.py) mira la entrada de `calendar_add_event`
+# (`entrada`) o de `calendar_update_event` (`entrada_update`) y lo que dice Alfred (`alfred_menciona`, `alfred_no_menciona`).
+- id: 81
+  phrase: "Este viernes tengo cena de Navidad de BNP. Es en calle de las Huertas 41, Madrid, a las 20:30"
+  ahora: "2026-11-19T08:06"          # jueves
+  mode: calendario
+  expected: [calendar_add_event]
+  entrada: {date: "2026-11-20", time: "20:30"}
+  alfred_menciona: ["20"]
+  validates: "Fase 3 H9 (R22, D60): «este viernes», dicho el jueves 19/11, es el 20/11 y no el 27/11"
+
+- id: 82
+  phrase: "El lunes a las 10 tengo dentista"
+  ahora: "2026-11-19T08:06"          # jueves → lunes 23
+  mode: calendario
+  expected: [calendar_add_event]
+  entrada: {date: "2026-11-23", time: "10:00"}
+  validates: "Fase 3 H9 (R22, D60): «el lunes», dicho el jueves, es el lunes 23/11"
+
+- id: 83
+  phrase: "El miércoles a las 9 tengo reunión con el gestor"
+  ahora: "2026-11-21T12:00"          # sábado → miércoles 25
+  mode: calendario
+  expected: [calendar_add_event]
+  entrada: {date: "2026-11-25", time: "09:00"}
+  validates: "Fase 3 H9 (R22, D60): «el miércoles», dicho el sábado, es el miércoles 25/11"
+
+- id: 84
+  phrase: "Mueve la cena de Navidad de BNP al viernes 20 de noviembre a las 20:30"
+  ahora: "2026-11-19T08:34"
+  estado:
+    eventos:
+      - {titulo: "Cena de Navidad BNP - TBC", fecha: "2026-11-27", hora: "20:30"}
+  mode: calendario
+  expected: [calendar_search_events, calendar_update_event]
+  entrada_update: {new_date: "2026-11-20"}
+  alfred_no_menciona: ["no llegó a guardarse", "no se guardó", "no quedó guardada", "no quedara guardada"]
+  validates: "Fase 3 H9 (R23, D61): «cena de Navidad de BNP» encuentra «Cena de Navidad BNP - TBC» y la mueve; Alfred no dice que no se guardó"
+
+- id: 85
+  phrase: "¿Cuándo es la cena con los de la uni?"
+  ahora: "2026-11-19T09:00"
+  estado:
+    eventos:
+      - {titulo: "Cena de Navidad BNP - TBC", fecha: "2026-11-20", hora: "20:30"}
+  mode: calendario
+  # Pasa si solo lee (busca o lista), no da la cena de BNP por la de la uni sin más (puede mencionarla como posible) y no dice
+  # que algo no se guardó. Lo de la uni se juzga con «su cena con los de la uni es…» (objetivo), no con una lectura del texto.
+  expected_any: [calendar_search_events, calendar_list_events]
+  alfred_no_menciona: ["no llegó a guardarse", "no se guardó", "no quedó guardada", "no quedara guardada",
+                       "su cena con los de la uni es", "la cena con los de la uni es"]
+  validates: "Fase 3 H9 (D61 parcial, D62): no confunde la cena de BNP con la de la uni y no inventa que algo no se guardó"

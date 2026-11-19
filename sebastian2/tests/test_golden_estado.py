@@ -203,3 +203,85 @@ def test_h7_el_80_acepta_crear_el_17_11_o_preguntar_y_rechaza_el_17_12_y_el_no_h
     assert not evaluar_compromiso(
         g, [], [], "Lo siento, señor — no he podido crear el recordatorio en este turno. ¿Lo intento de nuevo?")
     assert not evaluar_compromiso(g, ["compromisos_crear", "compromisos_crear"], _crea("2026-11-17"), "Anotado.")
+
+
+# ── H9: goldens #81–#85 y su criterio (qué fecha llevó el evento creado o movido, y lo que dice Alfred) ──────────────
+
+def test_h9_los_goldens_81_a_85_son_los_del_encargo_adaptados_al_arnes():
+    g = {i: _golden(i) for i in range(81, 86)}
+    assert all(g[i]["mode"] == "calendario" for i in g)
+    assert g[81]["phrase"] == ("Este viernes tengo cena de Navidad de BNP. Es en calle de las Huertas 41, Madrid, a las 20:30")
+    assert g[81]["ahora"] == "2026-11-19T08:06" and g[81]["expected"] == ["calendar_add_event"]
+    assert g[81]["entrada"] == {"date": "2026-11-20", "time": "20:30"} and g[81]["alfred_menciona"] == ["20"]
+    assert g[82]["phrase"] == "El lunes a las 10 tengo dentista" and g[82]["ahora"] == "2026-11-19T08:06"
+    assert g[82]["entrada"] == {"date": "2026-11-23", "time": "10:00"}
+    assert g[83]["phrase"] == "El miércoles a las 9 tengo reunión con el gestor" and g[83]["ahora"] == "2026-11-21T12:00"
+    assert g[83]["entrada"] == {"date": "2026-11-25", "time": "09:00"}
+    assert g[84]["phrase"] == "Mueve la cena de Navidad de BNP al viernes 20 de noviembre a las 20:30"
+    assert g[84]["ahora"] == "2026-11-19T08:34" and g[84]["expected"] == ["calendar_search_events", "calendar_update_event"]
+    assert g[84]["estado"] == {"eventos": [{"titulo": "Cena de Navidad BNP - TBC", "fecha": "2026-11-27", "hora": "20:30"}]}
+    assert g[84]["entrada_update"] == {"new_date": "2026-11-20"}
+    assert g[85]["phrase"] == "¿Cuándo es la cena con los de la uni?" and g[85]["ahora"] == "2026-11-19T09:00"
+    assert g[85]["estado"] == {"eventos": [{"titulo": "Cena de Navidad BNP - TBC", "fecha": "2026-11-20", "hora": "20:30"}]}
+    assert g[85]["expected_any"] == ["calendar_search_events", "calendar_list_events"]
+    for i in (84, 85):
+        assert {"no llegó a guardarse", "no se guardó", "no quedó guardada"} <= set(g[i]["alfred_no_menciona"])
+
+
+def test_h9_el_arnes_fija_el_reloj_nuevo_y_no_el_que_ya_no_existe():
+    """`patch("core.orchestrator._now_str")` daría AttributeError en todos los goldens con `ahora`."""
+    fuente = (Path(__file__).parent / "golden" / "conftest.py").read_text(encoding="utf-8")
+    assert "_now_str" not in fuente and "core.orchestrator._reloj" in fuente
+
+
+def _add(fecha, hora):
+    return {"calendar_add_event": [{"title": "Cena de Navidad BNP", "date": fecha, "time": hora}]}
+
+
+def test_h9_el_81_pide_el_viernes_20_a_las_20_30_y_que_alfred_diga_el_20():
+    from tests.golden.criterios import evaluar_calendario
+    g = _golden(81)
+    assert evaluar_calendario(g, ["calendar_add_event"], _add("2026-11-20", "20:30"), "Apuntado: viernes 20/11 a las 20:30.")
+    assert not evaluar_calendario(g, ["calendar_add_event"], _add("2026-11-27", "20:30"), "Apuntado: viernes 20/11.")   # la fecha del 19/11
+    assert not evaluar_calendario(g, ["calendar_add_event"], _add("2026-11-20", "21:00"), "viernes 20/11")
+    assert not evaluar_calendario(g, ["calendar_add_event"], _add("2026-11-20", "20:30"), "Apuntado, señor.")           # no dice el 20
+    assert not evaluar_calendario(g, ["calendar_search_events", "calendar_add_event"], _add("2026-11-20", "20:30"), "viernes 20")
+    assert not evaluar_calendario(g, [], {}, "¿Qué día, señor? 20")
+    assert not evaluar_calendario(g, ["calendar_add_event", "calendar_add_event"],
+                                  {"calendar_add_event": _add("2026-11-20", "20:30")["calendar_add_event"] * 2}, "viernes 20")
+
+
+def test_h9_el_82_y_el_83_cruzan_el_fin_de_semana_y_no_exigen_texto():
+    from tests.golden.criterios import evaluar_calendario
+    assert evaluar_calendario(_golden(82), ["calendar_add_event"], _add("2026-11-23", "10:00"), "Apuntado.")
+    assert not evaluar_calendario(_golden(82), ["calendar_add_event"], _add("2026-11-30", "10:00"), "Apuntado.")
+    assert evaluar_calendario(_golden(83), ["calendar_add_event"], _add("2026-11-25", "09:00"), "Apuntado.")
+    assert not evaluar_calendario(_golden(83), ["calendar_add_event"], _add("2026-11-18", "09:00"), "Apuntado.")
+
+
+def _upd(fecha):
+    return {"calendar_update_event": [{"event_id": 1, "new_date": fecha, "new_time": "20:30"}]}
+
+
+def test_h9_el_84_busca_y_mueve_al_20_y_no_dice_que_no_se_guardo():
+    from tests.golden.criterios import evaluar_calendario
+    g = _golden(84)
+    sec = ["calendar_search_events", "calendar_update_event"]
+    assert evaluar_calendario(g, sec, _upd("2026-11-20"), "Movida al viernes 20/11 a las 20:30, señor.")
+    assert not evaluar_calendario(g, sec, _upd("2026-11-27"), "Movida.")
+    assert not evaluar_calendario(g, ["calendar_search_events"], {}, "No la encuentro.")
+    assert not evaluar_calendario(g, ["calendar_search_events", "calendar_add_event"], _add("2026-11-20", "20:30"), "Creada.")
+    for frase in ("Parece que no llegó a guardarse. ¿La anoto?", "Creo que NO SE GUARDÓ.", "No quedó guardada, señor."):
+        assert not evaluar_calendario(g, sec, _upd("2026-11-20"), frase)
+
+
+def test_h9_el_85_acepta_buscar_o_listar_y_rechaza_dar_la_de_bnp_por_la_de_la_uni():
+    from tests.golden.criterios import evaluar_calendario
+    g = _golden(85)
+    assert evaluar_calendario(g, ["calendar_search_events"], {}, "No encuentro una cena con los de la uni. Hay una cena de Navidad BNP el 20/11.")
+    assert evaluar_calendario(g, ["calendar_list_events"], {}, "No consta, señor.")
+    assert evaluar_calendario(g, ["calendar_search_events", "calendar_list_events"], {}, "No consta.")
+    assert not evaluar_calendario(g, [], {}, "No consta.")                                   # sin mirar no vale
+    assert not evaluar_calendario(g, ["calendar_search_events", "calendar_add_event"], {}, "No consta.")   # nunca escribe
+    assert not evaluar_calendario(g, ["calendar_search_events"], {}, "Su cena con los de la uni es el viernes 20.")
+    assert not evaluar_calendario(g, ["calendar_search_events"], {}, "Parece que no se guardó la cena. ¿La anoto?")

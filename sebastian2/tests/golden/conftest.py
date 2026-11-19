@@ -92,6 +92,9 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             terminalreporter.write_line(f"  time_window: {r['ventanas']}")
         for entrada in r.get("creaciones", []):               # H7: qué fecha y hora se creó (solo en el informe del test)
             terminalreporter.write_line(f"  compromisos_crear: {entrada}")
+        for tool, llamadas in r.get("entradas_calendario", {}).items():   # H9: qué fecha y hora se escribió (solo en el informe)
+            for entrada in llamadas:
+                terminalreporter.write_line(f"  {tool}: {entrada}")
 
     passed_count = sum(1 for r in GOLDEN_RESULTS if r["passed"])
     total = len(GOLDEN_RESULTS)
@@ -343,6 +346,7 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
         calls = []
         ventanas = []     # H5: el `time_window` de cada `calendar_list_events`, que es lo que de verdad comprueba R14 (#77, #78)
         creaciones = []   # H7: la entrada de cada `compromisos_crear` (#79, #80)
+        entradas_calendario = {}   # H9: {tool: [entrada de cada llamada]} de `calendar_add_event` y `calendar_update_event` (#81-#85)
         original_execute = ToolExecutor.execute
         original_ask_user = Orchestrator._ask_user
         original_track_usage = Orchestrator._track_usage
@@ -354,6 +358,8 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
                 ventanas.append(str(tool_input.get("time_window")))
             if tool_name == "compromisos_crear":              # H7: #79 y #80 comprueban QUÉ día y hora se creó
                 creaciones.append(dict(tool_input))
+            if tool_name in ("calendar_add_event", "calendar_update_event"):   # H9: #81-#85 comprueban QUÉ fecha se escribió
+                entradas_calendario.setdefault(tool_name, []).append(dict(tool_input))
             return original_execute(self, tool_name, tool_input)
 
         def recording_ask_user(self, question):
@@ -404,8 +410,9 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
                 # `compromisos_crear` (R19) juzga contra ella: las dos tienen que ser la misma. Solo los goldens que
                 # traen `ahora` la fijan; el resto sigue con el reloj real.
                 fijo = datetime.fromisoformat(ahora)
-                pila.enter_context(patch("core.orchestrator._now_str",
-                                         lambda: f"Hoy es {fijo:%Y-%m-%d} y son las {fijo:%H:%M}."))
+                # H9 (D60): lo que fija es `_reloj`, de donde `_contexto_fecha` saca también el día de la semana y los
+                # próximos 14 días, para que el planner y Alfred vean una fecha coherente con la del golden.
+                pila.enter_context(patch("core.orchestrator._reloj", lambda: fijo))
                 pila.enter_context(patch.object(CompromisosModule, "_ahora", lambda self: fijo))
             orch = Orchestrator(test_db, user_id, config=config or config_por_defecto)
             response = orch.handle(phrase)
@@ -416,6 +423,8 @@ def _hacer_runner(test_db, user_id_por_defecto: str, config_por_defecto: dict):
             response["ventanas"] = ventanas
         if isinstance(response, dict) and creaciones:
             response["creaciones"] = creaciones
+        if isinstance(response, dict) and entradas_calendario:
+            response["entradas_calendario"] = entradas_calendario
         return calls, response
 
     return _run

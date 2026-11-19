@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from tests.golden.criterios import MODOS as MODOS_DE_COMPROMISO, evaluar_compromiso
+from tests.golden.criterios import MODOS as MODOS_DE_COMPROMISO, evaluar_calendario, evaluar_compromiso
 
 GOLDENS_PATH = Path(__file__).parent / "goldens.yaml"
 GOLDENS = yaml.safe_load(GOLDENS_PATH.read_text())
@@ -53,7 +53,11 @@ def test_golden(golden, orchestrator_runner):
     actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"), estado=golden.get("estado"),
                                            ahora=golden.get("ahora"))
     response_text = response.get("text", "") if isinstance(response, dict) else str(response)
-    if golden["mode"] in MODOS_DE_COMPROMISO:
+    esperado = golden.get("expected", golden.get("expected_any"))   # #85 trae `expected_any` (varias lecturas valen)
+    if golden["mode"] == "calendario":
+        entradas = response.get("entradas_calendario", {}) if isinstance(response, dict) else {}
+        passed = evaluar_calendario(golden, actual, entradas, response_text)
+    elif golden["mode"] in MODOS_DE_COMPROMISO:
         creaciones = response.get("creaciones", []) if isinstance(response, dict) else []
         passed = evaluar_compromiso(golden, actual, creaciones, response_text)
     else:
@@ -63,7 +67,7 @@ def test_golden(golden, orchestrator_runner):
         "id": golden["id"],
         "phrase": golden["phrase"],
         "mode": golden["mode"],
-        "expected": _fmt_expected(golden["mode"], golden["expected"]),
+        "expected": _fmt_expected(golden["mode"], esperado) if "expected" in golden else f"cualquiera de: {', '.join(esperado)}",
         "actual": _fmt_sequence(actual),
         "passed": passed,
         "validates": golden.get("validates", ""),
@@ -71,10 +75,11 @@ def test_golden(golden, orchestrator_runner):
         "planner_sin_tools": response.get("planner_sin_tools", []) if isinstance(response, dict) else [],
         "ventanas": response.get("ventanas", []) if isinstance(response, dict) else [],
         "creaciones": response.get("creaciones", []) if isinstance(response, dict) else [],
+        "entradas_calendario": response.get("entradas_calendario", {}) if isinstance(response, dict) else {},
     })
 
     assert passed, (
         f"Golden #{golden['id']} ({golden['mode']}) — "
-        f"esperado {golden['expected']!r}, real {actual!r}. "
+        f"esperado {esperado!r}, real {actual!r}. "
         f"Respuesta de Alfred: {response_text!r}"
     )
