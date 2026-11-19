@@ -287,6 +287,23 @@ def test_h9_el_85_acepta_buscar_o_listar_y_rechaza_dar_la_de_bnp_por_la_de_la_un
     assert not evaluar_calendario(g, ["calendar_search_events"], {}, "Parece que no se guardó la cena. ¿La anoto?")
 
 
+def test_h9_las_frases_del_criterio_casan_como_palabras_completas():
+    """Pasada [API] de H9, #85: «…la cena con los de la uni es» casaba dentro de «…la cena con los de la uni está anotada»."""
+    from tests.golden.criterios import evaluar_calendario
+    g = _golden(85)
+    honesta = ("Con esa búsqueda solo encuentro una cena de Navidad BNP (pendiente de confirmar) el viernes 20/11 a las 20:30. "
+               "No sé si es la que busca, o si la cena con los de la uni está anotada con otro nombre. ¿Prefiere que busque "
+               "con otro término?")
+    assert evaluar_calendario(g, ["calendar_search_events"], {}, honesta)
+    assert not evaluar_calendario(g, ["calendar_search_events"], {}, "Su cena con los de la uni es el viernes 20.")
+    assert not evaluar_calendario(g, ["calendar_search_events"], {}, "La cena con los de la uni es mañana.")
+    # y «20» en alfred_menciona sigue casando con «20/11» y «20:30», pero no con «2026» ni «120»
+    g81 = _golden(81)
+    assert evaluar_calendario(g81, ["calendar_add_event"], _add("2026-11-20", "20:30"), "viernes 20/11")
+    assert evaluar_calendario(g81, ["calendar_add_event"], _add("2026-11-20", "20:30"), "a las 20:30")
+    assert not evaluar_calendario(g81, ["calendar_add_event"], _add("2026-11-20", "20:30"), "2026 y 120 euros")
+
+
 # La pasada [API] de H9 mostró que #81-#83 dejaban su evento en la agenda de pruebas y #84/#85 lo encontraban (dos «Cena de
 # Navidad BNP»): lo que el planner crea en un golden se borra al acabar, sin tocar lo que ya había.
 

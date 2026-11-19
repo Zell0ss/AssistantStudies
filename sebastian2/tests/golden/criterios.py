@@ -13,6 +13,8 @@ Modos:
   dice Alfred (`evaluar_calendario`).
 """
 
+import re
+
 MODOS = ("crea_con_fecha", "crea_con_fecha_o_pregunta", "calendario")
 
 
@@ -45,6 +47,11 @@ def evaluar_calendario(golden: dict, tools: list, entradas: dict, texto_alfred: 
     - `entrada`: todas las llamadas a `calendar_add_event` la traen. `entrada_update`: igual con `calendar_update_event`.
     - `alfred_menciona`: todo aparece. `alfred_no_menciona`: nada aparece (sin mirar mayúsculas)."""
     texto = (texto_alfred or "").lower()
+
+    def aparece(frase: str) -> bool:
+        # Como palabras completas: «…de la uni es» no casa dentro de «…de la uni está» (#85, pasada de H9).
+        return re.search(rf"(?<!\w){re.escape(frase.lower())}(?!\w)", texto) is not None
+
     if "expected" in golden:
         if tools != golden["expected"]:
             return False
@@ -54,6 +61,6 @@ def evaluar_calendario(golden: dict, tools: list, entradas: dict, texto_alfred: 
         return False
     if "entrada_update" in golden and not _incluye(entradas.get("calendar_update_event", []), golden["entrada_update"]):
         return False
-    if not all(m.lower() in texto for m in golden.get("alfred_menciona", [])):
+    if not all(aparece(m) for m in golden.get("alfred_menciona", [])):
         return False
-    return not any(m.lower() in texto for m in golden.get("alfred_no_menciona", []))
+    return not any(aparece(m) for m in golden.get("alfred_no_menciona", []))
