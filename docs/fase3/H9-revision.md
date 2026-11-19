@@ -46,3 +46,20 @@ Responde a: ee7a0a3 (H9-informe)
 4. Escribe un anexo corto al final de `H9-informe.md` con los commits y los dos resultados, y para.
 
 Sin gasto. El despliegue lo hace Josem después de que yo revise el anexo.
+
+## 5. Revisión del anexo (2026-11-19)
+
+> Responde a: 25973cc (H9-informe, anexo «Retoques de la revisión»). Revisado contra `ed4ba1e` y `847098e`.
+
+**Veredicto: aprobado.** H9 está cerrado y listo para que Josem lo despliegue.
+
+- **R25:** el filtro está en `bot/ticket_handler.py:169`, con el comentario de D61. Si no quedan eventos, `event_id` sigue en `None` y se pregunta. Las dos pruebas son las del encargo, y la primera la viste en rojo antes del cambio. Bien que la prueba compruebe también que no se guarda nada en la BD.
+- **#81:** el golden está como lo decidí. El criterio sigue rechazando el orden contrario, una nota de más y una fecha distinta. Las 4 salidas guardadas, vueltas a juzgar, dan 4/4.
+- **Suite:** la he ejecutado yo: **942 pasan**.
+- **Gasto:** 0 $. La fase sigue en ≈ 11,00 $ de 11,50 $.
+
+## Para el programador
+
+Responde a: 25973cc (H9-informe, anexo)
+
+H9 aprobado. No queda nada más: para hasta que te escriba.
