@@ -285,3 +285,38 @@ def test_h9_el_85_acepta_buscar_o_listar_y_rechaza_dar_la_de_bnp_por_la_de_la_un
     assert not evaluar_calendario(g, ["calendar_search_events", "calendar_add_event"], {}, "No consta.")   # nunca escribe
     assert not evaluar_calendario(g, ["calendar_search_events"], {}, "Su cena con los de la uni es el viernes 20.")
     assert not evaluar_calendario(g, ["calendar_search_events"], {}, "Parece que no se guardó la cena. ¿La anoto?")
+
+
+# La pasada [API] de H9 mostró que #81-#83 dejaban su evento en la agenda de pruebas y #84/#85 lo encontraban (dos «Cena de
+# Navidad BNP»): lo que el planner crea en un golden se borra al acabar, sin tocar lo que ya había.
+
+def test_h9_se_borran_los_eventos_que_creo_el_golden_y_solo_esos(conn):
+    from modules.calendar import CalendarModule
+    from modules.compromisos import CompromisosModule
+    from tests.golden.estado import borrar_eventos_nuevos, ids_de_eventos
+    cal = CalendarModule(conn, A)
+    previo = cal.add_event(title="Teatro", event_date=date(2026, 12, 1), event_time="20:00")["event_id"]
+    otro = CalendarModule(conn, B).add_event(title="De otro", event_date=date(2026, 12, 1), event_time="20:00")["event_id"]
+    antes = ids_de_eventos(conn, A)
+    assert antes == {previo}
+
+    creado = cal.add_event(title="Cena de Navidad BNP", event_date=date(2026, 11, 20), event_time="20:30")["event_id"]
+    CompromisosModule(conn, A).crear([{"texto": "Paso", "dias_inicio": 0, "hora": "09:00", "evento_id": creado}])
+    borrar_eventos_nuevos(conn, A, antes)
+
+    assert [e["id"] for e in _filas(conn, "events", A)] == [previo]            # el compromiso atado no bloquea el borrado
+    assert _filas(conn, "compromisos", A) == []
+    assert [e["id"] for e in _filas(conn, "events", B)] == [otro]
+
+
+def test_h9_borrar_eventos_nuevos_no_actua_fuera_de_la_bd_de_test(conn, monkeypatch):
+    import tests.golden.estado as estado
+
+    def _otra(db):
+        raise RuntimeError("solo sebastian_test")
+
+    monkeypatch.setattr(estado, "exigir_bd_de_test", _otra)
+    with pytest.raises(RuntimeError):
+        estado.borrar_eventos_nuevos(conn, A, set())
+    with pytest.raises(RuntimeError):
+        estado.ids_de_eventos(conn, A)

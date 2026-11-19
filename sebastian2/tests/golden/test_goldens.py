@@ -14,6 +14,7 @@ import pytest
 import yaml
 
 from tests.golden.criterios import MODOS as MODOS_DE_COMPROMISO, evaluar_calendario, evaluar_compromiso
+from tests.golden.estado import borrar_eventos_nuevos, ids_de_eventos
 
 GOLDENS_PATH = Path(__file__).parent / "goldens.yaml"
 GOLDENS = yaml.safe_load(GOLDENS_PATH.read_text())
@@ -49,9 +50,17 @@ def _fmt_expected(mode: str, expected) -> str:
 
 @pytest.mark.golden
 @pytest.mark.parametrize("golden", GOLDENS, ids=[f"golden_{g['id']:02d}" for g in GOLDENS])
-def test_golden(golden, orchestrator_runner):
-    actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"), estado=golden.get("estado"),
-                                           ahora=golden.get("ahora"))
+def test_golden(golden, orchestrator_runner, test_db, golden_fixtures):
+    # H9: #81-#83 crean eventos de verdad; si se quedaban, #84 y #85 encontraban dos «Cena de Navidad BNP». Los goldens de
+    # `calendario` borran al acabar lo que el turno creó (y lo sembrado), y nada de lo que ya había.
+    limpia = golden["mode"] == "calendario"
+    antes = ids_de_eventos(test_db, golden_fixtures["user_id"]) if limpia else None
+    try:
+        actual, response = orchestrator_runner(golden["phrase"], golden.get("historia"), estado=golden.get("estado"),
+                                               ahora=golden.get("ahora"))
+    finally:
+        if limpia:
+            borrar_eventos_nuevos(test_db, golden_fixtures["user_id"], antes)
     response_text = response.get("text", "") if isinstance(response, dict) else str(response)
     esperado = golden.get("expected", golden.get("expected_any"))   # #85 trae `expected_any` (varias lecturas valen)
     if golden["mode"] == "calendario":

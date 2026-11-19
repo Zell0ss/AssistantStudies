@@ -94,3 +94,26 @@ def limpiar_agenda(db, *user_ids: str) -> None:
         cur.execute("DELETE FROM compromisos WHERE user_id = %s", (u,))
         cur.execute("DELETE FROM events WHERE user_id = %s", (u,))
     db.commit()
+
+
+def ids_de_eventos(db, user_id: str) -> set:
+    """Los ids de los eventos que tiene ahora `user_id` (para saber, después de un golden, cuáles son nuevos)."""
+    exigir_bd_de_test(db)
+    db.commit()                                                   # REPEATABLE READ: que vea lo último confirmado
+    cur = db.cursor()
+    cur.execute("SELECT id FROM events WHERE user_id = %s", (user_id,))
+    return {fila["id"] for fila in cur.fetchall()}
+
+
+def borrar_eventos_nuevos(db, user_id: str, antes: set) -> None:
+    """H9: borra los eventos de `user_id` que no estaban en `antes` (los que el planner creó en el golden y los sembrados),
+    con los compromisos atados a ellos. Sin esto, #81-#83 dejaban su evento y #84/#85 lo encontraban."""
+    exigir_bd_de_test(db)
+    nuevos = sorted(ids_de_eventos(db, user_id) - set(antes))
+    if not nuevos:
+        return
+    marcas = ', '.join(['%s'] * len(nuevos))
+    cur = db.cursor()
+    cur.execute(f"DELETE FROM compromisos WHERE evento_id IN ({marcas})", tuple(nuevos))
+    cur.execute(f"DELETE FROM events WHERE id IN ({marcas})", tuple(nuevos))
+    db.commit()
