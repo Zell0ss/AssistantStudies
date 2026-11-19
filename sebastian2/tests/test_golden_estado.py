@@ -211,7 +211,9 @@ def test_h9_los_goldens_81_a_85_son_los_del_encargo_adaptados_al_arnes():
     g = {i: _golden(i) for i in range(81, 86)}
     assert all(g[i]["mode"] == "calendario" for i in g)
     assert g[81]["phrase"] == ("Este viernes tengo cena de Navidad de BNP. Es en calle de las Huertas 41, Madrid, a las 20:30")
-    assert g[81]["ahora"] == "2026-11-19T08:06" and g[81]["expected"] == ["calendar_add_event"]
+    # H9-revision §3.1: la dirección de la frase se guarda como nota, así que también vale `add_event` + `add_note`
+    assert g[81]["ahora"] == "2026-11-19T08:06"
+    assert g[81]["expected"] == [["calendar_add_event"], ["calendar_add_event", "calendar_add_note"]]
     assert g[81]["entrada"] == {"date": "2026-11-20", "time": "20:30"} and g[81]["alfred_menciona"] == ["20"]
     assert g[82]["phrase"] == "El lunes a las 10 tengo dentista" and g[82]["ahora"] == "2026-11-19T08:06"
     assert g[82]["entrada"] == {"date": "2026-11-23", "time": "10:00"}
@@ -246,6 +248,12 @@ def test_h9_el_81_pide_el_viernes_20_a_las_20_30_y_que_alfred_diga_el_20():
     assert not evaluar_calendario(g, ["calendar_add_event"], _add("2026-11-20", "21:00"), "viernes 20/11")
     assert not evaluar_calendario(g, ["calendar_add_event"], _add("2026-11-20", "20:30"), "Apuntado, señor.")           # no dice el 20
     assert not evaluar_calendario(g, ["calendar_search_events", "calendar_add_event"], _add("2026-11-20", "20:30"), "viernes 20")
+    # H9-revision §3.1: guardar la dirección como nota vale, siempre con la fecha y la hora en el `add_event`
+    assert evaluar_calendario(g, ["calendar_add_event", "calendar_add_note"], _add("2026-11-20", "20:30"), "viernes 20/11")
+    assert not evaluar_calendario(g, ["calendar_add_event", "calendar_add_note"], _add("2026-11-27", "20:30"), "viernes 20/11")
+    assert not evaluar_calendario(g, ["calendar_add_note", "calendar_add_event"], _add("2026-11-20", "20:30"), "viernes 20/11")
+    assert not evaluar_calendario(g, ["calendar_add_event", "calendar_add_note", "calendar_add_note"],
+                                  _add("2026-11-20", "20:30"), "viernes 20/11")
     assert not evaluar_calendario(g, [], {}, "¿Qué día, señor? 20")
     assert not evaluar_calendario(g, ["calendar_add_event", "calendar_add_event"],
                                   {"calendar_add_event": _add("2026-11-20", "20:30")["calendar_add_event"] * 2}, "viernes 20")
@@ -302,6 +310,14 @@ def test_h9_las_frases_del_criterio_casan_como_palabras_completas():
     assert evaluar_calendario(g81, ["calendar_add_event"], _add("2026-11-20", "20:30"), "viernes 20/11")
     assert evaluar_calendario(g81, ["calendar_add_event"], _add("2026-11-20", "20:30"), "a las 20:30")
     assert not evaluar_calendario(g81, ["calendar_add_event"], _add("2026-11-20", "20:30"), "2026 y 120 euros")
+
+
+def test_h9_el_informe_de_la_pasada_formatea_varias_secuencias_validas():
+    """#81 lleva dos secuencias: sin esto, `_fmt_expected` rompería al final del golden, ya pagado."""
+    from tests.golden.test_goldens import _fmt_expected
+    assert _fmt_expected("calendario", _golden(81)["expected"]) == (
+        "calendar_add_event  O  calendar_add_event → calendar_add_note")
+    assert _fmt_expected("exact", ["calendar_add_event"]) == "calendar_add_event"
 
 
 # La pasada [API] de H9 mostró que #81-#83 dejaban su evento en la agenda de pruebas y #84/#85 lo encontraban (dos «Cena de

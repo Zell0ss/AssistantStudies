@@ -43,7 +43,7 @@ def _fmt_sequence(seq: list) -> str:
 
 
 def _fmt_expected(mode: str, expected) -> str:
-    if mode == "any_of":
+    if mode == "any_of" or (expected and isinstance(expected[0], list)):   # varias secuencias válidas (#81)
         return "  O  ".join(_fmt_sequence(alt) for alt in expected)
     return _fmt_sequence(expected)
 

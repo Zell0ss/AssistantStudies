@@ -642,7 +642,9 @@
   phrase: "Este viernes tengo cena de Navidad de BNP. Es en calle de las Huertas 41, Madrid, a las 20:30"
   ahora: "2026-11-19T08:06"          # jueves
   mode: calendario
-  expected: [calendar_add_event]
+  # H9-revision §3.1: la dirección de la frase se guarda como nota, así que vale `add_event` solo o `add_event` + `add_note`;
+  # la `entrada` de fecha y hora va siempre en el `add_event`.
+  expected: [[calendar_add_event], [calendar_add_event, calendar_add_note]]
   entrada: {date: "2026-11-20", time: "20:30"}
   alfred_menciona: ["20"]
   validates: "Fase 3 H9 (R22, D60): «este viernes», dicho el jueves 19/11, es el 20/11 y no el 27/11"

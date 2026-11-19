@@ -43,7 +43,8 @@ def _incluye(entradas: list, esperado: dict) -> bool:
 def evaluar_calendario(golden: dict, tools: list, entradas: dict, texto_alfred: str) -> bool:
     """H9 (#81-#85, modo `calendario`). `entradas` es {tool: [entrada de cada llamada]} de las tools de escritura del calendario.
 
-    - Las tools: la secuencia exacta de `expected`, o, con `expected_any`, al menos una y solo de esa lista (solo lecturas).
+    - Las tools: la secuencia exacta de `expected` (o una de varias, si `expected` es una lista de secuencias), o, con
+      `expected_any`, al menos una y solo de esa lista (solo lecturas).
     - `entrada`: todas las llamadas a `calendar_add_event` la traen. `entrada_update`: igual con `calendar_update_event`.
     - `alfred_menciona`: todo aparece. `alfred_no_menciona`: nada aparece (sin mirar mayúsculas)."""
     texto = (texto_alfred or "").lower()
@@ -53,7 +54,9 @@ def evaluar_calendario(golden: dict, tools: list, entradas: dict, texto_alfred: 
         return re.search(rf"(?<!\w){re.escape(frase.lower())}(?!\w)", texto) is not None
 
     if "expected" in golden:
-        if tools != golden["expected"]:
+        esperado = golden["expected"]
+        validas = esperado if esperado and isinstance(esperado[0], list) else [esperado]   # una secuencia o varias (#81)
+        if tools not in validas:
             return False
     elif not tools or not set(tools) <= set(golden["expected_any"]):
         return False
