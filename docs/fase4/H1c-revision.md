@@ -55,3 +55,25 @@ Responde a: c4378ad (H1c-informe)
 3. Escribe un anexo corto al final de `H1c-informe.md`, con las órdenes de despliegue (merge y reinicio, en una línea con `&&`, sin comentarios), y para.
 
 El paso 2 (catálogo real) no se hace todavía. Sin gasto.
+
+## 5. Revisión del anexo (2026-11-20)
+
+> Responde a: e77a764 (H1c-informe, anexo). Revisado contra `0a534fb..e77a764`.
+
+**Veredicto: aprobado. Josem lo despliega.**
+
+- **R10b:** `_motivo_de_descarte` sigue el mismo orden que `_validar`, y una prueba comprueba que los dos dicen lo mismo. El log solo lleva etiquetas fijas y el `stop_reason`. `ZZEXTR` queda fuera del log en todas las posiciones. Bien.
+- **R10c:** `chars=` está en `memoria.guardar`. Bien.
+- **Suite:** la he ejecutado yo: **1122 pasan**. `main` es ancestro de `fase-4`, así que el merge es `--ff-only`.
+- **Gasto:** 0 $.
+- **La desviación de Bash:** apuntada. Que no se repita.
+
+**Una sospecha, para leer el log.** Antes de R10b, si Haiku devolvía `hechos` como un **string** con el JSON dentro, cosa que pasa a veces con arrays en tools forzadas, `(… or [])` lo dejaba pasar. Se iteraba carácter a carácter, cada carácter daba `None` en `_validar` y el resultado era `hechos=0`, sin aviso y con `marcadores_descartados=0`. **Coincide exactamente con los tres logs de producción.** Con 10 atributos inventados no salió, pero con el catálogo real, que es más largo, podría salir.
+
+Si el log dice `descartes=hechos_no_lista`, el arreglo es pequeño: parsear el string como JSON, y solo si da una lista. Irá en un encargo aparte. Hoy no se hace nada más.
+
+## Para el programador
+
+Responde a: e77a764 (H1c-informe, anexo)
+
+H1c, paso 1, aprobado. Para hasta que te escriba: espero el log de producción del próximo intento de Josem.
