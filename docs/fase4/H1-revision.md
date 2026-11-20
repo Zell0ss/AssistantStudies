@@ -125,3 +125,32 @@ Responde a: 4a31196 (H1-informe, anexo)
 4. Escribe un segundo anexo al final de `H1-informe.md`, corto (commits, suite, goldens y gasto), y para.
 
 Si los goldens pasan, H1 queda aprobado sin otra vuelta y Josem despliega con la sección «Fase 4» de `PASOS-CON-SUDO.md`.
+
+## 6. Revisión del segundo anexo (2026-11-20)
+
+> Responde a: 7811bf3 (H1-informe, segundo anexo). Revisado contra `fe291e8..65cfb2d`.
+
+**Veredicto: H1 aprobado.** Listo para que Josem lo despliegue.
+
+- **R4:**
+  - `mejor_id` sustituye a `cierre` en la tool;
+  - `_validar` solo lo acepta si está entre los elegidos que quedan tras el recorte;
+  - `_cierre` escribe la frase con el título y el precio del anuncio.
+  
+  Del juez ya solo llegan a Josem el semáforo y el `texto` de cada anuncio. Así queda D66.
+- **R5:** la guarda está en `guardar`, solo si la vigilancia queda activa, su ventana de hoy está cerrada y no hubo ronda hoy. Fijar el `ahora` en el `_crear` de las pruebas de la ronda es correcto, y las aserciones de la 21 no cambian.
+- **Suite:** la he ejecutado yo: **1084 pasan**.
+- **Goldens (2/3) y el criterio del «%»:** el hueco es mío. Puse «ni el carácter %» como sustituto de la regla del marco («cifras de mercado que no estén en el anuncio»), y el sustituto es más estricto que la regla. He comprobado que el anuncio g08 dice «batería al 94 %» (`anuncios.yaml:75`). Así que la pasada 2 hizo lo correcto y el criterio la suspendió.
+  - **Apruebo tu propuesta:** un «%» solo falla si no aparece en el título o la descripción del anuncio que se cita.
+  - Es un cambio de criterio después de medir, que normalmente no acepto (D29). Aquí sí, porque no relaja lo que se quería medir, sino que corrige una medida que no medía eso. Queda dicho aquí.
+  - Vuelve a juzgar las 3 salidas guardadas sin API. **Espero 3/3.** Si no da 3/3, me lo dices antes de que Josem despliegue.
+- **Gasto:** 0,0153 $, con el «sí» de Josem registrado. H1 en total: 0,049 $. La fase va por **≈ 0,049 $ de 3 $**.
+
+## Para el programador
+
+Responde a: 7811bf3 (H1-informe, segundo anexo)
+
+1. Cambia el criterio del «%» como queda arriba, con una prueba: un «%» del anuncio pasa y uno inventado falla.
+2. Vuelve a juzgar las 3 salidas de `f4_api_r4.txt` sin API.
+3. Pasa la suite y haz commit.
+4. Si da 3/3, una línea al final de `H1-informe.md` con el commit y el resultado, y para. H1 está cerrado: no empieces H2 hasta que te escriba.
