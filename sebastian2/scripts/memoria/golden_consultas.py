@@ -72,7 +72,9 @@ _G5 = ("G5", "¿Qué tiempo hace en Madrid?", INDICE_YO, HISTORIAL_ID, None, "se
 ESCENARIOS = ((*_G1, 2), (*_G2, 2), (*_G3, 2), (*_G4, 1), (*_G5, 1))
 # Segunda vuelta (R25b, H1j-revision): G2 ×2, G2b ×1 (nuevo) y G1, G3 y G4 ×1 (sin regresión), 6 llamadas.
 SEGUNDA_VUELTA = ((*_G2, 2), (*_G2B, 1), (*_G1, 1), (*_G3, 1), (*_G4, 1))
-VUELTAS = {1: ESCENARIOS, 2: SEGUNDA_VUELTA}
+# Tercera vuelta (H1j-revision §2, prueba de posición de la frase): G2 ×2, G2b, G1 y G3, 5 llamadas.
+TERCERA_VUELTA = ((*_G2, 2), (*_G2B, 1), (*_G1, 1), (*_G3, 1))
+VUELTAS = {1: ESCENARIOS, 2: SEGUNDA_VUELTA, 3: TERCERA_VUELTA}
 
 
 def llamar_planner(cliente, mensaje: str, indice: str, historial: list):
@@ -119,6 +121,18 @@ def resumen_segunda_vuelta(salida: dict) -> dict:
             "aprobado": len(nuevas) == 3 and len(previas) == 3 and all(f["acierta"] for f in filas)}
 
 
+def resumen_tercera_vuelta(salida: dict, g2_antes: int = 0) -> dict:
+    """Prueba de posición: aciertos de G2 (de 2) y de G2b, G1 y G3 (de 3). `se_queda_la_posicion_nueva` si G2 mejora respecto a
+    `g2_antes` (0 de 4 entre las dos vueltas anteriores) y las otras tres siguen bien; si no, se vuelve a la posición anterior."""
+    filas = salida["filas"]
+    g2 = [f for f in filas if f["escenario"] == "G2"]
+    otras = [f for f in filas if f["escenario"] in ("G2b", "G1", "G3")]
+    aciertos_g2 = sum(f["acierta"] for f in g2)
+    completa = len(g2) == 2 and len(otras) == 3
+    return {"g2": (aciertos_g2, len(g2)), "otras": (sum(f["acierta"] for f in otras), len(otras)),
+            "se_queda_la_posicion_nueva": completa and aciertos_g2 > g2_antes and all(f["acierta"] for f in otras)}
+
+
 def resumen(salida: dict) -> dict:
     """Aciertos de G1–G3 (de 6) y de los controles (de 2); `aprobado` si 6/6 y 2/2 con las 8 llamadas hechas."""
     filas = salida["filas"]
@@ -137,7 +151,11 @@ def detalle(salida: dict, vuelta: int = 1) -> str:
                       f"{llamadas} · stop={f['stop_reason']} · {f['coste']:.4f} $")
         if f["texto"]:
             lineas.append(f"    texto libre: {f['texto']}")
-    if vuelta == 2:
+    if vuelta == 3:
+        r = resumen_tercera_vuelta(salida)
+        lineas.append(f"\nG2: {r['g2'][0]}/{r['g2'][1]} · G2b, G1 y G3: {r['otras'][0]}/{r['otras'][1]} · "
+                      f"{'SE QUEDA LA POSICIÓN NUEVA' if r['se_queda_la_posicion_nueva'] else 'VUELVE A LA POSICIÓN ANTERIOR'}")
+    elif vuelta == 2:
         r = resumen_segunda_vuelta(salida)
         lineas.append(f"\nG2 y G2b: {r['g2_g2b'][0]}/{r['g2_g2b'][1]} · G1, G3 y G4 sin regresión: "
                       f"{r['sin_regresion'][0]}/{r['sin_regresion'][1]} · {'APROBADO' if r['aprobado'] else 'NO APROBADO'}")

@@ -102,6 +102,27 @@ def test_segunda_vuelta_se_para_antes_del_tope_y_no_se_aprueba():
     assert len(cliente.llamadas) == 1 and "tope" in salida["parada"] and g.resumen_segunda_vuelta(salida)["aprobado"] is False
 
 
+def test_tercera_vuelta_son_5_llamadas_y_la_posicion_nueva_se_queda_si_g2_mejora_sin_regresion():
+    cliente = ClienteFalso(_perfecta_2())
+    salida = g.correr(cliente, tope=0.10, vuelta=3)
+    assert [f["escenario"] for f in salida["filas"]] == ["G2", "G2", "G2b", "G1", "G3"] and len(cliente.llamadas) == 5
+    assert g.resumen_tercera_vuelta(salida) == {"g2": (2, 2), "otras": (3, 3), "se_queda_la_posicion_nueva": True}
+    assert "SE QUEDA LA POSICIÓN NUEVA" in g.detalle(salida, 3)
+    una = g.correr(ClienteFalso(_perfecta_2()), vuelta=3)
+    una["filas"][0]["acierta"] = False                                                     # mejora solo 1 de 2: sigue siendo mejora
+    assert g.resumen_tercera_vuelta(una)["se_queda_la_posicion_nueva"] is True
+
+
+def test_tercera_vuelta_vuelve_atras_si_g2_no_mejora_o_algo_empeora():
+    sin_mejora = g.correr(ClienteFalso(_perfecta_2({"¿Cuál es mi id de Telegram?": None})), vuelta=3)
+    assert g.resumen_tercera_vuelta(sin_mejora) == {"g2": (0, 2), "otras": (3, 3), "se_queda_la_posicion_nueva": False}
+    assert "VUELVE A LA POSICIÓN ANTERIOR" in g.detalle(sin_mejora, 3)
+    empeora = g.correr(ClienteFalso(_perfecta_2({"¿Qué sabes de Paco?": None})), vuelta=3)
+    assert g.resumen_tercera_vuelta(empeora)["se_queda_la_posicion_nueva"] is False        # G2 mejora, pero G3 empeora
+    parcial = g.correr(ClienteFalso(_perfecta_2(), coste=(30000, 100)), tope=0.05, vuelta=3)
+    assert g.resumen_tercera_vuelta(parcial)["se_queda_la_posicion_nueva"] is False        # incompleto no cuenta
+
+
 def test_se_para_antes_de_pasar_el_tope():
     cliente = ClienteFalso(_perfecto(), coste=(30000, 100))                           # 0,0305 $ por llamada
     salida = g.correr(cliente, tope=0.10)
