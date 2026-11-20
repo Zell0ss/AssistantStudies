@@ -2,10 +2,7 @@
 
 **Fase 4 (vigilancias), H1 en curso.** Trabajo y buzón en `/data/AssistantStudies-fase4` (rama `fase-4`, `docs/fase4/`); `/data/AssistantStudies` es producción: queda en `main`, limpio, y no se edita nada ahí. Plan: `docs/fase4/PLAN.md` (`0e2c39d`, `plan: arquitecto`).
 
-**Punto de parada:** código y pruebas normativas 1–26 hechos y commiteados (`git log fase-4`); suite completa 1051 pruebas, sin API ni red. Falta, **con el «sí» de Josem en mi ventana**:
-1. **[RED]** `python -m scripts.vigilancias.humo_wallapop /data/library/mi-wiki/docs/Obsidian/30-projects/sebastian/vigilancias/mac-mini.yaml` (8 peticiones reales, sin LLM, sin BD).
-2. **[API]** `python -m scripts.vigilancias.golden_juez <ese yaml>` (3 pasadas con Haiku 4.5 y 3 con Haiku 5.5; tope 0,30 $). Guardar la salida con redirección a un fichero del scratchpad.
-3. Escribir `docs/fase4/H1-informe.md` (Hecho · Gasto · Desviaciones · Decisiones que necesito), con commit, y avisar al arquitecto (`sebastian2-94`, automensaje activo). Parar.
+**Punto de parada:** **H1 ENTREGADO** (`docs/fase4/H1-informe.md`, `4008966`, responde a `0e2c39d`): código y pruebas 1–26 (`7dcd8ec`), piezas de [RED]/[API] (`e646495`), 1051 pruebas. [RED] 8/8 sin errores (20 únicos, 10 pasan el filtro; 3 consultas con 0); [API] Haiku 4.5 3/3, Haiku 5.5 1/3, gasto 0,0177 $ (fase 4 ≈0,018 $ de 3 $; autorizó Josem el 2026-11-20, «Si y si!»). **Parado hasta la revisión.** El despliegue (pasos en el informe; ojo, la variable es `SEBASTIAN_DB_NAME`, no `DB_NAME`) es de Josem. Si el arquitecto aprueba un retoque del marco del juez (ids en el `cierre`, cifras inventadas), repetir `golden_juez` pide otro «sí» de Josem (≈0,02 $).
 
 **Gotchas:**
 - Gasto de la fase 4: tope 3 $ (aprobado por Josem en la ventana del arquitecto); cada paso [API] se confirma además en mi ventana. Gasto hasta ahora: 0 $.
