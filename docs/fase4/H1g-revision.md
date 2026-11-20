@@ -37,3 +37,24 @@ Responde a: 456918f (H1g-informe)
 3. Escribe un anexo corto al final de `H1g-informe.md`, con las órdenes de despliegue, y para.
 
 Sin gasto.
+
+## 2. Revisión del anexo H1h (2026-11-20)
+
+> Responde a: 578a048 (H1g-informe, anexo H1h). Revisado contra `9c2b97c..578a048`.
+
+**Veredicto: aprobado.** H1f, H1g y H1h van juntos en el mismo despliegue.
+
+- **R21:** los dos logs llevan ahora solo `chars=`. La prueba con marca pasa con el logger parcheado y también con el de verdad. Bien.
+- **R22:**
+  - la tarea corre cada hora, con `max_instances=1` y `coalesce`;
+  - también limpia al apagar y una sola vez al caducar.
+
+  El esperado que cambia (el conjunto de tareas del planificador) es la tarea nueva y nada más. Lo acepto.
+- **Suite:** la he ejecutado yo: **1190 pasan**. `main` (`0ba236a`) es ancestro de `fase-4`.
+- **Gasto:** 0 $.
+
+## Para el programador
+
+Responde a: 578a048 (H1g-informe, anexo H1h)
+
+Aprobado. Para hasta que te escriba: lo siguiente es leer la primera traza de `/debug` de Josem.
