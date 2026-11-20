@@ -1,6 +1,6 @@
 """Goldens de H1j (fase 4, D74, R25): con historial, ¿el planner llama a `search_memory` en las consultas? Uso (desde sebastian2/):
 
-    python -m scripts.memoria.golden_consultas [--tope 0.10]
+    python -m scripts.memoria.golden_consultas [--tope 0.10] [--vuelta 1|2]
 
 **[API, Anthropic, Haiku 4.5, tope 0,10 $]**. Planner real (prompt, tools, modelo y techo de producción) con un índice de memoria
 inventado y un historial inventado de 6 intercambios. No cambia el código de producto, no escribe en la BD ni manda nada a Telegram.
@@ -50,14 +50,29 @@ HISTORIAL_PACO = _historial(
     ("Perfecto", "Muy bien, señor."),
 )
 
-# (nombre, mensaje, índice, historial, tool esperada, tool prohibida, pasadas)
-ESCENARIOS = (
-    ("G1", "¿Qué datos tienes de mí en Telegram?", INDICE_YO, HISTORIAL_ID, "search_memory", None, 2),
-    ("G2", "¿Cuál es mi id de Telegram?", INDICE_YO, HISTORIAL_ID, "search_memory", None, 2),
-    ("G3", "¿Qué sabes de Paco?", INDICE_YO_Y_PACO, HISTORIAL_PACO, "search_memory", None, 2),
-    ("G4", "Recuerda que mi color favorito es el verde", INDICE_YO, HISTORIAL_ID, "mark_as_memorable", None, 1),
-    ("G5", "¿Qué tiempo hace en Madrid?", INDICE_YO, HISTORIAL_ID, None, "search_memory", 1),
+# G2b (segunda vuelta, R25b): otro dato concreto, para ver si la regla generaliza más allá de Telegram.
+INDICE_CUMPLE = f"{_CABECERA}\n- yo (tú): cumpleanos, telegram_id, nota"
+HISTORIAL_CUMPLE = _historial(
+    ("Hola, Sebastian", "Buenos días, señor."),
+    ("Recuerda que mi cumpleaños es el 12 de marzo", "Anotado, señor: su cumpleaños es el 12 de marzo."),
+    ("¿Qué hora es?", "Son las diez y diez, señor."),
+    ("¿Cuándo es mi cumpleaños?", "Su cumpleaños es el 12 de marzo, señor."),
+    ("Gracias", "A su servicio, señor."),
+    ("Perfecto", "Muy bien, señor."),
 )
+
+_G1 = ("G1", "¿Qué datos tienes de mí en Telegram?", INDICE_YO, HISTORIAL_ID, "search_memory", None)
+_G2 = ("G2", "¿Cuál es mi id de Telegram?", INDICE_YO, HISTORIAL_ID, "search_memory", None)
+_G2B = ("G2b", "¿Cuándo es mi cumpleaños?", INDICE_CUMPLE, HISTORIAL_CUMPLE, "search_memory", None)
+_G3 = ("G3", "¿Qué sabes de Paco?", INDICE_YO_Y_PACO, HISTORIAL_PACO, "search_memory", None)
+_G4 = ("G4", "Recuerda que mi color favorito es el verde", INDICE_YO, HISTORIAL_ID, "mark_as_memorable", None)
+_G5 = ("G5", "¿Qué tiempo hace en Madrid?", INDICE_YO, HISTORIAL_ID, None, "search_memory")
+
+# Primera vuelta: (nombre, mensaje, índice, historial, tool esperada, tool prohibida, pasadas), 8 llamadas.
+ESCENARIOS = ((*_G1, 2), (*_G2, 2), (*_G3, 2), (*_G4, 1), (*_G5, 1))
+# Segunda vuelta (R25b, H1j-revision): G2 ×2, G2b ×1 (nuevo) y G1, G3 y G4 ×1 (sin regresión), 6 llamadas.
+SEGUNDA_VUELTA = ((*_G2, 2), (*_G2B, 1), (*_G1, 1), (*_G3, 1), (*_G4, 1))
+VUELTAS = {1: ESCENARIOS, 2: SEGUNDA_VUELTA}
 
 
 def llamar_planner(cliente, mensaje: str, indice: str, historial: list):
@@ -75,11 +90,11 @@ def evaluar(respuesta, esperada: str | None, prohibida: str | None) -> tuple:
     return acierta, tools, texto, respuesta.stop_reason
 
 
-def correr(cliente, tope: float = 0.10) -> dict:
-    """Una fila por pasada, en el orden de `ESCENARIOS`. Devuelve `{"filas": [...], "gastado": x, "parada": ...}`."""
+def correr(cliente, tope: float = 0.10, vuelta: int = 1) -> dict:
+    """Una fila por pasada, en el orden de la vuelta (`VUELTAS`). Devuelve `{"filas": [...], "gastado": x, "parada": ...}`."""
     presupuesto = Presupuesto(tope)
     filas, parada = [], None
-    for nombre, mensaje, indice, historial, esperada, prohibida, pasadas in ESCENARIOS:
+    for nombre, mensaje, indice, historial, esperada, prohibida, pasadas in VUELTAS[vuelta]:
         for n in range(1, pasadas + 1):
             if not presupuesto.cabe("planner"):
                 parada = f"tope de {tope:.3f} $ antes de {nombre} pasada {n}"
@@ -93,6 +108,17 @@ def correr(cliente, tope: float = 0.10) -> dict:
     return {"filas": filas, "gastado": presupuesto.gastado, "parada": parada}
 
 
+def resumen_segunda_vuelta(salida: dict) -> dict:
+    """Segunda vuelta: aciertos de G2 y G2b (de 3) y de G1, G3 y G4 (de 3, «sin regresión»); `aprobado` si 3/3 y 3/3 con las 6
+    llamadas hechas."""
+    filas = salida["filas"]
+    nuevas = [f for f in filas if f["escenario"] in ("G2", "G2b")]
+    previas = [f for f in filas if f["escenario"] in ("G1", "G3", "G4")]
+    return {"g2_g2b": (sum(f["acierta"] for f in nuevas), len(nuevas)),
+            "sin_regresion": (sum(f["acierta"] for f in previas), len(previas)),
+            "aprobado": len(nuevas) == 3 and len(previas) == 3 and all(f["acierta"] for f in filas)}
+
+
 def resumen(salida: dict) -> dict:
     """Aciertos de G1–G3 (de 6) y de los controles (de 2); `aprobado` si 6/6 y 2/2 con las 8 llamadas hechas."""
     filas = salida["filas"]
@@ -103,17 +129,22 @@ def resumen(salida: dict) -> dict:
             "aprobado": len(consultas) == 6 and len(controles) == 2 and all(f["acierta"] for f in filas)}
 
 
-def detalle(salida: dict) -> str:
-    lineas = [f"Planner · {_MODELO_PLANNER}"]
+def detalle(salida: dict, vuelta: int = 1) -> str:
+    lineas = [f"Planner · {_MODELO_PLANNER} · vuelta {vuelta}"]
     for f in salida["filas"]:
         llamadas = ", ".join(f"{t['tool']}({t['input']})" for t in f["tools"]) or "ninguna tool"
         lineas.append(f"[{f['escenario']} · pasada {f['pasada']}] {'ACIERTA' if f['acierta'] else 'FALLA'} · «{f['mensaje']}» → "
                       f"{llamadas} · stop={f['stop_reason']} · {f['coste']:.4f} $")
         if f["texto"]:
             lineas.append(f"    texto libre: {f['texto']}")
-    r = resumen(salida)
-    lineas.append(f"\nG1–G3: {r['consultas'][0]}/{r['consultas'][1]} · controles: {r['controles'][0]}/{r['controles'][1]} · "
-                  f"{'APROBADO' if r['aprobado'] else 'NO APROBADO'}")
+    if vuelta == 2:
+        r = resumen_segunda_vuelta(salida)
+        lineas.append(f"\nG2 y G2b: {r['g2_g2b'][0]}/{r['g2_g2b'][1]} · G1, G3 y G4 sin regresión: "
+                      f"{r['sin_regresion'][0]}/{r['sin_regresion'][1]} · {'APROBADO' if r['aprobado'] else 'NO APROBADO'}")
+    else:
+        r = resumen(salida)
+        lineas.append(f"\nG1–G3: {r['consultas'][0]}/{r['consultas'][1]} · controles: {r['controles'][0]}/{r['controles'][1]} · "
+                      f"{'APROBADO' if r['aprobado'] else 'NO APROBADO'}")
     if salida["parada"]:
         lineas.append(f"PARADA: {salida['parada']}")
     lineas.append(f"Gasto total: {salida['gastado']:.4f} $ · llamadas: {len(salida['filas'])}")
@@ -123,11 +154,13 @@ def detalle(salida: dict) -> str:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Goldens de H1j: consultas con historial (gasta API).")
     parser.add_argument("--tope", type=float, default=0.10)
+    parser.add_argument("--vuelta", type=int, choices=sorted(VUELTAS), default=1,
+                        help="1: G1–G5 (8 llamadas); 2: G2 ×2, G2b, G1, G3, G4 (6 llamadas)")
     args = parser.parse_args(argv)
     from anthropic import Anthropic
     from utils.config import get_config
     cliente = Anthropic(api_key=get_config()["anthropic_apikey"], timeout=60.0)
-    print(detalle(correr(cliente, args.tope)))
+    print(detalle(correr(cliente, args.tope, args.vuelta), args.vuelta))
     return 0
 
 

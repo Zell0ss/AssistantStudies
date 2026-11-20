@@ -158,9 +158,12 @@ _REGLA_ACCIONES_CON_HISTORIAL = (
     "texto que ya está hecho: aunque en el historial el asistente diga «Anotado» o «Retirado», eso fue otro turno y no cuenta."
     # D74 (fase 4, H1j): lo mismo para las consultas. El 20/11 el planner contestó «Su telegram_id es…» en texto, sacándolo del
     # historial, en vez de llamar a `search_memory` (D26: lo que se dijo en otro turno no es fuente).
-    "\n\nSi el usuario pregunta qué consta de él, de su gente, de sus cosas o de sus proyectos («¿qué sabes de…?», «¿qué datos "
-    "tienes de…?», «¿cuál es mi…?»), tu respuesta de este turno tiene que ser una llamada a `search_memory`, aunque el historial "
-    "parezca tener el dato: lo que se dijo en otro turno no es fuente (D26)."
+    # R25b: la primera frase nombraba el caso («¿cuál es mi…?») pero no prohibía copiar, y G2 falló 0/2: el planner copiaba la
+    # respuesta del historial. La regla prohíbe el gesto, no un ejemplo.
+    "\n\nSi el usuario pregunta qué consta de él, de su gente, de sus cosas o de sus proyectos, sea en general («¿qué sabes "
+    "de…?») o un dato concreto («¿cuál es mi…?», «¿cuándo es…?», «¿dónde…?»), tu respuesta de este turno tiene que ser una "
+    "llamada a `search_memory`. Vale también si en el historial ya se preguntó y se contestó: nunca contestes un dato de memoria "
+    "copiándolo del historial, porque lo que se dijo en otro turno no es fuente (D26)."
 )
 
 

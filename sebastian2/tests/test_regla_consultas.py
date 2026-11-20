@@ -1,9 +1,10 @@
 """Fase 4, H1j (D74, R25): con historial, las consultas también pasan por `search_memory`. Sin API."""
 from core.orchestrator import _REGLA_ACCIONES_CON_HISTORIAL, _planner_system
 
-FRASE = ("Si el usuario pregunta qué consta de él, de su gente, de sus cosas o de sus proyectos («¿qué sabes de…?», «¿qué datos "
-         "tienes de…?», «¿cuál es mi…?»), tu respuesta de este turno tiene que ser una llamada a `search_memory`, aunque el "
-         "historial parezca tener el dato: lo que se dijo en otro turno no es fuente (D26).")
+FRASE = ("Si el usuario pregunta qué consta de él, de su gente, de sus cosas o de sus proyectos, sea en general («¿qué sabes "
+         "de…?») o un dato concreto («¿cuál es mi…?», «¿cuándo es…?», «¿dónde…?»), tu respuesta de este turno tiene que ser una "
+         "llamada a `search_memory`. Vale también si en el historial ya se preguntó y se contestó: nunca contestes un dato de memoria "
+         "copiándolo del historial, porque lo que se dijo en otro turno no es fuente (D26).")
 
 
 def test_h1j_la_frase_de_las_consultas_esta_en_el_system_del_planner_despues_de_la_regla_de_acciones():

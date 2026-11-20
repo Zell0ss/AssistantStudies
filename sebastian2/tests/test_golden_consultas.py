@@ -40,7 +40,7 @@ def test_son_8_llamadas_con_el_planner_real_y_los_historiales_inventados():
     paco = cliente.llamadas[4]
     assert g.INDICE_YO_Y_PACO in paco["system"] and "Paco es alérgico" in paco["messages"][3]["content"]
     assert "mark_as_memorable" in primera["system"] and "search_memory" in primera["system"]
-    assert "`search_memory`, aunque el historial" in primera["system"]                               # la frase de R25 va en el prompt
+    assert "nunca contestes un dato de memoria copiándolo del historial" in primera["system"]       # la frase de R25b va en el prompt
 
 
 def test_el_criterio_es_6_de_6_y_2_de_2():
@@ -65,6 +65,41 @@ def test_los_controles_fallan_si_el_planner_hace_lo_contrario():
     por_mensaje["Recuerda que mi color favorito es el verde"] = "search_memory"       # G4 debe guardar
     r = g.resumen(g.correr(ClienteFalso(por_mensaje)))
     assert r["controles"] == (0, 2) and r["consultas"] == (6, 6) and r["aprobado"] is False
+
+
+def _perfecta_2(excepto=None):
+    por_mensaje = {m: "search_memory" for m in ("¿Cuál es mi id de Telegram?", "¿Cuándo es mi cumpleaños?",
+                                                  "¿Qué datos tienes de mí en Telegram?", "¿Qué sabes de Paco?")}
+    por_mensaje["Recuerda que mi color favorito es el verde"] = "mark_as_memorable"
+    por_mensaje.update(excepto or {})
+    return por_mensaje
+
+
+def test_segunda_vuelta_son_6_llamadas_con_g2b_nuevo_y_su_historial():
+    cliente = ClienteFalso(_perfecta_2())
+    salida = g.correr(cliente, tope=0.10, vuelta=2)
+    assert [f["escenario"] for f in salida["filas"]] == ["G2", "G2", "G2b", "G1", "G3", "G4"] and len(cliente.llamadas) == 6
+    g2b = cliente.llamadas[2]
+    assert g2b["messages"][-1] == {"role": "user", "content": "¿Cuándo es mi cumpleaños?"}
+    assert "- yo (tú): cumpleanos, telegram_id, nota" in g2b["system"]
+    assert len(g2b["messages"]) == 13 and g2b["messages"][7]["content"] == "Su cumpleaños es el 12 de marzo, señor."   # misma pregunta ya contestada
+    r = g.resumen_segunda_vuelta(salida)
+    assert r == {"g2_g2b": (3, 3), "sin_regresion": (3, 3), "aprobado": True}
+    assert "vuelta 2" in g.detalle(salida, 2) and "G2 y G2b: 3/3" in g.detalle(salida, 2) and "NO APROBADO" not in g.detalle(salida, 2)
+
+
+def test_segunda_vuelta_no_se_aprueba_si_g2b_falla_o_hay_regresion():
+    sin_g2b = g.correr(ClienteFalso(_perfecta_2({"¿Cuándo es mi cumpleaños?": None})), vuelta=2)
+    assert g.resumen_segunda_vuelta(sin_g2b) == {"g2_g2b": (2, 3), "sin_regresion": (3, 3), "aprobado": False}
+    regresion = g.correr(ClienteFalso(_perfecta_2({"¿Qué sabes de Paco?": None})), vuelta=2)
+    assert g.resumen_segunda_vuelta(regresion) == {"g2_g2b": (3, 3), "sin_regresion": (2, 3), "aprobado": False}
+    assert "NO APROBADO" in g.detalle(regresion, 2)
+
+
+def test_segunda_vuelta_se_para_antes_del_tope_y_no_se_aprueba():
+    cliente = ClienteFalso(_perfecta_2(), coste=(30000, 100))
+    salida = g.correr(cliente, tope=0.06, vuelta=2)
+    assert len(cliente.llamadas) == 1 and "tope" in salida["parada"] and g.resumen_segunda_vuelta(salida)["aprobado"] is False
 
 
 def test_se_para_antes_de_pasar_el_tope():
