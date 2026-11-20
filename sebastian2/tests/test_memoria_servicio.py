@@ -388,6 +388,19 @@ def test_log_no_lleva_valores(entorno):
         assert not any(secreto in l for l in llamadas), secreto
 
 
+def test_h1c_r10c_memoria_guardar_lleva_chars_con_la_longitud_del_texto_y_no_el_texto(entorno):
+    servicio, _ = entorno.servicio([])
+    texto = "ZZTEXTO " * 5                                    # 40 caracteres
+    with patch("core.memoria.servicio.logger") as log:
+        servicio.guardar(USER, texto)
+    (linea,) = [c.args[0] for c in log.info.call_args_list if c.args[0].startswith("memoria.guardar:")]
+    assert linea.endswith("chars=40") and "hechos=0" in linea
+    assert "ZZTEXTO" not in linea
+    with patch("core.memoria.servicio.logger") as log:
+        servicio.guardar(USER, "")                             # el planner manda una frase vacía: se ve
+    assert [c.args[0] for c in log.info.call_args_list if c.args[0].startswith("memoria.guardar:")][0].endswith("chars=0")
+
+
 # --- catalogo para el extractor ----------------------------------------------------------------
 
 def test_texto_catalogo_lleva_semillas_y_entidades_propias_pero_no_ajenas(entorno):

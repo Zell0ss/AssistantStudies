@@ -62,6 +62,20 @@ def es_marcador(entidad: str) -> bool:
     return not e or (e.startswith("<") and e.endswith(">"))
 
 
+def _motivo_de_descarte(crudo) -> str | None:
+    """Por qué `_validar` tira este crudo, como etiqueta fija (D42: nunca el valor), o None si lo deja pasar.
+    Mismo orden que `_validar`; tiene que decir lo mismo que él (lo comprueba una prueba)."""
+    if not isinstance(crudo, dict):
+        return "no_es_dict"
+    if es_marcador(str(crudo.get("entidad") or "").strip()):
+        return "marcador"
+    if not str(crudo.get("atributo") or "").strip():
+        return "sin_atributo"
+    if crudo.get("operacion") not in _OPERACIONES:
+        return "operacion_invalida"
+    return None
+
+
 def _validar(crudo) -> dict | None:
     """Un hecho bien formado con valores por defecto, o None si no sirve (también si su entidad es un marcador)."""
     if not isinstance(crudo, dict):
@@ -111,7 +125,16 @@ class Extractor:
             logger.warning("Extractor: la respuesta no trae la tool registrar_hechos")
             return []
         crudos = (bloque.input or {}).get("hechos") or []
+        descartes = []
+        if not isinstance(crudos, list):
+            # Antes, `or []` solo tapaba lo vacío; un texto o un número «de hechos» se iteraba carácter a carácter o rompía.
+            crudos, descartes = [], ["hechos_no_lista"]
         self.marcadores_descartados = sum(1 for c in crudos if isinstance(c, dict)
                                           and es_marcador(str(c.get("entidad") or "")) and c.get("entidad"))
-        validados = [h for h in map(_validar, crudos) if h]
-        return validados[:MAX_HECHOS]
+        validados = [h for h in map(_validar, crudos) if h][:MAX_HECHOS]
+        descartes += [m for m in map(_motivo_de_descarte, crudos) if m]
+        # H1c (R10b, D42): qué devolvió el modelo, para distinguir «Haiku no devolvió nada» de «`_validar` lo tiró todo».
+        # Solo el motivo, como etiqueta fija: nunca un valor ni texto del modelo.
+        logger.info(f"Extractor: stop={getattr(respuesta, 'stop_reason', None)} crudos={len(crudos)} validados={len(validados)}"
+                    + (f" descartes={','.join(descartes)}" if descartes else ""))
+        return validados

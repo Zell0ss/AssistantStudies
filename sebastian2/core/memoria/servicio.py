@@ -73,8 +73,10 @@ class ServicioMemoria:
         sin_entidad = getattr(self._extractor, "marcadores_descartados", 0)
         if sin_entidad:
             data["sin_cambio"].append("No he sabido de quién o de qué se hablaba en parte de lo dicho: ¿de quién se trata?")
+        # H1c (R10c, D42): `chars` es solo la longitud de lo que recibió el extractor; si el planner manda una frase vacía
+        # o de pocas letras, se ve sin guardar el texto.
         logger.info(f"memoria.guardar: user={user_id} hechos={len(hechos)} guardados={len(data['guardados'])} "
-                    f"notas={len(data['notas'])} sin_cambio={len(data['sin_cambio'])} yo={yo}")
+                    f"notas={len(data['notas'])} sin_cambio={len(data['sin_cambio'])} yo={yo} chars={len(texto)}")
         resumen = self._resumen(hechos, data)
         if sin_entidad and not hechos:
             resumen = "No sé de quién o de qué se habla."

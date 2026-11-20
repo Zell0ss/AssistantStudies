@@ -159,3 +159,77 @@ def test_el_extractor_cuenta_los_marcadores_que_descarta():
     extractor_sin = Extractor(ClienteFalso([_hecho()]))
     extractor_sin.extraer("z", "c", date(2026, 11, 15))
     assert extractor_sin.marcadores_descartados == 0
+
+
+# --- H1c R10b (D42): el extractor dice qué devuelve, sin contenido -------------------------------------------------
+
+def _log_del_extractor(hechos, stop_reason="tool_use", entrada=None):
+    from unittest.mock import patch
+    cliente = ClienteFalso(bloques=[SimpleNamespace(type="tool_use", name="registrar_hechos",
+                                                    input=entrada if entrada is not None else {"hechos": hechos})])
+    original = cliente._create
+    cliente.messages = SimpleNamespace(create=lambda **kw: _con_stop(original(**kw), stop_reason))
+    with patch("core.memoria.extractor.logger") as log:
+        resultado = Extractor(cliente).extraer("x", "c", date(2026, 10, 16))
+    lineas = [c.args[0] for c in log.info.call_args_list]
+    return resultado, lineas, [str(c) for c in log.mock_calls]
+
+
+def _con_stop(respuesta, stop_reason):
+    respuesta.stop_reason = stop_reason
+    return respuesta
+
+
+def test_h1c_con_lista_vacia_el_log_dice_crudos_0_validados_0():
+    resultado, lineas, _ = _log_del_extractor([])
+    assert resultado == []
+    assert lineas == ["Extractor: stop=tool_use crudos=0 validados=0"]
+
+
+def test_h1c_un_hecho_bueno_y_uno_sin_atributo_dice_descartes_sin_atributo():
+    resultado, lineas, _ = _log_del_extractor([_hecho(), _hecho(atributo="")])
+    assert len(resultado) == 1
+    assert lineas == ["Extractor: stop=tool_use crudos=2 validados=1 descartes=sin_atributo"]
+
+
+def test_h1c_cada_motivo_de_descarte_tiene_su_etiqueta_fija():
+    crudos = [_hecho(entidad="<UNKNOWN>"), _hecho(atributo="  "), _hecho(operacion="borrar"), _hecho(operacion=None), "texto", 7, _hecho()]
+    resultado, lineas, _ = _log_del_extractor(crudos)
+    assert len(resultado) == 1
+    assert lineas == ["Extractor: stop=tool_use crudos=7 validados=1 "
+                      "descartes=marcador,sin_atributo,operacion_invalida,operacion_invalida,no_es_dict,no_es_dict"]
+
+
+def test_h1c_el_motivo_de_descarte_coincide_con_lo_que_decide_validar():
+    from core.memoria.extractor import _motivo_de_descarte
+    casos = [_hecho(), _hecho(entidad="<desconocido>"), _hecho(entidad=""), _hecho(atributo=None), _hecho(operacion="x"),
+             _hecho(entidad="<3"), None, [], "x"]
+    for crudo in casos:
+        assert (_motivo_de_descarte(crudo) is None) == (_validar(crudo) is not None), crudo
+
+
+def test_h1c_con_hechos_como_texto_no_hay_excepcion_y_el_log_dice_hechos_no_lista():
+    resultado, lineas, _ = _log_del_extractor(None, entrada={"hechos": "no soy una lista"})
+    assert resultado == []
+    assert lineas == ["Extractor: stop=tool_use crudos=0 validados=0 descartes=hechos_no_lista"]
+
+
+def test_h1c_sin_hechos_en_la_entrada_es_una_lista_vacia_sin_descartes():
+    _, lineas, _ = _log_del_extractor(None, entrada={})
+    assert lineas == ["Extractor: stop=tool_use crudos=0 validados=0"]
+
+
+def test_h1c_el_log_lleva_el_stop_reason():
+    _, lineas, _ = _log_del_extractor([], stop_reason="max_tokens")
+    assert lineas == ["Extractor: stop=max_tokens crudos=0 validados=0"]
+
+
+def test_h1c_una_marca_en_el_valor_y_en_el_texto_no_sale_en_ningun_log():
+    from unittest.mock import patch
+    marca = "ZZEXTR"
+    cliente = ClienteFalso([_hecho(valor=f"valor {marca}", entidad=f"<{marca}>"), _hecho(atributo="", valor=marca),
+                            _hecho(operacion=f"op-{marca}"), f"crudo-{marca}", _hecho(valor=marca)])
+    with patch("core.memoria.extractor.logger") as log:
+        Extractor(cliente).extraer(f"frase {marca}", f"catalogo {marca}", date(2026, 10, 16))
+    llamadas = [str(c) for c in log.mock_calls]
+    assert llamadas and not any(marca in l for l in llamadas)
