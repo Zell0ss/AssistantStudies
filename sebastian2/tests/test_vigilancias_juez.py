@@ -41,6 +41,14 @@ def test_11b_el_marco_dice_las_tres_cosas():
     assert "<anuncios>" in marco
 
 
+def test_r2_el_marco_prohibe_ids_en_el_texto_y_cifras_de_mercado_inventadas():
+    marco = " ".join(MARCO.split())
+    assert "En `texto` y `cierre` no escribas ids: nombra el anuncio por su chip, su RAM y su precio." in marco
+    assert "No des cifras de mercado ni porcentajes que no estén en el anuncio." in marco
+    assert "dilo sin número" in marco
+    assert marco.index("no escribas ids") < marco.index("Responde únicamente")        # van antes de las instrucciones de salida
+
+
 def test_11c_la_descripcion_se_corta_a_1500_caracteres():
     largo = hacer_anuncio(id="l", descripcion="x" * 5000)
     cliente = ClienteFalso()
