@@ -7,7 +7,7 @@ se escribe DESPUÉS de enviar el mensaje, y todo junto. Si algo falla antes (tod
 nada y la pasada siguiente lo reintenta, hasta que se cierra la ventana: entonces se avisa una vez.
 
 La ronda es de solo lectura: no llama al orquestador y el juez no tiene tools. El mensaje lo escribe el código con los datos
-del anuncio; del juez solo salen el semáforo, el texto de apoyo y el cierre (D66).
+del anuncio; del juez solo salen el semáforo, el texto de apoyo y el id del mejor (D66); la frase del cierre también la escribe el código.
 
 Los logs llevan id, usuario y recuentos, nunca consultas, reglas, títulos ni texto de anuncios (D42); las excepciones, solo su clase.
 """
@@ -48,6 +48,15 @@ def _bloque(elegido: dict, anuncio) -> str:
     return f"{cabecera}\n{elegido['texto']}\n{anuncio.url}"
 
 
+def _cierre(informe: Informe, por_id: dict) -> str:
+    """El cierre lo escribe el código (D66, H1-revision R4): el juez solo dice el id del mejor, y el título y el precio salen de
+    su anuncio. Sin `mejor_id` válido (entre los elegidos), «Ninguno urgente.»."""
+    mejor = por_id.get(informe.mejor_id) if informe.mejor_id in {e["id"] for e in informe.elegidos} else None
+    if mejor is None:
+        return "Ninguno urgente."
+    return f"Mejor de esta ronda: {mejor.titulo.strip()[:120]} · {_precio(mejor.precio)}"
+
+
 def armar_mensaje(vigilancia: dict, ahora: datetime, informe: Informe, candidatos: list, fallidas: int, total: int) -> str:
     """El mensaje de la ronda, en texto plano. Pasado de 4000 caracteres, se recorta por anuncios enteros."""
     por_id = {a.id: a for a in candidatos}
@@ -59,10 +68,10 @@ def armar_mensaje(vigilancia: dict, ahora: datetime, informe: Informe, candidato
     if not bloques:
         return "\n".join(x for x in (cabecera, _NADA, pie) if x)
 
+    cierre = _cierre(informe, por_id)
+
     def montar(n: int) -> str:
-        partes = [cabecera, "\n\n".join(bloques[:n])]
-        if informe.cierre:
-            partes.append(informe.cierre)
+        partes = [cabecera, "\n\n".join(bloques[:n]), cierre]
         if pie:
             partes.append(pie)
         return "\n\n".join(partes)

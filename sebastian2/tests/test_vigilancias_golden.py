@@ -48,24 +48,31 @@ def test_criterio_falla_y_dice_cual(informe, texto):
     assert not acierta and any(f.startswith(texto) for f in fallos)
 
 
-@pytest.mark.parametrize("texto, cierre, fallo", [
-    ("Entra por g02, buen precio.", "Mejor de esta ronda: el M4 Pro.", "texto de g01: contiene un id de anuncio"),
-    ("M4 Pro 24 GB, 1250 €.", "Mejor de esta ronda: g03.", "cierre: contiene un id de anuncio"),
-    ("M4 Pro 24 GB, 1250 €.", "Mejor de esta ronda: G03 sin duda.", "cierre: contiene un id de anuncio"),   # sin distinguir mayúsculas
-    ("Un 20 % bajo el precio de nuevo.", "Mejor de esta ronda: el M4 Pro.", "texto de g01: contiene «%»"),
-    ("M4 Pro 24 GB, 1250 €.", "Mejor de esta ronda: 15% de descuento.", "cierre: contiene «%»"),
+@pytest.mark.parametrize("texto, fallo", [
+    ("Entra por g02, buen precio.", "texto de g01: contiene un id de anuncio"),
+    ("Entra por G02, buen precio.", "texto de g01: contiene un id de anuncio"),                              # sin distinguir mayúsculas
+    ("Un 20 % bajo el precio de nuevo.", "texto de g01: contiene «%»"),
+    ("Un 20% bajo el precio de nuevo.", "texto de g01: contiene «%»"),
 ])
-def test_r2_el_criterio_falla_con_ids_o_porcentajes_en_el_texto_o_el_cierre(texto, cierre, fallo):
+def test_r2_el_criterio_falla_con_ids_o_porcentajes_en_el_texto(texto, fallo):
     informe = Informe(elegidos=[{"id": "g01", "semaforo": "COMPRAR", "texto": texto}, {"id": "g02", "semaforo": "MIRAR", "texto": "M4 / 32 GB / 1 TB."},
-                                {"id": "g03", "semaforo": "COMPRAR", "texto": "M2 Pro / 32 GB."}], cierre=cierre)
+                                {"id": "g03", "semaforo": "COMPRAR", "texto": "M2 Pro / 32 GB."}])
     acierta, fallos = evaluar(informe, cargar_anuncios())
     assert not acierta and fallo in fallos
 
 
 def test_r2_un_id_dentro_de_otra_palabra_o_un_numero_no_cuentan():
     informe = Informe(elegidos=[{"id": "g01", "semaforo": "COMPRAR", "texto": "Mac mini g011x, 1250 €, 24 GB."}, {"id": "g02", "semaforo": "MIRAR", "texto": "ok"},
-                                {"id": "g03", "semaforo": "COMPRAR", "texto": "ok"}], cierre="Mejor de esta ronda: el M4 Pro por 1250 €.")
+                                {"id": "g03", "semaforo": "COMPRAR", "texto": "ok"}], mejor_id="g02")
     assert evaluar(informe, cargar_anuncios()) == (True, [])
+
+
+@pytest.mark.parametrize("mejor_id, acierta", [(None, True), ("g01", True), ("g03", True), ("g07", False), ("g04", False), ("g10", False)])
+def test_r4_mejor_id_si_viene_tiene_que_ser_uno_de_los_tres_buenos(mejor_id, acierta):
+    informe = Informe(elegidos=[{"id": "g01", "semaforo": "COMPRAR", "texto": "ok"}, {"id": "g02", "semaforo": "COMPRAR", "texto": "ok"},
+                                {"id": "g03", "semaforo": "COMPRAR", "texto": "ok"}, {"id": "g07", "semaforo": "MIRAR", "texto": "ok"}], mejor_id=mejor_id)
+    resultado, fallos = evaluar(informe, cargar_anuncios())
+    assert resultado is acierta and (acierta or any(f.startswith(f"mejor_id {mejor_id}") for f in fallos))
 
 
 def test_los_no_comprar_pueden_salir_como_mirar_o_dudoso_y_los_libres_no_cuentan():

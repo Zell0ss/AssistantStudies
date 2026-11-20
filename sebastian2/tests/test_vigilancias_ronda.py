@@ -90,14 +90,14 @@ def test_15_es_la_hora_dos_candidatos_un_elegido_se_envia_y_quedan_los_dos_visto
     vid = _crear(conn)
     bot = BotFalso()
     cliente = ClienteFalso(elegidos=[{"id": "m4", "semaforo": "COMPRAR", "texto": "M4 Pro, 24 GB, 512 GB. Entra por RAM."}],
-                           cierre="Mejor de esta ronda: el M4 Pro.")
+                           mejor_id="m4")
     _pasada(bot, conn, fuente=FuenteFalsa(por_defecto=_dos_anuncios()), cliente=cliente)
     (chat, texto), = bot.enviados
     assert chat == int(USUARIO)
     assert texto.startswith("🔎 Mac mini · 20/11")
     assert "🟢 COMPRAR · Mac mini M4 Pro 24 GB · 1150 € · Valencia" in texto
     assert "M4 Pro, 24 GB, 512 GB. Entra por RAM." in texto and "https://es.wallapop.com/item/m4-slug" in texto
-    assert "Mejor de esta ronda: el M4 Pro." in texto
+    assert texto.endswith("Mejor de esta ronda: Mac mini M4 Pro 24 GB · 1150 €")                    # R4: lo escribe el código, con los datos del anuncio
     assert "M2 16 GB" not in texto and "Sevilla" not in texto and "m2-slug" not in texto            # el no elegido no sale
     assert _vistos(conn, vid) == ["m2", "m4"]                                                         # ¡los dos, también el que el juez descartó!
     assert _fila(conn, vid)["ultima_ronda"] == HOY
@@ -148,8 +148,8 @@ def test_20_sin_candidatos_se_envia_nada_nuevo_y_ultima_ronda_es_hoy_sin_llamar_
 def test_20b_si_el_juez_no_elige_ninguno_el_mensaje_es_el_de_nada_nuevo_pero_los_vistos_se_guardan(conn):
     vid = _crear(conn)
     bot = BotFalso()
-    _pasada(bot, conn, fuente=FuenteFalsa(por_defecto=_dos_anuncios()), cliente=ClienteFalso(elegidos=[], cierre="Ninguno urgente."))
-    assert bot.enviados[0][1].endswith("Nada nuevo que merezca la pena.")
+    _pasada(bot, conn, fuente=FuenteFalsa(por_defecto=_dos_anuncios()), cliente=ClienteFalso(elegidos=[]))
+    assert bot.enviados[0][1].endswith("Nada nuevo que merezca la pena.") and "Mejor de esta ronda" not in bot.enviados[0][1]
     assert _vistos(conn, vid) == ["m2", "m4"] and _fila(conn, vid)["ultima_ronda"] == HOY
 
 
@@ -325,21 +325,42 @@ def _grandes(n):
 
 def test_el_mensaje_pasado_de_4000_caracteres_se_recorta_por_anuncios_enteros():
     anuncios = [hacer_anuncio(id=f"g{i}", titulo=f"Mac mini grande {i}" + "x" * 100, ciudad="V" * 300) for i in range(6)]   # un bloque ≈ 900
-    informe = Informe(elegidos=[{"id": a.id, "semaforo": "MIRAR", "texto": "t" * 390} for a in anuncios], cierre="Mejor de esta ronda: g0.")
+    informe = Informe(elegidos=[{"id": a.id, "semaforo": "MIRAR", "texto": "t" * 390} for a in anuncios], mejor_id="g0")
     texto = armar_mensaje({"nombre": "Mac mini"}, AHORA, informe, anuncios, fallidas=2, total=8)
     assert len(texto) <= 4000
     assert texto.count("🟡 MIRAR") < 6 and texto.count("🟡 MIRAR") >= 3
     assert all(f"/item/g{i}-slug" in texto for i in range(texto.count("🟡 MIRAR")))                    # los que salen, enteros (con su enlace)
-    assert texto.endswith("(2 de 8 búsquedas fallaron)") and "Mejor de esta ronda: g0." in texto
+    assert texto.endswith("(2 de 8 búsquedas fallaron)") and "Mejor de esta ronda: Mac mini grande 0" in texto
 
 
 def test_el_mensaje_ordena_por_lo_que_dice_el_juez_y_usa_una_marca_por_semaforo():
     a, b, c = _grandes(3)
-    informe = Informe(elegidos=[{"id": b.id, "semaforo": "DUDOSO", "texto": "raro"}, {"id": a.id, "semaforo": "COMPRAR", "texto": "bien"}],
-                      cierre="Ninguno urgente.")
+    informe = Informe(elegidos=[{"id": b.id, "semaforo": "DUDOSO", "texto": "raro"}, {"id": a.id, "semaforo": "COMPRAR", "texto": "bien"}])
     texto = armar_mensaje({"nombre": "Mac mini"}, AHORA, informe, [a, b, c], 0, 2)
     assert texto.index("🟠 DUDOSO") < texto.index("🟢 COMPRAR") and "búsquedas fallaron" not in texto
     assert "grande 2" not in texto
+
+
+def test_r4_con_mejor_id_valido_el_mensaje_acaba_en_mejor_de_esta_ronda_con_titulo_y_precio_del_anuncio():
+    a, b = hacer_anuncio(id="x1", titulo="Mac mini M4 Pro 24 GB", precio="1250"), hacer_anuncio(id="x2", titulo="Mac mini M2 Pro", precio="749.5")
+    informe = Informe(elegidos=[{"id": "x1", "semaforo": "MIRAR", "texto": "uno"}, {"id": "x2", "semaforo": "COMPRAR", "texto": "dos"}], mejor_id="x2")
+    texto = armar_mensaje({"nombre": "n"}, AHORA, informe, [a, b], 0, 1)
+    assert texto.endswith("Mejor de esta ronda: Mac mini M2 Pro · 749,50 €")
+    assert "x1" not in texto.split("\n")[-1] and "x2" not in texto.replace("x2-slug", "")                # ningún id en el mensaje salvo en la URL
+
+
+@pytest.mark.parametrize("mejor_id", [None, "x9", "x3"])
+def test_r4_con_mejor_id_nulo_o_que_no_esta_entre_los_elegidos_acaba_en_ninguno_urgente(mejor_id):
+    a, b, c = (hacer_anuncio(id=f"x{i}", titulo=f"Mac mini {i}") for i in (1, 2, 3))
+    informe = Informe(elegidos=[{"id": "x1", "semaforo": "MIRAR", "texto": "uno"}], mejor_id=mejor_id)     # x3 es candidato, pero no elegido
+    texto = armar_mensaje({"nombre": "n"}, AHORA, informe, [a, b, c], 0, 1)
+    assert texto.endswith("Ninguno urgente.") and "Mejor de esta ronda" not in texto
+
+
+def test_r4_sin_elegidos_sigue_saliendo_nada_nuevo_sin_cierre():
+    informe = Informe(elegidos=[], mejor_id="x1")                                                          # aunque el juez diga un mejor
+    texto = armar_mensaje({"nombre": "n"}, AHORA, informe, [hacer_anuncio(id="x1")], 0, 1)
+    assert texto == "🔎 n · 20/11\nNada nuevo que merezca la pena."
 
 
 def test_r1_los_candidatos_fuera_del_tope_de_40_no_se_guardan_como_vistos_y_vuelven_al_dia_siguiente(conn):
@@ -367,7 +388,7 @@ def test_r1_los_candidatos_fuera_del_tope_de_40_no_se_guardan_como_vistos_y_vuel
 
 def test_el_precio_con_decimales_se_escribe_a_la_espanola():
     a = hacer_anuncio(id="p", precio="749.5")
-    informe = Informe(elegidos=[{"id": "p", "semaforo": "MIRAR", "texto": "ok"}], cierre="x")
+    informe = Informe(elegidos=[{"id": "p", "semaforo": "MIRAR", "texto": "ok"}])
     assert "749,50 €" in armar_mensaje({"nombre": "n"}, AHORA, informe, [a], 0, 1)
 
 

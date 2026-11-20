@@ -41,7 +41,7 @@ def correr(cliente, reglas: str, pasadas: int = 3, tope: float = 0.30, modelos=M
             gastado += informe.coste_usd
             filas.append({"modelo": modelo, "pasada": n, "acierta": acierta, "fallos": fallos, "latencia": reloj() - inicio,
                           "tokens_in": informe.tokens_in, "tokens_out": informe.tokens_out, "coste": informe.coste_usd,
-                          "elegidos": informe.elegidos, "cierre": informe.cierre})
+                          "elegidos": informe.elegidos, "mejor_id": informe.mejor_id})
     return filas
 
 
@@ -69,7 +69,7 @@ def detalle(filas: list) -> str:
                       f"in={f['tokens_in']} out={f['tokens_out']}  {f['coste']:.4f} $")
         lineas += [f"    ✗ {x}" for x in f["fallos"]]
         lineas += [f"    {e['id']} {e['semaforo']}: {e['texto']}" for e in f["elegidos"]]
-        lineas.append(f"    cierre: {f['cierre']}")
+        lineas.append(f"    mejor_id: {f['mejor_id']}")
     return "\n".join(lineas)
 
 

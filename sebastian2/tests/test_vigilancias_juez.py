@@ -43,10 +43,16 @@ def test_11b_el_marco_dice_las_tres_cosas():
 
 def test_r2_el_marco_prohibe_ids_en_el_texto_y_cifras_de_mercado_inventadas():
     marco = " ".join(MARCO.split())
-    assert "En `texto` y `cierre` no escribas ids: nombra el anuncio por su chip, su RAM y su precio." in marco
+    assert "En `texto` no escribas ids: nombra el anuncio por su chip, su RAM y su precio." in marco
     assert "No des cifras de mercado ni porcentajes que no estén en el anuncio." in marco
     assert "dilo sin número" in marco
     assert marco.index("no escribas ids") < marco.index("Responde únicamente")        # van antes de las instrucciones de salida
+
+
+def test_r4_el_marco_pide_mejor_id_y_ya_no_hay_cierre():
+    marco = " ".join(MARCO.split())
+    assert "pon en `mejor_id` el id del que más merece la pena; si ninguno destaca, déjalo vacío" in marco
+    assert "cierre" not in marco and "Ninguno urgente" not in marco              # la frase la escribe el código
 
 
 def test_11c_la_descripcion_se_corta_a_1500_caracteres():
@@ -59,10 +65,11 @@ def test_11c_la_descripcion_se_corta_a_1500_caracteres():
 
 def test_11d_el_esquema_de_la_tool_es_el_del_plan():
     esquema = TOOL_INFORME["input_schema"]
-    assert TOOL_INFORME["name"] == "informe_vigilancia" and esquema["required"] == ["elegidos", "cierre"]
+    assert TOOL_INFORME["name"] == "informe_vigilancia" and esquema["required"] == ["elegidos"]       # R4: `mejor_id` es opcional
     elegidos = esquema["properties"]["elegidos"]
     assert elegidos["maxItems"] == 6 and elegidos["items"]["properties"]["semaforo"]["enum"] == ["COMPRAR", "MIRAR", "DUDOSO"]
-    assert elegidos["items"]["properties"]["texto"]["maxLength"] == 400 and esquema["properties"]["cierre"]["maxLength"] == 200
+    assert elegidos["items"]["properties"]["texto"]["maxLength"] == 400
+    assert esquema["properties"]["mejor_id"] == {"type": "string"} and "cierre" not in esquema["properties"]
 
 
 def test_12_un_id_que_no_es_candidato_se_descarta_uno_repetido_cuenta_una_vez_y_se_recorta_a_6():
@@ -76,9 +83,23 @@ def test_12_un_id_que_no_es_candidato_se_descarta_uno_repetido_cuenta_una_vez_y_
 
 def test_12b_se_descartan_los_elegidos_con_semaforo_o_texto_invalidos_y_se_recorta_el_texto():
     cliente = ClienteFalso(elegidos=[{"id": "a1", "semaforo": "ROJO", "texto": "x"}, {"id": "a2", "semaforo": "MIRAR"},
-                                     {"id": "a3", "semaforo": "COMPRAR", "texto": "t" * 900}], cierre="c" * 500)
+                                     {"id": "a3", "semaforo": "COMPRAR", "texto": "t" * 900}])
     informe = juzgar(cliente, REGLAS, CANDIDATOS)
-    assert [e["id"] for e in informe.elegidos] == ["a3"] and len(informe.elegidos[0]["texto"]) == 400 and len(informe.cierre) == 200
+    assert [e["id"] for e in informe.elegidos] == ["a3"] and len(informe.elegidos[0]["texto"]) == 400
+
+
+def test_r4_mejor_id_solo_vale_si_es_uno_de_los_elegidos():
+    elegidos = [_elegido("a1"), _elegido("a2")]
+    assert juzgar(ClienteFalso(elegidos=elegidos, mejor_id="a2"), REGLAS, CANDIDATOS).mejor_id == "a2"
+    assert juzgar(ClienteFalso(elegidos=elegidos, mejor_id=" a1 "), REGLAS, CANDIDATOS).mejor_id == "a1"
+    assert juzgar(ClienteFalso(elegidos=elegidos), REGLAS, CANDIDATOS).mejor_id is None                 # opcional: sin él, nulo
+    assert juzgar(ClienteFalso(elegidos=elegidos, mejor_id="a3"), REGLAS, CANDIDATOS).mejor_id is None   # candidato, pero no elegido
+    assert juzgar(ClienteFalso(elegidos=elegidos, mejor_id="zzz"), REGLAS, CANDIDATOS).mejor_id is None  # ni candidato
+    assert juzgar(ClienteFalso(elegidos=elegidos, mejor_id=""), REGLAS, CANDIDATOS).mejor_id is None
+    assert juzgar(ClienteFalso(entrada={"elegidos": elegidos, "mejor_id": 7}), REGLAS, CANDIDATOS).mejor_id is None
+    muchos = [hacer_anuncio(id=f"m{i}", titulo=f"Mac mini {i}") for i in range(8)]
+    recortado = juzgar(ClienteFalso(elegidos=[_elegido(f"m{i}") for i in range(8)], mejor_id="m7"), REGLAS, muchos)
+    assert [e["id"] for e in recortado.elegidos] == [f"m{i}" for i in range(6)] and recortado.mejor_id is None   # el 7.º se recortó
 
 
 def test_13_una_respuesta_sin_la_tool_es_un_fallo_del_juez():
@@ -88,7 +109,7 @@ def test_13_una_respuesta_sin_la_tool_es_un_fallo_del_juez():
 
 def test_13b_una_entrada_mal_formada_un_rechazo_y_un_error_de_api_son_fallos_del_juez_sin_texto_de_terceros():
     with pytest.raises(JuezError):
-        juzgar(ClienteFalso(entrada={"cierre": "sin elegidos"}), REGLAS, CANDIDATOS)
+        juzgar(ClienteFalso(entrada={"mejor_id": "sin elegidos"}), REGLAS, CANDIDATOS)
     with pytest.raises(JuezError):
         juzgar(ClienteFalso(stop_reason="refusal"), REGLAS, CANDIDATOS)
     with pytest.raises(JuezError) as e:

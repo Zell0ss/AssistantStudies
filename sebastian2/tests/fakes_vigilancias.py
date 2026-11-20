@@ -60,10 +60,10 @@ class BotFalso:
 class ClienteFalso:
     """Con la forma de la respuesta de `anthropic.Anthropic().messages.create` para una tool forzada."""
 
-    def __init__(self, elegidos=None, cierre="Mejor de esta ronda: el primero.", entrada=None, error=None,
+    def __init__(self, elegidos=None, mejor_id=None, entrada=None, error=None,
                  tokens_in=1200, tokens_out=150, stop_reason="tool_use", sin_tool=False):
         self.llamadas = []
-        self._elegidos, self._cierre, self._entrada = elegidos or [], cierre, entrada
+        self._elegidos, self._mejor_id, self._entrada = elegidos or [], mejor_id, entrada
         self.error, self.tokens_in, self.tokens_out = error, tokens_in, tokens_out
         self.stop_reason, self.sin_tool = stop_reason, sin_tool
         self.messages = SimpleNamespace(create=self._create)
@@ -74,6 +74,7 @@ class ClienteFalso:
             raise self.error
         contenido = [SimpleNamespace(type="text", text="no uso la tool")] if self.sin_tool else [SimpleNamespace(
             type="tool_use", name="informe_vigilancia",
-            input=self._entrada if self._entrada is not None else {"elegidos": self._elegidos, "cierre": self._cierre})]
+            input=self._entrada if self._entrada is not None else
+            {"elegidos": self._elegidos, **({"mejor_id": self._mejor_id} if self._mejor_id is not None else {})})]
         return SimpleNamespace(content=contenido, stop_reason=self.stop_reason,
                                usage=SimpleNamespace(input_tokens=self.tokens_in, output_tokens=self.tokens_out))
