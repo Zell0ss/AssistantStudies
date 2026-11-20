@@ -8,7 +8,7 @@ from modules.vigilancias.filtro import pasa_filtro
 from modules.vigilancias.juez import Informe
 from scripts.vigilancias import golden_juez, humo_wallapop
 from tests.fakes_vigilancias import ClienteFalso
-from tests.golden.vigilancias.criterios import cargar_anuncios, evaluar
+from tests.golden.vigilancias.criterios import _cifras_con_porcentaje as _cifras, cargar_anuncios, evaluar
 
 # Los filtros del YAML de Josem (el YAML en sí vive en el vault, no en el repo).
 FILTROS_DE_JOSEM = {"precio_min": 300, "precio_max": 3000, "excluir": ["intel", "2018", "i5", "i7"]}
@@ -51,8 +51,10 @@ def test_criterio_falla_y_dice_cual(informe, texto):
 @pytest.mark.parametrize("texto, fallo", [
     ("Entra por g02, buen precio.", "texto de g01: contiene un id de anuncio"),
     ("Entra por G02, buen precio.", "texto de g01: contiene un id de anuncio"),                              # sin distinguir mayúsculas
-    ("Un 20 % bajo el precio de nuevo.", "texto de g01: contiene «%»"),
-    ("Un 20% bajo el precio de nuevo.", "texto de g01: contiene «%»"),
+    ("Un 20 % bajo el precio de nuevo.", "texto de g01: contiene «%» que no está en el anuncio"),
+    ("Un 20% bajo el precio de nuevo.", "texto de g01: contiene «%» que no está en el anuncio"),
+    ("Batería al 94 %, un año de uso.", "texto de g01: contiene «%» que no está en el anuncio"),             # el 94 % es del g08, no del g01
+    ("Mucho %, poco precio.", "texto de g01: contiene «%» que no está en el anuncio"),                      # un «%» sin cifra, y el g01 no tiene ninguno
 ])
 def test_r2_el_criterio_falla_con_ids_o_porcentajes_en_el_texto(texto, fallo):
     informe = Informe(elegidos=[{"id": "g01", "semaforo": "COMPRAR", "texto": texto}, {"id": "g02", "semaforo": "MIRAR", "texto": "M4 / 32 GB / 1 TB."},
@@ -65,6 +67,31 @@ def test_r2_un_id_dentro_de_otra_palabra_o_un_numero_no_cuentan():
     informe = Informe(elegidos=[{"id": "g01", "semaforo": "COMPRAR", "texto": "Mac mini g011x, 1250 €, 24 GB."}, {"id": "g02", "semaforo": "MIRAR", "texto": "ok"},
                                 {"id": "g03", "semaforo": "COMPRAR", "texto": "ok"}], mejor_id="g02")
     assert evaluar(informe, cargar_anuncios()) == (True, [])
+
+
+@pytest.mark.parametrize("texto_g08", [
+    "MacBook M3 Max / 36 GB. Batería al 94 %, un año de uso.",                  # el anuncio dice «batería al 94 %»: sale lo que dice el anuncio
+    "MacBook M3 Max / 36 GB. Batería al 94%, un año de uso.",                   # con o sin espacio
+])
+def test_r6_un_porcentaje_que_esta_en_el_anuncio_pasa(texto_g08):
+    informe = Informe(elegidos=[{"id": "g01", "semaforo": "COMPRAR", "texto": "ok"}, {"id": "g02", "semaforo": "COMPRAR", "texto": "ok"},
+                                {"id": "g03", "semaforo": "COMPRAR", "texto": "ok"}, {"id": "g08", "semaforo": "MIRAR", "texto": texto_g08}])
+    assert evaluar(informe, cargar_anuncios()) == (True, [])
+
+
+def test_r6_un_porcentaje_inventado_junto_a_uno_del_anuncio_falla():
+    informe = Informe(elegidos=[{"id": "g01", "semaforo": "COMPRAR", "texto": "ok"}, {"id": "g02", "semaforo": "COMPRAR", "texto": "ok"},
+                                {"id": "g03", "semaforo": "COMPRAR", "texto": "ok"},
+                                {"id": "g08", "semaforo": "MIRAR", "texto": "Batería al 94 %, y un 30 % más barato que un Mini."}])
+    acierta, fallos = evaluar(informe, cargar_anuncios())
+    assert not acierta and fallos == ["texto de g08: contiene «%» que no está en el anuncio"]
+
+
+def test_r6_las_cifras_con_coma_o_punto_son_la_misma_y_un_id_desconocido_no_rompe_el_criterio():
+    assert _cifras(" 12,5 % y 7.5% y 94 %") == {"12.5", "7.5", "94"}
+    informe = Informe(elegidos=[{"id": "g01", "semaforo": "COMPRAR", "texto": "ok"}, {"id": "g02", "semaforo": "COMPRAR", "texto": "ok"},
+                                {"id": "g03", "semaforo": "COMPRAR", "texto": "ok"}, {"id": "zzz", "semaforo": "MIRAR", "texto": "un 5 %"}])
+    assert evaluar(informe, cargar_anuncios())[0] is False                     # sin anuncio al que citar, un «%» no está en ningún anuncio
 
 
 @pytest.mark.parametrize("mejor_id, acierta", [(None, True), ("g01", True), ("g03", True), ("g07", False), ("g04", False), ("g10", False)])
