@@ -24,7 +24,7 @@ from modules.vigilancias.juez import MODELO_JUEZ, Informe, JuezError, juzgar
 
 logger = get_logger("sebastian")
 
-VENTANA = timedelta(hours=2)
+VENTANA = repositorio.VENTANA
 MAX_CANDIDATOS = 40
 RETENCION_VISTOS = timedelta(days=90)
 MAX_MENSAJE = 4000

@@ -18,6 +18,7 @@ from tests.fakes_vigilancias import AHORA, BotFalso, ClienteFalso, FuenteFalsa, 
 USUARIO = "987650101"
 OTRO = "987650102"
 HOY = date(2026, 11, 20)
+CREADA = datetime(2026, 11, 19, 6, 0)           # cuándo se «crean» las vigilancias de las pruebas: el día antes, de madrugada
 CONSULTAS = ["mac mini m4", "mac mini m2 pro"]
 
 
@@ -51,7 +52,8 @@ def conn():
 def _crear(conn, usuario=USUARIO, **cambios):
     datos = {"nombre": "Mac mini", "fuente": "wallapop", "consultas": CONSULTAS, "reglas": "Apple Silicon con 24 GB o más.",
              "filtros": {"precio_min": 300, "precio_max": 2000, "excluir": ["8gb", "intel"]}, "hora": "07:30", **cambios}
-    return repositorio.guardar(conn, usuario, datos)["id"]
+    # `ahora` fijo y anterior a toda ventana: la guarda de R5 de `guardar` mira el reloj, y con el real las pruebas dependerían del día
+    return repositorio.guardar(conn, usuario, datos, ahora=CREADA)["id"]
 
 
 def _fila(conn, id_):
@@ -269,6 +271,56 @@ def test_21c_un_reinicio_pasado_el_mediodia_no_avisa_de_dias_pasados(conn):
     assert bot.enviados == []
     _pasada(bot, conn, reloj=_a(9, 31))
     assert [t for _, t in bot.enviados] == ["⚠️ Hoy no pude hacer la vigilancia «Mac mini»."]         # un aviso, el de hoy
+
+
+def _datos(**cambios):
+    return {"nombre": "Mac mini", "fuente": "wallapop", "consultas": CONSULTAS, "reglas": "Apple Silicon con 24 GB o más.",
+            "filtros": {"precio_min": 300, "precio_max": 2000, "excluir": []}, "hora": "07:30", **cambios}
+
+
+def test_r5_cargada_a_las_10_con_hora_a_las_7_30_no_hay_aviso_falso_y_al_dia_siguiente_sale_la_ronda(conn):
+    vid = repositorio.guardar(conn, USUARIO, _datos(), ahora=datetime(2026, 11, 20, 10, 0))["id"]
+    assert _fila(conn, vid)["aviso_fallo"] == HOY and _fila(conn, vid)["ultima_ronda"] is None
+    bot = BotFalso()
+    fuente = FuenteFalsa(por_defecto=_dos_anuncios())
+    _pasada(bot, conn, reloj=_a(10, 15), fuente=fuente)                                    # la pasada de las 10:15: nada
+    assert bot.enviados == [] and fuente.consultas == []
+    manana = lambda: datetime(2026, 11, 21, 7, 30)
+    _pasada(bot, conn, reloj=manana, fuente=fuente)                                       # al día siguiente a las 07:30, la ronda
+    assert len(bot.enviados) == 1 and bot.enviados[0][1].startswith("🔎 Mac mini · 21/11")
+    assert _fila(conn, vid)["ultima_ronda"] == date(2026, 11, 21)
+
+
+def test_r5_cargada_a_las_7_45_con_hora_a_las_7_30_la_pasada_de_las_8_hace_la_ronda(conn):
+    vid = repositorio.guardar(conn, USUARIO, _datos(), ahora=datetime(2026, 11, 20, 7, 45))["id"]
+    assert _fila(conn, vid)["aviso_fallo"] is None                                        # dentro de la ventana no se toca
+    bot = BotFalso()
+    _pasada(bot, conn, reloj=_a(8, 0), fuente=FuenteFalsa(por_defecto=_dos_anuncios()))
+    assert len(bot.enviados) == 1 and _fila(conn, vid)["ultima_ronda"] == HOY
+
+
+def test_r5_la_guarda_tambien_vale_al_cambiar_una_vigilancia_y_respeta_lo_que_ya_paso(conn):
+    vid = repositorio.guardar(conn, USUARIO, _datos(), ahora=CREADA)["id"]                 # creada el día antes: nada que guardar
+    assert _fila(conn, vid)["aviso_fallo"] is None
+    repositorio.guardar(conn, USUARIO, _datos(reglas="otras reglas"), ahora=datetime(2026, 11, 20, 11, 0))    # cambiada con la ventana cerrada
+    assert _fila(conn, vid)["aviso_fallo"] == HOY
+    cur = conn.cursor()                                                                    # si hoy ya hubo ronda, no se toca `aviso_fallo`
+    cur.execute("UPDATE vigilancias SET aviso_fallo = NULL, ultima_ronda = %s WHERE id = %s", (HOY, vid))
+    conn.commit()
+    cur.close()
+    repositorio.guardar(conn, USUARIO, _datos(reglas="y otras más"), ahora=datetime(2026, 11, 20, 12, 0))
+    assert _fila(conn, vid)["aviso_fallo"] is None and _fila(conn, vid)["ultima_ronda"] == HOY
+
+
+def test_r5_una_vigilancia_inactiva_no_marca_aviso_y_la_ventana_se_mide_desde_su_hora(conn):
+    inactiva = repositorio.guardar(conn, USUARIO, _datos(nombre="Parada", activa=False), ahora=datetime(2026, 11, 20, 12, 0))["id"]
+    assert _fila(conn, inactiva)["aviso_fallo"] is None
+    tarde = repositorio.guardar(conn, USUARIO, _datos(nombre="Tarde", hora="18:00"), ahora=datetime(2026, 11, 20, 12, 0))["id"]
+    assert _fila(conn, tarde)["aviso_fallo"] is None                                       # su ventana (18:00-20:00) aún no ha llegado
+    justo = repositorio.guardar(conn, USUARIO, _datos(nombre="Justo", hora="07:30"), ahora=datetime(2026, 11, 20, 9, 30))["id"]
+    assert _fila(conn, justo)["aviso_fallo"] == HOY                                        # a las 09:30 la ventana ya se cerró (como `le_toca`)
+    casi = repositorio.guardar(conn, USUARIO, _datos(nombre="Casi", hora="07:30"), ahora=datetime(2026, 11, 20, 9, 29))["id"]
+    assert _fila(conn, casi)["aviso_fallo"] is None
 
 
 def test_le_toca_en_los_bordes_de_la_ventana():

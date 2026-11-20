@@ -14,6 +14,7 @@ MAX_CONSULTAS = 10
 LARGO_CONSULTA = (2, 80)
 MAX_REGLAS = 4000
 MAX_NOMBRE = 100
+VENTANA = timedelta(hours=2)        # D67: la ronda de cada día se hace entre `hora` y `hora + 2 h` (la usa `ronda.py`)
 
 
 class VigilanciaInvalida(ValueError):
@@ -103,14 +104,18 @@ def contar_activas(conn, user_id: str, salvo_nombre: Optional[str] = None) -> in
 
 
 def guardar(conn, user_id: str, datos: dict, ahora: Optional[datetime] = None, confirmar: bool = True) -> dict:
-    """Upsert por `(user_id, nombre)`: crea la vigilancia o actualiza la que tenga ese nombre, sin tocar `ultima_ronda` ni
-    `aviso_fallo`. Valida antes de escribir y comprueba el tope de 5 activas por usuario. Devuelve {id, creada, nombre}."""
+    """Upsert por `(user_id, nombre)`: crea la vigilancia o actualiza la que tenga ese nombre, sin tocar `ultima_ronda`. Valida
+    antes de escribir y comprueba el tope de 5 activas por usuario. Devuelve {id, creada, nombre}.
+
+    Guarda de D67 (H1-revision §5, R5): si la vigilancia queda activa con su ventana de hoy ya cerrada y sin ronda hoy, pone
+    `aviso_fallo = hoy`. La vigilancia no existía (o no era esta) durante su ventana, así que «hoy no pude hacerla» sería un aviso
+    falso. Dentro de la ventana no toca nada: la ronda sale en la pasada siguiente. Fuera de eso, `aviso_fallo` no se toca."""
     v = validar(datos)
     if v["activa"] and contar_activas(conn, str(user_id), v["nombre"]) >= MAX_ACTIVAS:
         raise VigilanciaInvalida(f"como mucho {MAX_ACTIVAS} vigilancias activas por usuario")
     ahora = ahora or datetime.now()
     cur = _cursor(conn)
-    cur.execute("SELECT id FROM vigilancias WHERE user_id = %s AND nombre = %s", (str(user_id), v["nombre"]))
+    cur.execute("SELECT id, ultima_ronda FROM vigilancias WHERE user_id = %s AND nombre = %s", (str(user_id), v["nombre"]))
     fila = cur.fetchone()
     columnas = (v["fuente"], json.dumps(v["consultas"], ensure_ascii=False), json.dumps(v["filtros"], ensure_ascii=False),
                 v["reglas"], v["hora"], v["activa"])
@@ -122,6 +127,10 @@ def guardar(conn, user_id: str, datos: dict, ahora: Optional[datetime] = None, c
         cur.execute("INSERT INTO vigilancias (user_id, nombre, fuente, consultas, filtros, reglas, hora, activa, created_at, updated_at)"
                     " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", (str(user_id), v["nombre"], *columnas, ahora, ahora))
         id_, creada = cur.lastrowid, True
+    ultima_ronda = fila["ultima_ronda"] if fila else None
+    ventana_cerrada = ahora >= datetime.combine(ahora.date(), v["hora"]) + VENTANA
+    if v["activa"] and ventana_cerrada and ultima_ronda != ahora.date():
+        cur.execute("UPDATE vigilancias SET aviso_fallo = %s WHERE id = %s", (ahora.date(), id_))
     cur.close()
     if confirmar:
         conn.commit()

@@ -441,10 +441,9 @@ cd /data/AssistantStudies/sebastian2 && SEBASTIAN_DB_NAME=sebastian_db .venv/bin
 Tiene que imprimir **«Escribiendo en BD: sebastian_db»** y una línea «creada id=… «Mac mini para LLM local»». Si dice otra BD, no
 sigas. Es seguro repetirlo: actualiza la vigilancia sin duplicarla.
 
-**Ojo con la hora a la que lo haces.** Si cargas la vigilancia con su ventana de hoy ya cerrada (pasadas las 09:30 con `hora` a las 07:30), la
-primera pasada tras el reinicio te manda una vez «⚠️ Hoy no pude hacer la vigilancia…», porque no sabe que acabas de crearla. Es
-inofensivo y esperado ese día, y no se repite. Para evitarlo, haz este paso antes de las 09:30, o carga con la `hora` retrasada unos 20
-minutos, como en el paso 6.
+**La hora a la que lo haces no importa.** Si cargas la vigilancia con su ventana de hoy ya cerrada (pasadas las 09:30 con `hora` a las
+07:30), no te llega ningún «⚠️ Hoy no pude hacer la vigilancia…»: la carga marca ese aviso como ya dado para hoy, y la primera ronda
+sale mañana. Si la cargas dentro de la ventana (entre las 07:30 y las 09:30), la ronda sale en la pasada siguiente.
 
 ### Paso 4 — Reiniciar
 
