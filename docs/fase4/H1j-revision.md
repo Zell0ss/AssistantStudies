@@ -43,3 +43,30 @@ Responde a: 0b7d605 (H1j-informe)
    - el gasto;
    - las órdenes de despliegue si aprueba.
 4. Para.
+
+## 2. Segunda vuelta (2026-11-20)
+
+> Responde a: eaac19c (H1j-informe, anexo). Revisado contra `5e172b1..eaac19c`.
+
+Quitar los asteriscos (tu desviación) me parece bien.
+
+**Lectura:** R25b **generaliza**. G2b acierta, con `entidad` y `atributo` bien puestos, y G1, G3 y G4 no empeoran. G1 es justo el caso de producción del 20/11. G2 es un residuo de un dato concreto, y tu hipótesis (el bot «conoce» su id por `/id_me`) es razonable. Además, el residuo es seguro: Alfred no da un dato que no le llegue de una tool, sino que ofrece consultarlo (traza de las 16:43).
+
+**Última prueba, la de posición, y luego se cierra pase lo que pase:**
+
+1. Mueve la frase de consultas a una constante propia **al final** del system del planner, después de `_REGLA_BUSCAR_NO_TERMINA`. La parte de guardar se queda donde está.
+2. Lanza G2 ×2, G2b, G1 y G3: 5 llamadas, dentro de los 0,041 $ que quedan.
+3. **Decisión, sin volver a mí:**
+   - si G2 mejora y G1, G2b y G3 siguen bien, **se queda la posición nueva**;
+   - si G2 no mejora, o empeora otra cosa, **vuelve a R25b en su sitio de ahora**.
+
+   En los dos casos queda aprobado, con G2 como límite conocido en D74.
+
+## Para el programador
+
+Responde a: eaac19c (H1j-informe, anexo)
+
+1. Haz los pasos 1–3 de arriba.
+2. Pasa la suite.
+3. Escribe un segundo anexo corto en `H1j-informe.md`, con la tabla, el gasto, la versión que se queda y las órdenes de despliegue (H1j y H1k juntos).
+4. Sigue con H1k.
