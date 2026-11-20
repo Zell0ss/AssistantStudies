@@ -133,8 +133,14 @@ def test_search_memory_no_resuelve_por_semantica(entorno):
 def test_un_atributo_o_una_entidad_pedidos_y_no_resueltos_no_amplian_la_consulta(entorno):
     entorno.hecho(USER, "Paco", "persona", "alergia", "frutos secos")
     servicio = entorno.servicio()
-    assert servicio.consultar(USER, "x", entidad="Paco", atributo="inventado")["hechos"] == []
+    # H1f (D71, R14) cambia este esperado: con la entidad resuelta y el atributo no, ya no se contesta «nada», se devuelven los
+    # hechos vigentes de la entidad (con la señal `atributo_no_resuelto`). Lo demás sigue igual: no se amplía a «todo».
+    con_atributo_inventado = servicio.consultar(USER, "x", entidad="Paco", atributo="inventado")
+    assert [h["valor"] for h in con_atributo_inventado["hechos"]] == ["frutos secos"]
+    assert con_atributo_inventado["atributo_no_resuelto"] is True
     assert servicio.consultar(USER, "x", entidad="Nadie")["hechos"] == []
+    assert servicio.consultar(USER, "x", entidad="Nadie", atributo="alergia")["hechos"] == []
+    assert servicio.consultar(USER, "x", atributo="inventado")["hechos"] == []
 
 
 def test_no_devuelve_hechos_de_otro_usuario(entorno):

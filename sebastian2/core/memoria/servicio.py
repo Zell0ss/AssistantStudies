@@ -94,9 +94,15 @@ class ServicioMemoria:
         ent = self._por_alias_unico(self._repo.entidades_por_alias(user_id, entidad)) if entidad else None
         attr = self._por_alias_unico(self._repo.atributos_por_alias(atributo)) if atributo else None
 
-        # Pedir una entidad o un atributo que no se resuelven no amplia la consulta a «todo».
+        # Pedir una entidad o un atributo que no se resuelven no amplia la consulta a «todo»...
         if (entidad and ent is None) or (atributo and attr is None) or (not entidad and not atributo):
             filas = []
+            if ent is not None and atributo and attr is None:
+                # ...salvo D71 (R14): la entidad se resolvió y el atributo no (el planner dijo `telegram`, el atributo se llama
+                # `telegram_id`). No contestar «nada» sabiendo de quién se pregunta: los hechos vigentes de la entidad, sin
+                # historial, con la señal para que Alfred filtre lo que viene a cuento.
+                filas = self._repo.hechos_con_nombres(user_id, ent["id"], None, solo_vigentes=True)
+                salida["atributo_no_resuelto"] = True
         else:
             filas = self._repo.hechos_con_nombres(user_id, ent["id"] if ent else None, attr["id"] if attr else None,
                                                   solo_vigentes=False)
@@ -110,12 +116,15 @@ class ServicioMemoria:
                     "desde": f["valid_from"].date().isoformat(), "hasta": f["valid_to"].date().isoformat(),
                     "sustituido_por": f["sustituido_por_valor"]})
 
-        if query:
-            salida["notas"] = self._notas_para(user_id, query)
+        salida["notas"], notas_sem, notas_palabra = self._notas_para(user_id, query, entidad, atributo)
         salida["vault"], salida["conflictos"] = self._vault_y_conflictos(user_id, entidad, ent, atributo, attr)
+        # D71 (R16, D42): solo el estado de la resolución y los conteos; nunca nombres, valores ni la query.
+        estado = lambda pedido, hallado: "no_pedida" if not pedido else "resuelta" if hallado else "no_resuelta"  # noqa: E731
         logger.info(f"memoria.consultar: user={user_id} hechos={len(salida['hechos'])} "
                     f"historial={len(salida['historial'])} notas={len(salida['notas'])} "
-                    f"vault={salida['vault'] is not None} conflictos={len(salida['conflictos'])}")
+                    f"vault={salida['vault'] is not None} conflictos={len(salida['conflictos'])} "
+                    f"entidad={estado(entidad, ent)} atributo={estado(atributo, attr)} "
+                    f"notas_sem={notas_sem} notas_palabra={notas_palabra}")
         return salida
 
     @staticmethod
@@ -123,15 +132,39 @@ class ServicioMemoria:
         """Un alias ambiguo (dos entidades o atributos) no se resuelve: mejor no contestar que contestar mal."""
         return filas[0] if len(filas) == 1 else None
 
-    def _notas_para(self, user_id: str, query: str) -> list[dict]:
+    def _notas_para(self, user_id: str, query: str, entidad: str | None = None,
+                    atributo: str | None = None) -> tuple[list[dict], int, int]:
+        """Las notas de la consulta: primero las semanticas y, detras, las que contienen una palabra de la entidad o del
+        atributo pedidos (D71, R15), sin repetir y hasta `_MAX_NOTAS_EN_CONSULTA`. Devuelve (notas, n semanticas, n por palabra)."""
         minimo = self._umbrales["reutilizar"]["puntuacion"]   # tentativo: se calibro para el catalogo, no para notas
-        parecidas = [c for c in self._notas_vigentes_parecidas(user_id, query) if c["score"] >= minimo]
+        ids = []
+        if query:
+            parecidas = [c for c in self._notas_vigentes_parecidas(user_id, query) if c["score"] >= minimo]
+            ids = [c["hecho_id"] for c in parecidas[:_MAX_NOTAS_EN_CONSULTA]]
+        semanticas = len(ids)
+        # D71 (R15): la nota «…usuario de Telegram…» no superaba el umbral semantico de `reutilizar` (calibrado para el
+        # catalogo, no para notas) y `search_memory` contestaba «nada». Por palabra completa, solo notas vigentes del usuario.
+        por_palabra = [h for h in self._notas_por_palabra(user_id, entidad, atributo) if h["id"] not in ids]
+        ids += [h["id"] for h in por_palabra][:_MAX_NOTAS_EN_CONSULTA - len(ids)]
         notas = []
-        for c in parecidas[:_MAX_NOTAS_EN_CONSULTA]:
-            n = self._repo.hecho(c["hecho_id"])
+        for hecho_id in ids:
+            n = self._repo.hecho(hecho_id)
             notas.append({"texto": n["valor"], "entidad": self._repo.entidad(n["entidad_id"])["nombre"],
                           "desde": n["valid_from"].date().isoformat()})
-        return notas
+        return notas, semanticas, len(ids) - semanticas
+
+    def _notas_por_palabra(self, user_id: str, entidad: str | None, atributo: str | None) -> list[dict]:
+        """Notas vigentes del usuario (la mas reciente primero) con alguna palabra completa de `entidad` o `atributo`:
+        normalizadas, troceadas por espacios y «_», de 4 letras o mas (`yo`, `de`… no buscan nada)."""
+        terminos = {t for pedido in (entidad, atributo) if pedido for t in normalizar(pedido).split()
+                    if len(t) >= 4 and t != "yo"}
+        if not terminos:
+            return []
+        nota = self._repo.atributos_por_alias("nota")
+        if len(nota) != 1:
+            return []
+        filas = self._repo.hechos_con_nombres(user_id, None, nota[0]["id"], solo_vigentes=True)
+        return [h for h in reversed(filas) if terminos & set(normalizar(h["valor"] or "").split())]
 
     def _vault_y_conflictos(self, user_id, entidad, ent, atributo, attr) -> tuple[dict | None, list]:
         """D37. Solo para el propietario del vault y solo para los campos del contrato."""
