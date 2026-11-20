@@ -8,7 +8,8 @@ conversación concreta, qué manda el planner, qué devuelve el extractor y qué
 - **Dónde:** `<logfolder>/debug/debug-<user>-<AAAAMMDD>.jsonl`, directorio 0700 y fichero 0600 (se crean con ese modo, no se
   cambia después). Se escribe a mano, sin loguru ni `get_logger`: loguru también escribe en stderr (journald) y LogCentral lee
   sus ficheros, y el contenido no puede acabar en ninguno de los dos.
-- **Cuánto:** los ficheros con más de 24 h (por `mtime`) se borran al arrancar y al activar.
+- **Cuánto:** los ficheros con más de 24 h (por `mtime`) se borran al arrancar, al activar, al apagar o caducar, y una vez por
+  hora desde el planificador (H1h, R22): «24 h» quiere decir 24 h, no «hasta el próximo reinicio».
 - **A LogCentral solo van** «Depuración activada | user=… | minutos=N» y «Depuración desactivada (off|caducó) | user=…». Nunca contenido.
 
 Un fallo al escribir la traza nunca rompe el turno: un WARNING sin contenido (solo la clase de la excepción).
@@ -85,6 +86,7 @@ def apagar(user_id: str) -> bool:
     estaba = _ACTIVAS.pop(user_id, None) is not None
     if estaba:
         logger.info(f"Depuración desactivada (off) | user={user_id}")
+    limpiar()           # H1h (R22): al apagar, fuera también lo que ya haya cumplido sus 24 h
     return estaba
 
 
@@ -96,6 +98,7 @@ def activa(user_id: str) -> bool:
     if _ahora() >= caduca:
         if _ACTIVAS.pop(user_id, None) is not None:
             logger.info(f"Depuración desactivada (caducó) | user={user_id}")
+            limpiar()   # H1h (R22): una vez, al caducar
         return False
     return True
 

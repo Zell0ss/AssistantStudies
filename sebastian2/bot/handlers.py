@@ -311,8 +311,9 @@ Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
             return
 
         try:
+            # D42 (H1h, R21): el texto del usuario no va al log, ni un trozo de él: solo la longitud.
             logger.info(
-                f"Processing text from {message.chat.username}: {message.text[:50]}..."
+                f"Processing text from {message.chat.username} | chars={len(message.text)}"
             )
 
             # Orchestrate response via tool use loop
@@ -321,7 +322,7 @@ Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
             result = orchestrator.handle(message.text)
             response_text = result["text"]
             ticket_images = result.get("images", [])
-            logger.debug(f"Orchestrator response: {response_text[:100]}")
+            logger.debug(f"Orchestrator response | chars={len(response_text)}")      # D42 (H1h, R21): sin el texto
 
             # Send text message
             _send_markdown(bot, message.chat.id, response_text)

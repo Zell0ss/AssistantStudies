@@ -41,7 +41,7 @@ class BotFalso:
 
     def message_handler(self, commands=None, func=None, content_types=None):
         def decorador(f):
-            self.manejadores.append((commands, f))
+            self.manejadores.append((commands, content_types, f))
             return f
         return decorador
 
@@ -51,8 +51,14 @@ class BotFalso:
     def send_message(self, *a, **kw):
         self.respuestas.append(a[1] if len(a) > 1 else kw.get("text"))
 
+    def send_document(self, *a, **kw):
+        pass
+
     def comando(self, nombre):
-        return next(f for comandos, f in self.manejadores if comandos and nombre in comandos)
+        return next(f for comandos, _, f in self.manejadores if comandos and nombre in comandos)
+
+    def texto(self):
+        return next(f for comandos, tipos, f in self.manejadores if not comandos and tipos == ["text"])
 
 
 def _bot():
@@ -325,6 +331,67 @@ def test_d72_9b_si_activar_falla_el_comando_lo_dice_y_no_queda_activa(aislado):
     bot = _bot()
     bot.comando("debug")(_mensaje("/debug 30"))
     assert bot.respuestas[-1] == "No he podido activar la depuración" and depuracion._ACTIVAS == {}
+
+
+# --- H1h, R21: handle_text no loguea el texto -------------------------------------------------------------------------
+
+def _enviar_texto(bot, texto, respuesta):
+    mensaje = _mensaje(texto)
+    with patch("bot.handlers.try_resolve_pending", return_value=False), patch("bot.handlers.get_connection"), \
+            patch("bot.handlers.UserSettingsModule") as ajustes, patch("bot.handlers.Orchestrator") as orquestador:
+        ajustes.return_value.get_sprite_skin.return_value = "default"
+        orquestador.return_value.handle.return_value = {"text": respuesta, "images": []}
+        bot.texto()(mensaje)
+
+
+def test_h1h_r21_el_texto_del_usuario_y_la_respuesta_no_salen_en_ningun_log(aislado, capfd):
+    bot = _bot()
+    with patch("bot.handlers.logger") as log:
+        _enviar_texto(bot, f"Hola, mi clave es {MARCA}", f"Su clave es {MARCA}, señor")
+    assert bot.respuestas == [f"Su clave es {MARCA}, señor"]                              # el usuario sí la recibe
+    llamadas = [str(c) for c in log.mock_calls]
+    assert llamadas and not any(MARCA in l for l in llamadas)
+    assert [c.args[0] for c in log.info.call_args_list][:1] == [f"Processing text from usuario_prueba | chars={len(f'Hola, mi clave es {MARCA}')}"]
+    assert [c.args[0] for c in log.debug.call_args_list] == [f"Orchestrator response | chars={len(f'Su clave es {MARCA}, señor')}"]
+    # y con el logger de verdad, nada en stdout/stderr
+    _enviar_texto(_bot(), f"Hola {MARCA}", f"Respuesta {MARCA}")
+    fuera = capfd.readouterr()
+    assert MARCA not in fuera.out and MARCA not in fuera.err
+
+
+# --- H1h, R22: «24 h» quiere decir 24 h --------------------------------------------------------------------------------
+
+def test_h1h_r22_el_planificador_limpia_las_trazas_cada_hora(aislado):
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from bot.scheduler import _registrar_jobs
+    s = BackgroundScheduler()
+    _registrar_jobs(s, MagicMock(), {"authorized_ids": [111], "calendar": {"daily_reminder_time": "08:30"}})
+    job = {j.id: j for j in s.get_jobs()}["limpiar_depuracion"]
+    assert job.trigger.interval.total_seconds() == 3600 and job.max_instances == 1 and job.coalesce is True
+    assert job.func is depuracion.limpiar
+    vieja = _vieja(aislado.carpeta, "debug-111-20261110.jsonl", 30)
+    reciente = _vieja(aislado.carpeta, "debug-111-20261120.jsonl", 1)
+    job.func()                                                                  # lo que haría la tarea al dispararse
+    assert not vieja.exists() and reciente.exists()
+
+
+def test_h1h_r22_al_apagar_se_limpia(aislado):
+    depuracion.activar(PROPIETARIO, 30)
+    vieja = _vieja(aislado.carpeta, "debug-111-20261110.jsonl", 30)
+    assert depuracion.apagar(PROPIETARIO) is True
+    assert not vieja.exists()
+
+
+def test_h1h_r22_al_caducar_se_limpia_una_sola_vez_con_reloj_falso(aislado):
+    depuracion.activar(PROPIETARIO, 30)
+    vieja = _vieja(aislado.carpeta, "debug-111-20261110.jsonl", 30)
+    aislado.reloj["t"] = HORA + timedelta(minutes=29)
+    assert depuracion.activa(PROPIETARIO) is True and vieja.exists()               # antes de caducar, no se limpia
+    aislado.reloj["t"] = HORA + timedelta(minutes=31)
+    with patch.object(depuracion, "limpiar", wraps=depuracion.limpiar) as limpiar:
+        assert depuracion.activa(PROPIETARIO) is False
+        assert depuracion.activa(PROPIETARIO) is False
+    assert limpiar.call_count == 1 and not vieja.exists()                          # una vez, al caducar
 
 
 def test_d72_la_traza_de_un_hecho_cuya_extraccion_falla_lo_dice_sin_romper(entorno, aislado):

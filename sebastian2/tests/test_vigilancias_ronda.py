@@ -490,8 +490,9 @@ def test_23_y_25_registrar_jobs_deja_la_tarea_de_vigilancias_y_las_que_ya_existi
     s = BackgroundScheduler()
     _registrar_jobs(s, BotFalso(), {"authorized_ids": [111], "calendar": {"daily_reminder_time": "08:30"}})
     jobs = {j.id: j for j in s.get_jobs()}
+    # H1h (R22, D72) cambia este esperado: una tarea más, `limpiar_depuracion` (cada hora), que borra las trazas de depuración viejas.
     assert {"daily_calendar_reminder", "avisos_compromisos", "avisos_compromisos_arranque", "cleanup_conversations",
-            "vigilancias", "vigilancias_arranque"} == set(jobs)
+            "vigilancias", "vigilancias_arranque", "limpiar_depuracion"} == set(jobs)
     v = jobs["vigilancias"]
     assert v.trigger.interval.total_seconds() == 15 * 60
     assert v.max_instances == 1 and v.coalesce is True                       # una pasada colgada en un `send_message` no se solapa consigo misma

@@ -16,6 +16,7 @@ from datetime import datetime, time, timedelta
 from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from core import depuracion
 from db.connection import close_connection, get_connection, init_pool
 from modules.calendar import CalendarModule
 from modules.compromisos import CompromisosModule
@@ -264,6 +265,16 @@ def _registrar_jobs(scheduler: BackgroundScheduler, bot, config: dict) -> None:
         hour=0,
         minute=5,
         id='cleanup_conversations',
+        replace_existing=True
+    )
+    # D72 (H1h, R22): las trazas de depuración se borran a las 24 h por su cuenta, sin depender de un reinicio ni de `/debug`.
+    scheduler.add_job(
+        depuracion.limpiar,
+        trigger='interval',
+        hours=1,
+        max_instances=1,
+        coalesce=True,
+        id='limpiar_depuracion',
         replace_existing=True
     )
 
