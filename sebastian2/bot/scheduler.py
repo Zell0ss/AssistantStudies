@@ -1,11 +1,13 @@
 # bot/scheduler.py
 """
-Planificador del bot (APScheduler). Tres tareas, sin unidades systemd (D48):
+Planificador del bot (APScheduler). Cuatro tareas, sin unidades systemd (D48):
 
 - `daily_calendar_reminder`: el resumen de la mañana. Agenda + compromisos del día + lo que cae antes del próximo
   resumen (D45, D47: si no hay nada, calla). Se arma con plantilla, sin LLM: sin coste y sin inventar nada.
 - `avisos_compromisos`: cada minuto, manda por Telegram cada compromiso con hora cuando le llega el momento (D48),
   y una vez más nada más arrancar el bot, para recuperar los avisos que un reinicio se haya llevado.
+- `vigilancias` (fase 4, D63–D67): cada 15 min, la ronda diaria de cada vigilancia (`modules/vigilancias/ronda.py`), y una
+  pasada más nada más arrancar.
 - `cleanup_conversations`: el historial de más de 7 días (D23).
 
 Los logs de los avisos llevan id, usuario, momento y resultado, nunca el texto del compromiso (lección de R12, D52).
@@ -17,6 +19,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from db.connection import close_connection, get_connection, init_pool
 from modules.calendar import CalendarModule
 from modules.compromisos import CompromisosModule
+from modules.vigilancias.ronda import pasada_vigilancias
 from db.conversation_repo import ConversationRepository
 from logcentral_client import get_logger
 
@@ -229,6 +232,30 @@ def _registrar_jobs(scheduler: BackgroundScheduler, bot, config: dict) -> None:
         max_instances=1,
         misfire_grace_time=60,
         id='avisos_compromisos_arranque',
+        replace_existing=True
+    )
+    # D67 (fase 4): las vigilancias. Cada 15 min, y una vez nada más arrancar (la ventana de 2 h recupera lo que un reinicio
+    # se haya llevado). `config` va para crear el cliente de Anthropic del juez solo cuando haga falta.
+    scheduler.add_job(
+        pasada_vigilancias,
+        trigger='interval',
+        minutes=15,
+        args=[bot, user_ids],
+        kwargs={'config': config},
+        max_instances=1,
+        coalesce=True,
+        id='vigilancias',
+        replace_existing=True
+    )
+    scheduler.add_job(
+        pasada_vigilancias,
+        trigger='date',
+        run_date=datetime.now() + timedelta(seconds=5),
+        args=[bot, user_ids],
+        kwargs={'config': config},
+        max_instances=1,
+        misfire_grace_time=60,
+        id='vigilancias_arranque',
         replace_existing=True
     )
     scheduler.add_job(
