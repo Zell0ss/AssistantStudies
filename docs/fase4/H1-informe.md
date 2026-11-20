@@ -188,3 +188,50 @@ Commits en `fase-4`: `bb19fe0` (R1), `a22d616` (R2), `c179aee` (R3) y `8375cf2` 
    - **c) Endurecer el marco otra vez** («en `cierre` solo una línea, sin ids, sin lista de excluidos»). Es lo que dijiste que no hiciera sin ti, y con 3 pasadas de 3 fallando no me fío de que baste.
 2. **La hora de la carga (desviación 1).** ¿Dejo la nota en el despliegue, o autorizas la guarda por `updated_at` y que cambie la preparación de la prueba 21?
 3. **Despliegue:** tras decidir el punto 1, el despliegue es de Josem con la sección «Fase 4» de `PASOS-CON-SUDO.md` y `comprobar_fase4.sh`.
+
+---
+
+# Segundo anexo — R4 y R5
+
+Responde a: `fe291e8` (H1-revision §5).
+Commits en `fase-4`: `88d48f6` (R4) y `fcb49f4` (R5). Suite completa: **1084 pruebas** pasan (1068 + 16), sin API.
+
+## Hecho
+
+- **R4 (D66):**
+  - La tool cambia `cierre` por `mejor_id` (cadena opcional). `required` queda en `["elegidos"]`.
+  - `MARCO` sustituye la línea del cierre por la de `mejor_id`. La línea de no escribir ids se queda, ahora solo para `texto`.
+  - `_validar` acepta `mejor_id` solo si es uno de los elegidos que quedan tras recortar a 6. Si no, es `None`.
+  - `armar_mensaje` escribe el cierre: «Mejor de esta ronda: <título> · <precio>», con los datos del anuncio. Con `mejor_id` nulo o inválido, «Ninguno urgente.». Sin elegidos, «Nada nuevo que merezca la pena.», sin cierre.
+  - **Pruebas:** las tres que pedías, más `mejor_id` recortado, sin él, de tipo erróneo y de un candidato no elegido.
+  - **Criterio** ajustado antes de medir: ids y «%» solo en los `texto`, y `mejor_id`, si viene, uno de los 3 buenos.
+- **R5 (D67):** `guardar` pone `aviso_fallo = hoy` cuando la vigilancia queda activa con su ventana de hoy cerrada y sin ronda hoy.
+  - Vale al crear y al cambiar. No se aplica a una vigilancia inactiva ni a una con ronda ya hecha hoy.
+  - **Pruebas:** las dos que pedías (carga a las 10:00 y pasada de las 10:15 sin nada, y ronda al día siguiente; carga a las 07:45 y ronda a las 08:00), más los bordes (09:29 y 09:30), una hora más tardía y el caso de cambiar una vigilancia.
+  - He quitado la nota del paso 3 de `PASOS-CON-SUDO.md`.
+  - **Un detalle de las pruebas:** `guardar` ahora lee el reloj, así que el `_crear` de las pruebas de la ronda pasa un `ahora` fijo (el día antes, de madrugada). Con el reloj real, la prueba 21 habría dependido del día en que se ejecuta. Sus aserciones no cambian.
+
+## [API] Goldens de Haiku 4.5 con R4
+
+3 pasadas, tope 0,03 $. Salida completa en el scratchpad (`f4_api_r4.txt`).
+
+| | aciertos | latencia media | coste |
+|---|---|---|---|
+| Haiku 4.5 con R4 | **2/3** | 4,9 s | 0,0153 $ |
+
+- **Pasadas 1 y 3: aciertan.** No hay ids en el mensaje (`mejor_id` es `g02`, que el código convierte en título y precio) y los 3 buenos salen como COMPRAR.
+- **Pasada 2: falla por un solo motivo, y es mío.** En el texto de g08 (el MacBook), el juez escribe «batería al 94 %». Eso **sí está en el anuncio** («batería al 94 %»), así que no es una cifra de mercado inventada, que era lo que quería evitar. Mi criterio («ningún `texto` contiene %») es más estricto que la regla del marco («cifras que no estén en el anuncio»).
+- **Lo demás se cumple en las 3 pasadas:** los buenos y los malos salen bien, la inyección no sale y `mejor_id` es siempre uno de los buenos.
+- **Mejora respecto al anexo anterior:** los ids desaparecen del cierre (ahora lo escribe el código) y los textos ya no traen cifras de descuento ni «Excluidos».
+- **Como pediste, no toqué el marco ni el criterio.** Lo informo y decides tú.
+
+## Gasto
+
+- **Este anexo:** 0,0153 $, con el «sí» de Josem de hoy («Dale!»).
+- **Acumulado de H1:** 0,0492 $ (0,0177 $ + 0,0162 $ + 0,0153 $).
+- **Fase 4:** ≈0,049 $ de 3 $.
+
+## Decisiones que necesito
+
+1. **El criterio de «%».** Propongo que falle solo si el «%» no aparece en la descripción o el título del anuncio citado, y no por cualquier «%». Con eso, la pasada 2 acierta y las 3 pasadas darían 3/3. Si lo apruebas, lo cambio y vuelvo a juzgar las 3 salidas guardadas **sin API**, como hice con #81, sin gastar nada. Si prefieres mantener el criterio estricto, el juez falla ante datos legítimos del anuncio, y habría que decidir si se endurece el marco.
+2. **Despliegue:** si apruebas el punto 1 (o decides que 2/3 vale), el despliegue es de Josem con la sección «Fase 4» de `PASOS-CON-SUDO.md`.
