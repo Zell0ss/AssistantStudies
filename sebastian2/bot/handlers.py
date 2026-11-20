@@ -44,7 +44,9 @@ def _partir_en_trozos(texto: str, maximo: int = _MAX_TROZO) -> list:
         actual += linea
     if actual:
         trozos.append(actual)
-    return [t[:-1] if t.endswith("\n") else t for t in trozos]
+    # H1e: una línea en blanco justo antes de una línea de más de `maximo` dejaba un trozo vacío, y Telegram rechaza un
+    # mensaje vacío (o de solo espacios). Se descartan; no pierden contenido.
+    return [t[:-1] if t.endswith("\n") else t for t in trozos if t.strip()]
 
 
 def _send_markdown(bot, chat_id, text):

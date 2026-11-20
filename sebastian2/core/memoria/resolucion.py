@@ -4,6 +4,7 @@ El LLM propone nombres; quien decide es este codigo (D8). Escalera: alias exacto
 busqueda semantica con puntuacion y margen (umbrales de `config.memoria.umbrales`) -> crear. **Solo se
 sustituye con resolucion fuerte** (D35): una sustitucion erronea hace olvidar algo cierto sin avisar.
 """
+import re
 from dataclasses import dataclass
 
 from core.memoria.normalizar import normalizar
@@ -34,6 +35,29 @@ def compatible(tipos_entidad: str, tipo_entidad: str) -> bool:
     """`tipos_entidad` de un atributo es un csv de tipos o '*'."""
     tipos = {t.strip() for t in tipos_entidad.split(",")}
     return "*" in tipos or tipo_entidad in tipos
+
+
+_NUMERO = re.compile(r"^[+-]?\d[\d.,]*(\s*\S.*)?$", re.DOTALL)     # cifra al principio, con signo; admite una unidad detrás
+_FECHA = re.compile(r"^(\d{4}-\d{2}-\d{2}|--\d{2}-\d{2})$")
+_BOOLEANOS = frozenset({"si", "sí", "no", "true", "false", "verdadero", "falso"})
+
+
+def valor_encaja(valor: str, tipo_valor: str) -> bool:
+    """D70 (R13): ¿el valor puede ser de un atributo de este `tipo_valor`? Comprobación de forma, no de significado.
+
+    `numero`: empieza por una cifra (signo opcional; decimales con «,» o «.» y una unidad detrás: «2,4 bar»). `fecha`:
+    `AAAA-MM-DD` o `--MM-DD`. `booleano`: sí/si/no/true/false/verdadero/falso. `texto`, o un tipo que no conozco: todo
+    encaja. Un valor vacío tampoco se juzga (solo `retirar` lo trae vacío, y `retirar` no pasa por aquí)."""
+    v = (valor or "").strip()
+    if not v:
+        return True
+    if tipo_valor == "numero":
+        return bool(_NUMERO.match(v))
+    if tipo_valor == "fecha":
+        return bool(_FECHA.match(v))
+    if tipo_valor == "booleano":
+        return v.lower() in _BOOLEANOS
+    return True
 
 
 def _margen(candidatos: list[dict]) -> float:

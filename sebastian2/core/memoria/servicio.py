@@ -15,7 +15,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue, PointIdsLis
 
 from core.memoria.normalizar import normalizar
 from core.memoria.resolucion import (
-    decidir_hecho, decidir_retirar_nota, resolver_atributo, resolver_entidad,
+    decidir_hecho, decidir_retirar_nota, resolver_atributo, resolver_entidad, valor_encaja,
 )
 from core.memoria.vault import CAMPOS_CONTRATO, leer_proyectos, proyecto_por_nombre
 
@@ -201,16 +201,24 @@ class ServicioMemoria:
         atributo_id = self._materializar_atributo(user_id, hecho, attr, entidad_tipo=hecho["tipo_entidad"], data=data)
         if attr.accion == "crear":
             turno["atributos_creados"].add(atributo_id)          # D69 (R11): ya no es candidato semantico en esta llamada
-        atributo =self._repo.atributo(atributo_id)
+        atributo = self._repo.atributo(atributo_id)
         entidad = self._repo.entidad(entidad_id)
 
         vigentes = self._repo.hechos_vigentes(user_id, entidad_id, atributo_id)
-        fuerte = ent.fuerte and attr.fuerte
+        # D70 (R13): el valor tiene que encajar con el tipo del atributo, también si el nombre coincidió por alias (el
+        # extractor usa el nombre exacto del catálogo, que no le enseña el tipo). Si no encaja, la resolución es débil: con un
+        # valor vigente va a `nota` y sin él se añade. `retirar` no se mira: su valor puede ir vacío. Lo recién creado
+        # tiene el tipo del propio hecho.
+        tipo_no_encaja = (not retirar and attr.accion == "reutilizar"
+                          and not valor_encaja(hecho["valor"], atributo["tipo_valor"]))
+        fuerte = ent.fuerte and attr.fuerte and not tipo_no_encaja
         decision = decidir_hecho(hecho["operacion"], atributo["cardinalidad"], vigentes, hecho["valor"], fuerte)
         if decision.regla == "retirar_debil" and (self._retirar_nota(user_id, hecho, texto, ent, attr, data, turno)
                                                   or self._retirar_por_valor(user_id, hecho, ent, attr, data, turno)):
             return
         senales = self._senales(ent, attr, fuerte, decision.regla)
+        if tipo_no_encaja:
+            senales["tipo_no_encaja"] = True                 # solo la señal, nunca el valor (D42)
         confianza = self._confianza(ent, attr)
         detalle = f"entidad={entidad_id} atributo={atributo_id} regla={decision.regla}"
 
@@ -275,8 +283,9 @@ class ServicioMemoria:
                 fila = self._repo.atributo(c["id"])
                 if fila:
                     semanticos.append({**c, "tipos_entidad": fila["tipos_entidad"], "tipo_valor": fila["tipo_valor"]})
+        # D69 (R12): `retirar` no pasa por el tipo del valor: su valor va vacío y `_validar` pone `texto` por defecto.
         return resolver_atributo(por_alias, semanticos, self._umbrales, tipo_entidad=hecho["tipo_entidad"],
-                                 tipo_valor=hecho["tipo_valor"])
+                                 tipo_valor=None if hecho["operacion"] == "retirar" else hecho["tipo_valor"])
 
     def _semantica(self, buscar, *args) -> list[dict]:
         try:

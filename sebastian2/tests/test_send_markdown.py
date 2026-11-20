@@ -73,6 +73,17 @@ def test_una_linea_larga_en_medio_se_corta_a_la_fuerza_sin_perder_las_demas():
     assert "L" * 4500 in "".join(trozos) and "después " * 10 in trozos[2]
 
 
+def test_h1e_6_no_hay_trozos_vacios_con_una_linea_en_blanco_antes_de_una_linea_larga():
+    for texto in ("\n" + "x" * 4500, "a" * 3999 + "\n\n" + "x" * 4500, "\n\n" + "x" * 4500 + "\n\n"):
+        trozos = _partir_en_trozos(texto)
+        assert trozos and all(t.strip() for t in trozos), repr(texto[:6])          # ninguno vacío ni de solo espacios
+        assert all(len(t) <= 4000 for t in trozos)
+        assert "x" * 4500 in "".join(trozos).replace("\n", "")                      # el contenido sigue entero
+    bot = BotFalso()
+    _send_markdown(bot, 1, "\n" + "x" * 4500)
+    assert [len(c["text"]) for c in bot.llamadas] == [4000, 500]                    # y nada de mensajes vacíos a Telegram
+
+
 def test_un_texto_que_cabe_no_se_toca_ni_con_saltos_de_linea_al_final():
     assert _partir_en_trozos("a\nb\n") == ["a\nb\n"]
     assert _partir_en_trozos("") == [""]
