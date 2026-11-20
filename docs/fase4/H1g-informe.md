@@ -89,3 +89,57 @@ Tras `/debug 30` en Telegram, el bot contesta con la ruta. Suele ser `/data/Assi
 
 1. ¿Quieres que arregle, en un encargo aparte, los dos logs con contenido de `handle_text` (punto 1 de arriba)?
 2. ¿Llamo a `limpiar()` también desde el planificador, para que las trazas se borren a las 24 h sin depender de un reinicio (punto 2)?
+
+---
+
+# Anexo — H1h: R21 (logs de `handle_text`) y R22 (limpieza periódica)
+
+Responde a: `9c2b97c` (H1g-revision).
+Commit en `fase-4`: `67cc115`. Suite completa: **1190 pruebas** pasan (1186 + 4), sin API. Gasto: 0 $.
+
+## Hecho
+
+- **R21 (`bot/handlers.py`, D42):** `handle_text` ya no escribe el texto del usuario ni la respuesta en el log.
+  - `Processing text from <usuario> | chars=N` en lugar de los 50 primeros caracteres.
+  - `Orchestrator response | chars=N` en lugar de los 100 primeros.
+  - Busqué otros logs con el texto del usuario o de la respuesta en `bot/`: no hay más.
+- **R22 (`core/depuracion.py` y `bot/scheduler.py`, D72):**
+  - **Planificador:** tarea nueva `limpiar_depuracion`, cada hora, con `max_instances=1` y `coalesce`, que llama a `depuracion.limpiar`.
+  - **Al apagar** (`apagar`) y **una sola vez al caducar** (`activa`), `limpiar()` también corre. Con lo que ya había (arrancar y activar), las trazas se borran a las 24 h sin depender de un reinicio.
+
+## Pruebas (4 nuevas en `tests/test_depuracion.py`)
+
+1. **R21, con marca `ZZDEBUG`:** un mensaje con la marca, y una respuesta con la marca, pasan por `handle_text` con orquestador falso. El usuario recibe la respuesta; la marca **no está** en ninguna llamada del logger (`bot.handlers.logger` parcheado), y las líneas son exactamente las nuevas, con `chars=`. Segunda pasada con el logger de verdad: nada en stdout ni stderr.
+2. **R22, planificador:** la tarea está registrada, cada 3600 s, `max_instances=1`, `coalesce`, y su función es `limpiar`; al ejecutarla se borra la traza de 30 h y se queda la de 1 h.
+3. **R22, al apagar:** `/debug off` borra una traza de 30 h.
+4. **R22, al caducar, con reloj falso:** a los 29 min no limpia; a los 31, limpia **una sola vez** aunque se llame dos veces a `activa`, y borra la traza vieja.
+
+Sin el cambio, las 4 fallan. **La suite**, salvo un esperado, pasó sin tocar nada.
+
+## Un esperado que cambia
+
+`test_23_y_25_registrar_jobs_deja_la_tarea_de_vigilancias_y_las_que_ya_existian` (`tests/test_vigilancias_ronda.py`) comparaba con `==` el conjunto exacto de tareas del planificador. Con R22 hay una más, `limpiar_depuracion`, así que la he añadido a ese conjunto, con un comentario que lo explica. El resto de lo que comprueba (intervalos, `max_instances`, `coalesce`, argumentos) no cambia. `test_las_tareas_se_registran_en_el_planificador_del_bot` usa `<=` y no se ve afectado.
+
+## Gasto
+
+0 $. Sin API.
+
+## Desviaciones
+
+Ninguna. Todos los ficheros con Edit/Write. De nuevo, `git stash` un momento para comprobar que las pruebas fallan sin el cambio, y `stash pop` después.
+
+## Despliegue (de Josem)
+
+`main` sigue en `0ba236a` (H1e): **H1f y H1g, aprobados, todavía no están desplegados**, así que este merge trae H1f, H1g y H1h. Hash para volver atrás: `0ba236a`.
+
+Merge y reinicio:
+
+`cd /data/AssistantStudies && git merge --ff-only fase-4 && sudo systemctl restart sebastian.service`
+
+Volver atrás, si hiciera falta:
+
+`sudo systemctl stop sebastian.service && cd /data/AssistantStudies && git reset --hard 0ba236a && sudo systemctl start sebastian.service`
+
+## Decisiones que necesito
+
+Ninguna.
