@@ -20,11 +20,42 @@ logger = get_logger("sebastian")
 # are needed when the legacy show_tickets block (below) is re-enabled for v2.
 
 
+# D68 (fase 4, H1b-revision R9): un mensaje de Telegram admite 4096 caracteres. Con el techo de Alfred en 1500 tokens, una respuesta
+# larga podría pasarse y Telegram la rechazaría (antes salía cortada; no puede ser peor). Se parte en trozos de como mucho 4000.
+_MAX_TROZO = 4000
+
+
+def _partir_en_trozos(texto: str, maximo: int = _MAX_TROZO) -> list:
+    """Parte `texto` por saltos de línea en trozos de como mucho `maximo` caracteres, sin el salto final de cada trozo (al unirlos
+    con «\\n» sale el texto entero). Una línea de más de `maximo` se corta a la fuerza. Un texto que cabe sale en un solo trozo."""
+    if len(texto) <= maximo:
+        return [texto]
+    trozos, actual = [], ""
+    for linea in texto.splitlines(keepends=True):
+        if actual and len(actual) + len(linea) > maximo:
+            trozos.append(actual)
+            actual = ""
+        while len(linea) > maximo:                        # una sola línea que no cabe: se corta a la fuerza
+            if actual:
+                trozos.append(actual)
+                actual = ""
+            trozos.append(linea[:maximo])
+            linea = linea[maximo:]
+        actual += linea
+    if actual:
+        trozos.append(actual)
+    return [t[:-1] if t.endswith("\n") else t for t in trozos]
+
+
 def _send_markdown(bot, chat_id, text):
-    """Send a message with **bold** markdown using Telegram entities (no parse_mode needed)."""
-    plain_text, entity_dicts = parse_markdown_to_entities(text)
-    entities = [telebot.types.MessageEntity(**e) for e in entity_dicts]
-    bot.send_message(chat_id, plain_text, entities=entities or None)
+    """Send a message with **bold** markdown using Telegram entities (no parse_mode needed).
+
+    D68 (R9): un texto de más de 4000 caracteres se divide ANTES de parsear el markdown (los offsets de las entidades son por
+    trozo) y cada trozo se parsea y se envía por separado, en orden. Uno de 4000 o menos sale en una sola llamada, como siempre."""
+    for trozo in _partir_en_trozos(text):
+        plain_text, entity_dicts = parse_markdown_to_entities(trozo)
+        entities = [telebot.types.MessageEntity(**e) for e in entity_dicts]
+        bot.send_message(chat_id, plain_text, entities=entities or None)
 
 
 def setup_handlers(bot, config):
