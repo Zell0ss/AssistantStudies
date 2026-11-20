@@ -72,3 +72,56 @@ Responde a: 4008966 (H1-informe)
 4. Escribe un anexo al final de `H1-informe.md` con los commits, la suite, el resultado de los goldens y el gasto, y para.
 
 El despliegue lo hace Josem, después de que yo revise el anexo.
+
+## 5. Revisión del anexo (2026-11-20)
+
+> Responde a: 4a31196 (H1-informe, anexo «Retoques de la revisión»). Revisado contra `0eaa6e2..5072f8f`.
+
+**Veredicto: aprobado con un retoque más.** R1 y R3 están bien. R2 queda a medias, por un hueco mío: le pedí al modelo que no escribiera ids en un campo de texto libre, cuando la regla de D66 es que el texto que ve Josem lo arma el código.
+
+- **R1:** `sin_juzgar` deja fuera de `marcar_vistos` solo los candidatos que el tope no deja juzgar. La prueba comprueba también que vuelven al día siguiente. Bien.
+- **R2:** las dos líneas del marco están. En `texto` funcionan (3/3 sin ids ni «%»), y en `cierre`, no. El resultado no cambia el veredicto sobre el juez: los buenos, los malos y la inyección salen bien en las 3 pasadas.
+- **R3:**
+  - el script es de solo lectura;
+  - los bloques con `sudo` van en una línea, y una prueba lo exige;
+  - la vuelta atrás también va en una línea;
+  - hay copia de seguridad antes de migrar.
+  
+  Bien.
+- **Suite:** la he ejecutado yo: **1068 pasan**.
+- **Gasto:** 0,0162 $, con el «sí» de Josem registrado. La fase va por **≈ 0,034 $ de 3 $**.
+
+### Decisiones
+
+| # | Decisión |
+|---|---|
+| 1 | **Variante de tu (a): el juez elige el mejor por id, y el código escribe la frase.** La tool cambia `cierre` por `mejor_id` (cadena opcional). El código lo valida contra los elegidos. Si vale, escribe «Mejor de esta ronda: <título> · <precio>», con los datos del anuncio. Si es nulo o no vale, escribe «Ninguno urgente.». Así se conserva el juicio del modelo (cuál es el mejor) y desaparecen los ids, la lista de excluidos y las cifras del cierre. Es D66 aplicado de verdad: lo apunto en el ADR |
+| 2 | **Ni nota ni `updated_at`: la guarda va en el repositorio.** Al guardar (crear o cambiar) una vigilancia cuya ventana de hoy ya se cerró sin ronda, `guardar` pone `aviso_fallo = hoy`. Lo de hoy no se avisa porque la vigilancia no existía en su ventana. Si se carga dentro de la ventana, la ronda sale en la pasada siguiente, y eso le viene bien a Josem para probar. La prueba 21 no cambia, y H2 lo hereda |
+
+### Retoques
+
+- **R4 (D66, decisión 1):**
+  - En `TOOL_INFORME`, `cierre` sale y entra `mejor_id` (`string`, opcional).
+  - En `MARCO`, la línea del cierre se sustituye por: «si eliges alguno, pon en `mejor_id` el id del que más merece la pena; si ninguno destaca, déjalo vacío». La de los ids en `texto` se queda.
+  - `armar_mensaje` escribe el cierre.
+  - **Pruebas:**
+    - con `mejor_id` válido, el mensaje acaba en «Mejor de esta ronda: <título> · <precio>»;
+    - con `mejor_id` nulo, o que no está entre los elegidos, acaba en «Ninguno urgente.»;
+    - sin elegidos, sigue saliendo «Nada nuevo que merezca la pena.», sin cierre.
+  - **Criterio** (lo ajustas en `criterios.py` antes de medir): la comprobación de ids pasa a mirar solo los `texto`. Además, `mejor_id`, si viene, es uno de los 3 buenos (g01–g03).
+- **R5 (decisión 2):** en `repositorio.guardar`, la guarda de `aviso_fallo` descrita arriba. Quita la nota del paso 3 de `PASOS-CON-SUDO.md`.
+  - **Pruebas:**
+    - con la carga a las 10:00 y `hora` a las 07:30, la pasada de las 10:15 no manda nada, y al día siguiente a las 07:30 sale la ronda;
+    - con la carga a las 07:45 y `hora` a las 07:30, la pasada de las 08:00 hace la ronda.
+- **[API], con el «sí» de Josem:** goldens del juez, 3 pasadas con Haiku 4.5, con R4 y el criterio ajustado. Tope: 0,03 $. Si falla, lo informas sin tocar el marco.
+
+## Para el programador
+
+Responde a: 4a31196 (H1-informe, anexo)
+
+1. Haz R4 y R5, cada uno con sus pruebas.
+2. Pasa la suite.
+3. Pide a Josem el «sí» para el [API] y ejecútalo.
+4. Escribe un segundo anexo al final de `H1-informe.md`, corto (commits, suite, goldens y gasto), y para.
+
+Si los goldens pasan, H1 queda aprobado sin otra vuelta y Josem despliega con la sección «Fase 4» de `PASOS-CON-SUDO.md`.
