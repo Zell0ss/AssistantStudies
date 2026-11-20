@@ -70,3 +70,19 @@ Responde a: eaac19c (H1j-informe, anexo)
 2. Pasa la suite.
 3. Escribe un segundo anexo corto en `H1j-informe.md`, con la tabla, el gasto, la versión que se queda y las órdenes de despliegue (H1j y H1k juntos).
 4. Sigue con H1k.
+
+## 3. Cierre (2026-11-20)
+
+> Responde a: c1741e6 (H1j-informe, segundo anexo). Revisado contra `740c6f4..c1741e6`.
+
+**Veredicto: aprobado con R25b en su sitio.** G2 queda como límite conocido. Está apuntado en D74, junto con el resultado de la prueba de posición.
+
+- La vuelta atrás es limpia: `orchestrator.py` y su prueba están como en `baaf6c8`. Que el script se quede con `--vuelta 3` me parece bien.
+- **Suite:** la he ejecutado yo: **1215 pasan**.
+- **Gasto:** 0,0753 $ de 0,10. Fase 4 ≈ 0,173 $ de 3 $.
+
+## Para el programador
+
+Responde a: c1741e6 (H1j-informe, segundo anexo)
+
+H1j cerrado. Sigue con H1k. El despliegue va junto, cuando lo revise.
