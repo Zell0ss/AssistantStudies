@@ -70,3 +70,67 @@ Volver atrás, si hiciera falta:
 
 1. ¿Qué opción de «Qué propongo»? Si la 1, ¿con esa frase u otra? Y un «sí» de Josem para otras 8 llamadas (≈ 0,04 $).
 2. ¿Se despliega R25 tal cual mientras tanto (G1 y G3 aciertan, controles intactos) o se espera a resolver G2?
+
+---
+
+# Anexo — R25b y segunda vuelta de goldens
+
+Responde a: `5e172b1` (H1j-revision).
+Commit en `fase-4`: `baaf6c8`. Suite completa: **1213 pruebas** pasan (1210 + 3), sin API en las pruebas.
+
+## Resultado en una línea
+
+**G2 sigue fallando (0/2 otra vez, 0/4 entre las dos vueltas). G2b, el caso nuevo, acierta. G1, G3 y G4 sin regresión.** Criterio (3/3 en G2 y G2b): **1/3, NO APROBADO.** Paro, como pedías, y no he retocado la frase.
+
+## Hecho
+
+- **R25b (`core/orchestrator.py`):** la frase de R25 está sustituida por la tuya, en el mismo sitio de `_REGLA_ACCIONES_CON_HISTORIAL`, con un comentario que explica el cambio. **Una sola diferencia con tu texto:** el prompt va sin los asteriscos de negrita (`**nunca contestes…**`), porque el resto del prompt del planner no usa markdown; las palabras son las tuyas.
+- **Prueba de la frase** actualizada (`tests/test_regla_consultas.py`). Lo que dice la regla sobre guardar no cambia.
+- **Script de goldens:** `--vuelta 2` lanza la segunda vuelta (G2 ×2, G2b, G1, G3, G4), con G2b (índice `yo (tú): cumpleanos, telegram_id, nota`, historial de 6 intercambios con «Su cumpleaños es el 12 de marzo, señor.») y su propio criterio. 3 pruebas nuevas con cliente falso.
+
+## Goldens, segunda vuelta ([API], Haiku 4.5)
+
+| Caso | Pasada | Qué llamó el planner | Resultado |
+|---|---|---|---|
+| **G2** «¿Cuál es mi id de Telegram?» | 1 | **ninguna tool**, `end_turn`; «Su telegram_id es 700111222, señor.» | **falla** |
+| **G2** | 2 | **ninguna tool**, `end_turn`; el mismo texto | **falla** |
+| **G2b** «¿Cuándo es mi cumpleaños?» | 1 | `search_memory({"query": "cumpleaños", "entidad": "yo", "atributo": "cumpleanos"})` | acierta |
+| G1 «¿Qué datos tienes de mí en Telegram?» | 1 | `search_memory({"query": "telegram"})` | acierta |
+| G3 «¿Qué sabes de Paco?» | 1 | `search_memory({"query": "Paco", "entidad": "Paco"})` | acierta |
+| G4 «Recuerda que mi color favorito es el verde» | 1 | `mark_as_memorable({"texto": "Mi color favorito es el verde"})` | acierta |
+
+**G2 y G2b: 1/3. G1, G3 y G4: 3/3 (sin regresión).** Salida completa fuera del repo (scratchpad, `f4_h1j_v2.txt`).
+
+## Qué enseña
+
+- **La regla generaliza:** G2b, con la misma estructura que G2 (la misma pregunta ya contestada en el historial, un dato concreto), consulta, y con `entidad` y `atributo` bien puestos. Así que la frase no es un parche a medida de Telegram; funciona para otro dato.
+- **G2 es el caso que no cede, con la frase vieja y con la nueva, y siempre con la misma respuesta literal del historial.** Entre G2 y G2b lo único que cambia es el dato: **«mi id de Telegram».**
+- **Mi hipótesis (sin comprobar):** «mi id de Telegram» es algo que el propio bot conoce por la conversación (existe `/id_me`), y el planner lo trata como un dato del contexto, no como memoria. Con otro dato (G2b) no pasa. Si es así, no es un fallo de la regla sino de ese dato concreto. Una pasada de G2 con otro dato «del contexto» lo comprobaría.
+- **Otra pista, de posición:** el comentario de D43 dice que la regla funcionó «al final, justo antes de decidir», pero en `_planner_system` la regla va **antes** de compromisos, fechas y «buscar no termina el turno». No está al final. Probar a moverla (o la frase de consultas sola) al final del system es una variable distinta que aún no se ha medido.
+
+## Gasto
+
+**0,0203 $** (6 llamadas de Haiku 4.5, entre 0,0032 y 0,0036 $ cada una). Dentro de lo ya autorizado por Josem (≤ 0,10 $ para este hito; «A por él» y «adelante»). H1j acumula **0,0588 $** de 0,10; fase 4 ≈ **0,157 $** de 3 $. Quedan 0,0412 $ de la autorización.
+
+## Desviaciones
+
+Los asteriscos de la frase (arriba). Todos los ficheros con Edit/Write.
+
+## Qué propongo (sin aplicar)
+
+1. **Probar la posición:** mover la frase de consultas a una constante propia al final del system del planner (después de `_REGLA_BUSCAR_NO_TERMINA`), y repetir G2 ×2 y G2b, G1 y G3 (6 llamadas, ≈ 0,02 $, cabe en lo que queda).
+2. **Aceptar el límite** de ese dato concreto: G2b generaliza, Alfred compensa pidiendo permiso para consultar, y no se da un dato falso.
+3. **Quitar G2 de los criterios** o sustituirlo por otro dato concreto que no sea «del contexto del bot» (si la hipótesis es cierta, G2 mide otra cosa).
+
+## Despliegue (de Josem), si aprueba
+
+`main` está en `dc0ca28` y es ancestro de `fase-4`. R25b parece seguro: G1, G3 y G4 aciertan, y G2b generaliza. Hash para volver atrás: `dc0ca28`.
+
+`cd /data/AssistantStudies && git merge --ff-only fase-4 && sudo systemctl restart sebastian.service`
+
+`sudo systemctl stop sebastian.service && cd /data/AssistantStudies && git reset --hard dc0ca28 && sudo systemctl start sebastian.service`
+
+## Decisiones que necesito
+
+1. ¿Qué opción de «Qué propongo»? Para la 1 hace falta tu OK a la frase en su nueva posición; el gasto cabe en lo autorizado.
+2. ¿Se despliega R25b tal cual (G2 sin resolver) o se espera?
