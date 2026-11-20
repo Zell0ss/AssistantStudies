@@ -235,3 +235,7 @@ Commits en `fase-4`: `88d48f6` (R4) y `fcb49f4` (R5). Suite completa: **1084 pru
 
 1. **El criterio de «%».** Propongo que falle solo si el «%» no aparece en la descripción o el título del anuncio citado, y no por cualquier «%». Con eso, la pasada 2 acierta y las 3 pasadas darían 3/3. Si lo apruebas, lo cambio y vuelvo a juzgar las 3 salidas guardadas **sin API**, como hice con #81, sin gastar nada. Si prefieres mantener el criterio estricto, el juez falla ante datos legítimos del anuncio, y habría que decidir si se endurece el marco.
 2. **Despliegue:** si apruebas el punto 1 (o decides que 2/3 vale), el despliegue es de Josem con la sección «Fase 4» de `PASOS-CON-SUDO.md`.
+
+---
+
+**Cierre (responde a `7753552`, H1-revision §6):** criterio del «%» corregido en `1561e1b` (una cifra con «%» solo falla si no está en el título o la descripción del anuncio citado, con prueba de las dos direcciones), las 3 salidas de `f4_api_r4.txt` vueltas a juzgar sin API: **3/3** (las tres pasadas aciertan; la 2 tenía solo el «94 %» del anuncio g08), suite 1090 pruebas, gasto 0 $. H1 cerrado; parado hasta que el arquitecto escriba.
