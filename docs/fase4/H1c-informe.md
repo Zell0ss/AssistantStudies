@@ -67,3 +67,55 @@ Si tras el paso 2 sigue sin reproducirse, quedaría el `texto` real del planner 
 
 1. ¿Hago el paso 1 (log de `stop`, `crudos`, `validados`) y lo despliega Josem con H1/H1b, o prefieres otra cosa?
 2. ¿Quieres el paso 2? Necesita que alguien saque `texto_catalogo` del usuario real (datos de Josem, solo lectura) y un nuevo «sí» de gasto (~0,03 $).
+
+---
+
+# Anexo — R10b y R10c (log del extractor)
+
+Responde a: `0a534fb` (H1c-revision).
+Commit en `fase-4`: `f82ba62`. Suite completa: **1122 pruebas** pasan (1113 + 9), sin API. Gasto: 0 $.
+
+## Hecho
+
+- **R10b (`core/memoria/extractor.py`):** `Extractor.extraer` deja un `logger.info` por llamada:
+  `Extractor: stop=<stop_reason> crudos=N validados=M` y, si hubo descartes, ` descartes=<etiquetas>`.
+  - Las etiquetas, una por cada crudo descartado y en su orden, son `marcador`, `sin_atributo`, `operacion_invalida` y `no_es_dict`.
+  - Si `hechos` no es una lista (un string, por ejemplo), no hay excepción: sale `crudos=0 validados=0 descartes=hechos_no_lista`. Falta de `hechos` o lista vacía siguen siendo `crudos=0` sin descartes.
+  - `_motivo_de_descarte` sigue el mismo orden que `_validar`, y una prueba comprueba que dicen lo mismo con nueve entradas.
+  - Nunca va el valor de la operación ni texto del modelo. El `stop_reason` es el del API, no texto del modelo.
+  - Comentario con D42 y H1c junto al log.
+- **R10c (`core/memoria/servicio.py`):** la línea `memoria.guardar` termina en `chars=<len(texto)>`.
+- **Pruebas** (cliente falso, 8 en `test_memoria_extractor.py` y 1 en `test_memoria_servicio.py`, todas con `h1c` en el nombre):
+  - con `hechos: []`: `crudos=0 validados=0`;
+  - con un hecho bueno y uno sin atributo: `crudos=2 validados=1 descartes=sin_atributo`;
+  - las cuatro etiquetas, juntas en una sola llamada;
+  - con `hechos` como string: sin excepción y `descartes=hechos_no_lista`;
+  - con la marca `ZZEXTR` en el valor, la entidad, la operación, un crudo suelto, el texto y el catálogo, no aparece en ningún log;
+  - `stop=max_tokens` sale tal cual;
+  - `memoria.guardar` lleva `chars=40` y `chars=0` (con la marca `ZZTEXTO` fuera del log).
+
+## Desviaciones
+
+1. **Edité un fichero con Bash:** añadí las pruebas del extractor a `tests/test_memoria_extractor.py` con un `cat >>` en lugar de Edit/Write. Es la tercera vez, contra la memoria de Josem «Editar sin Bash». El resto de ediciones, con Edit. No se repetirá.
+
+## Despliegue (de Josem)
+
+`main` está en `1124aa3` y es ancestro de `fase-4`, así que el merge es un avance directo. Hash para volver atrás: `1124aa3`.
+
+Merge y reinicio:
+
+`cd /data/AssistantStudies && git merge --ff-only fase-4 && sudo systemctl restart sebastian.service`
+
+Volver atrás, si hiciera falta:
+
+`sudo systemctl stop sebastian.service && cd /data/AssistantStudies && git reset --hard 1124aa3 && sudo systemctl start sebastian.service`
+
+Para ver el log después de repetir la petición (sin `sudo`):
+
+`logcentral query --source sebastian --grep "Extractor: stop" --pretty`
+
+Cuando Josem repita lo del id y el usuario, `crudos=0` dice que Haiku no devolvió nada; `crudos>0 validados=0 descartes=…` dice que lo tiró `_validar`. `chars=` en `memoria.guardar` dice si el planner mandó una frase vacía o muy corta.
+
+## Decisiones que necesito
+
+Ninguna. El paso 2 (catálogo real) queda en espera, como dices.
