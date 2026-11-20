@@ -78,12 +78,13 @@ def main(argv=None) -> int:
     parser.add_argument("fichero", type=Path)
     parser.add_argument("--pasadas", type=int, default=3)
     parser.add_argument("--tope", type=float, default=0.30)
+    parser.add_argument("--modelos", nargs="+", default=list(MODELOS), choices=MODELOS, help="por defecto, los dos")
     args = parser.parse_args(argv)
     from anthropic import Anthropic
     from utils.config import get_config
     reglas = validar(yaml.safe_load(args.fichero.read_text(encoding="utf-8")))["reglas"]
     cliente = Anthropic(api_key=get_config()["anthropic_apikey"], timeout=60.0)
-    filas = correr(cliente, reglas, args.pasadas, args.tope)
+    filas = correr(cliente, reglas, args.pasadas, args.tope, tuple(args.modelos))
     print(detalle(filas))
     print("\n" + resumen(filas))
     return 0
