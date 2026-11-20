@@ -40,11 +40,29 @@ _PLANNER_MAX_TOKENS = 4096
 _PLAN_REPLY_MAX_TOKENS = 512  # SI/NO, pero con razonamiento previo que también cuenta
 _CAPABILITIES_DIGEST = build_capabilities_digest()
 
+# D68 (fase 4, H1b): Alfred no se corta a media frase. 400 tokens cortaban un inventario de herramientas en mitad de una
+# palabra, sin aviso. El techo no cuesta nada si no se usa (peor caso 1500 × 15 $/MTok ≈ 0,02 $ por turno), y si aun así
+# se corta (`stop_reason == "max_tokens"`) se recorta limpio y se avisa. El «concisa» del prompt se queda.
+_ALFRED_MAX_TOKENS = 1500
+_ASK_MAX_TOKENS = 300
+_AVISO_SIN_ESPACIO = "(Me he quedado sin espacio, señor. Dígame si quiere el resto.)"
+_MSG_ERROR_SERVICIO = "Error en el servicio de IA. Por favor, inténtelo más tarde."
+
 # D59: las tools del planner van con un marcador de caché (TTL de 5 min) en la última, que cachea todo el
 # prefijo `tools`. Copia de ALL_TOOLS: solo se copia el último dict, y ALL_TOOLS no se muta (lo usan los
 # tests y el digest). El `system` empieza por la hora y cambia en cada llamada, pero va después de `tools`
 # en el orden de la caché, así que no la invalida. Mínimo cacheable de Haiku 4.5: 4096 tokens.
 _PLANNER_TOOLS = [*ALL_TOOLS[:-1], {**ALL_TOOLS[-1], "cache_control": {"type": "ephemeral"}}]
+
+
+def _recortar_corte(texto: str) -> str:
+    """D68 (R7): un texto cortado por `max_tokens` se recorta en el último salto de línea; sin ninguno, en el último fin de
+    frase («. », «? », «! », conservando el signo); y si tampoco hay, se deja como está."""
+    corte = texto.rfind("\n")
+    if corte > 0:
+        return texto[:corte].rstrip()
+    fin = max(texto.rfind(". "), texto.rfind("? "), texto.rfind("! "))
+    return texto[:fin + 1] if fin > 0 else texto
 
 
 def _uso_vacio() -> dict:
@@ -570,7 +588,7 @@ class Orchestrator:
             )
             if "credit balance" in str(e).lower() or "too low" in str(e).lower():
                 return {"text": "El servicio no está disponible temporalmente (créditos agotados). Por favor, contacte al administrador.", "images": []}
-            return {"text": "Error en el servicio de IA. Por favor, inténtelo más tarde.", "images": []}
+            return {"text": _MSG_ERROR_SERVICIO, "images": []}
         # Solo los turnos que terminan sin error de API entran en el historial (D21, D22).
         self._guardar_intercambio(user_message, result["text"])
         return result
@@ -720,20 +738,37 @@ class Orchestrator:
 
         response = self._client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=400,
+            max_tokens=_ALFRED_MAX_TOKENS,
             system=_ALFRED_SYSTEM,
             messages=(historial or []) + [{"role": "user", "content": synthesis_prompt}]
         )
         self._track_usage(response, "claude-sonnet-4-6")
-        return response.content[0].text.strip()
+        return self._texto_de_alfred(response, _ALFRED_MAX_TOKENS)
 
     def _ask_user(self, question: str) -> str:
         """Have Alfred ask the user for clarification in his characteristic style."""
         response = self._client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=100,
+            max_tokens=_ASK_MAX_TOKENS,
             system=_ALFRED_SYSTEM,
             messages=[{"role": "user", "content": f"Necesito preguntarle esto al usuario: {question}"}]
         )
         self._track_usage(response, "claude-sonnet-4-6")
-        return response.content[0].text.strip()
+        return self._texto_de_alfred(response, _ASK_MAX_TOKENS)
+
+    def _texto_de_alfred(self, response, techo: int) -> str:
+        """D68 (R7, R8): el texto de una respuesta de Alfred, sin cortes mudos ni IndexError.
+
+        - Sin bloque de texto: el mismo mensaje de error del servicio de IA, y un WARNING con el `stop_reason`.
+        - Cortada por `max_tokens`: WARNING y, en el texto, un recorte limpio (`_recortar_corte`) y el aviso al usuario.
+        Ningún log lleva el texto de la respuesta (D42): solo el techo, la longitud y el `stop_reason`."""
+        parada = getattr(response, "stop_reason", None)
+        bloque = next((b for b in response.content if isinstance(getattr(b, "text", None), str)), None)
+        if bloque is None:
+            logger.warning(f"Alfred sin texto en la respuesta (stop_reason={parada}) | user={self._user_id}")
+            return _MSG_ERROR_SERVICIO
+        texto = bloque.text.strip()
+        if parada == "max_tokens":
+            logger.warning(f"Alfred cortado por max_tokens ({techo}) | user={self._user_id} | chars={len(texto)}")
+            texto = f"{_recortar_corte(texto)}\n{_AVISO_SIN_ESPACIO}"
+        return texto

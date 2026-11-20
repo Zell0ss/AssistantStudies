@@ -1412,3 +1412,110 @@ def test_r24_alfred_no_supone_por_que_no_encuentra_algo():
     prompt = " ".join(_ALFRED_SYSTEM.split()).lower()      # el prompt corta las líneas a mano
     for trozo in ("no lo encuentras con esa búsqueda", "sin suponer por qué", "No digas que no se guardó", "duplicado"):
         assert trozo.lower() in prompt, trozo
+
+
+# ── Fase 4 H1b (D68, R6-R8): Alfred no se corta a media frase ────────────────────────────────────────────────────────
+
+_AVISO_CORTE = "(Me he quedado sin espacio, señor. Dígame si quiere el resto.)"
+_INVENTARIO_CORTADO = "• Uno — a.\n• Dos — b.\n• Tres — guardada en el vault de"
+
+
+def _respuesta_cortada(texto, parada="max_tokens"):
+    r = _make_text_response(texto)
+    r.stop_reason = parada
+    return r
+
+
+@patch('core.orchestrator.Anthropic')
+def test_d68_1_la_sintesis_llama_con_1500_y_ask_user_con_300(mock_anthropic_cls, db):
+    from core.orchestrator import Orchestrator, _ALFRED_MAX_TOKENS, _ASK_MAX_TOKENS
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("a"), _make_text_response("b")]
+    orch = Orchestrator(db, '99999')
+    orch._synthesize("hola", [])
+    orch._ask_user("¿qué día?")
+    sintesis, pregunta = mock_client.messages.create.call_args_list
+    assert sintesis.kwargs["max_tokens"] == _ALFRED_MAX_TOKENS == 1500
+    assert pregunta.kwargs["max_tokens"] == _ASK_MAX_TOKENS == 300
+
+
+@patch('core.orchestrator.Anthropic')
+def test_d68_2_una_sintesis_cortada_se_recorta_en_el_ultimo_salto_de_linea_y_avisa(mock_anthropic_cls, db):
+    from core.orchestrator import Orchestrator
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _respuesta_cortada(_INVENTARIO_CORTADO)]
+    texto = Orchestrator(db, '99999').handle("¿Qué herramientas tienes ahora?")["text"]
+    assert texto == f"• Uno — a.\n• Dos — b.\n{_AVISO_CORTE}"
+    assert texto.endswith("• Dos — b.\n" + _AVISO_CORTE) and "guardada" not in texto
+
+
+def test_d68_3_sin_saltos_de_linea_se_corta_tras_el_ultimo_fin_de_frase():
+    from core.orchestrator import _recortar_corte
+    assert _recortar_corte("Primera frase. Segunda a medias") == "Primera frase."
+    assert _recortar_corte("¿Una? ¡Dos! Tres a medias") == "¿Una? ¡Dos!"                      # conserva el signo
+    assert _recortar_corte("Primera. Segunda? Tercera a me") == "Primera. Segunda?"          # el último de los tres tipos
+    assert _recortar_corte("Sin ningún fin de frase a medias") == "Sin ningún fin de frase a medias"   # tampoco: se queda como está
+    assert _recortar_corte("") == ""
+
+
+@patch('core.orchestrator.Anthropic')
+def test_d68_3b_el_corte_sin_saltos_pasa_por_la_sintesis_con_su_aviso(mock_anthropic_cls, db):
+    from core.orchestrator import Orchestrator
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _respuesta_cortada("Primera frase. Segunda a medias")]
+    assert Orchestrator(db, '99999').handle("hola")["text"] == f"Primera frase.\n{_AVISO_CORTE}"
+
+
+@patch('core.orchestrator.Anthropic')
+def test_d68_3c_ask_user_tambien_se_recorta_y_avisa(mock_anthropic_cls, db):
+    from core.orchestrator import Orchestrator
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.return_value = _respuesta_cortada("¿Para qué día es? Dígame también la ho")
+    assert Orchestrator(db, '99999')._ask_user("¿qué día?") == f"¿Para qué día es?\n{_AVISO_CORTE}"
+
+
+@patch('core.orchestrator.Anthropic')
+def test_d68_4_con_end_turn_el_texto_sale_exactamente_igual_que_hoy(mock_anthropic_cls, db):
+    from core.orchestrator import Orchestrator
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _make_text_response("  • Uno — a.\n• Dos — b.  \n")]
+    texto = Orchestrator(db, '99999').handle("¿Qué herramientas tienes ahora?")["text"]
+    assert texto == "• Uno — a.\n• Dos — b." and "sin espacio" not in texto
+
+
+@patch('core.orchestrator.logger')
+@patch('core.orchestrator.Anthropic')
+def test_d68_5_el_texto_de_la_respuesta_no_va_a_ningun_log(mock_anthropic_cls, mock_logger, db):
+    from core.orchestrator import Orchestrator
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    cortado = "• Uno — ZZALFRED a.\n• Dos — ZZALFRED b.\n• Tres — ZZALFRED a medias"
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _respuesta_cortada(cortado)]
+    orch = Orchestrator(db, '99999')
+    texto = orch.handle("¿Qué herramientas tienes ahora?")["text"]
+    assert "ZZALFRED" in texto                                                                # el usuario sí lo recibe
+    sin_texto = MagicMock(stop_reason="end_turn", content=[MagicMock(type="tool_use", text=None)])
+    orch._texto_de_alfred(sin_texto, 1500)
+    volcado = " ".join(str(c) for c in mock_logger.mock_calls)
+    assert "ZZALFRED" not in volcado
+    assert f"Alfred cortado por max_tokens (1500) | user=99999 | chars={len(cortado)}" in volcado
+    assert "Alfred sin texto en la respuesta (stop_reason=end_turn) | user=99999" in volcado
+    assert any("Alfred cortado" in str(c) for c in mock_logger.warning.mock_calls)            # a nivel WARNING
+
+
+@pytest.mark.parametrize("contenido", [[], [MagicMock(type="tool_use", text=None)], [MagicMock(type="thinking", text=None)]])
+@patch('core.orchestrator.Anthropic')
+def test_d68_6_una_respuesta_sin_bloque_de_texto_no_lanza_y_da_el_mensaje_de_error(mock_anthropic_cls, contenido, db):
+    from core.orchestrator import Orchestrator, _MSG_ERROR_SERVICIO
+    mock_client = MagicMock()
+    mock_anthropic_cls.return_value = mock_client
+    mock_client.messages.create.side_effect = [_make_text_response("x"), _respuesta(contenido, stop_reason="end_turn")]
+    resultado = Orchestrator(db, '99999').handle("hola")
+    assert resultado["text"] == _MSG_ERROR_SERVICIO == "Error en el servicio de IA. Por favor, inténtelo más tarde."
+    mock_client.messages.create.side_effect = [_respuesta(contenido, stop_reason="refusal")]
+    assert Orchestrator(db, '99999')._ask_user("¿qué día?") == _MSG_ERROR_SERVICIO
