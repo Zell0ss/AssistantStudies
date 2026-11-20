@@ -134,3 +134,62 @@ Los asteriscos de la frase (arriba). Todos los ficheros con Edit/Write.
 
 1. ¿Qué opción de «Qué propongo»? Para la 1 hace falta tu OK a la frase en su nueva posición; el gasto cabe en lo autorizado.
 2. ¿Se despliega R25b tal cual (G2 sin resolver) o se espera?
+
+---
+
+# Segundo anexo — prueba de posición y cierre
+
+Responde a: `740c6f4` (H1j-revision §2).
+Commit en `fase-4`: `ff859f5` (script y pruebas de la tercera vuelta). Suite completa: **1215 pruebas** pasan, sin API en las pruebas.
+
+## Resultado
+
+**La posición nueva no mejora G2 (0/2) y empeora G2b (de acierta a falla). Vuelve R25b a su sitio anterior**, como decías, sin volver a ti. **H1j queda con R25b en `_REGLA_ACCIONES_CON_HISTORIAL`, tal como estaba en `baaf6c8`, y G2 como límite conocido de D74.**
+
+## Qué se hizo
+
+1. La frase de consultas, idéntica, se movió a una constante propia `_REGLA_CONSULTAS` al final del system del planner, después de `_REGLA_BUSCAR_NO_TERMINA`. La parte de guardar se quedó donde estaba.
+2. Goldens (tercera vuelta, G2 ×2, G2b, G1 y G3: 5 llamadas).
+3. Resultado: no mejora, así que se **ha deshecho el cambio de posición** (el código de `core/orchestrator.py` y `tests/test_regla_consultas.py` están otra vez como en `baaf6c8`, sin tocar a mano). Lo que se queda del experimento es el script (`--vuelta 3`, con su resumen y 2 pruebas con cliente falso), como registro y para repetirlo si hiciera falta.
+
+## Tabla (tercera vuelta, [API], Haiku 4.5)
+
+| Caso | Pasada | Qué llamó el planner | Resultado |
+|---|---|---|---|
+| **G2** «¿Cuál es mi id de Telegram?» | 1 | **ninguna tool**; «Su telegram_id es 700111222, señor.» | **falla** |
+| **G2** | 2 | **ninguna tool**; el mismo texto | **falla** |
+| **G2b** «¿Cuándo es mi cumpleaños?» | 1 | **ninguna tool**; «Su cumpleaños es el 12 de marzo, señor.» | **falla** (en la posición anterior acertaba) |
+| G1 «¿Qué datos tienes de mí en Telegram?» | 1 | `search_memory({"query": "telegram"})` | acierta |
+| G3 «¿Qué sabes de Paco?» | 1 | `search_memory({"query": "Paco", "entidad": "Paco"})` | acierta |
+
+**G2: 0/2. G2b, G1 y G3: 2/3.** Salida completa fuera del repo (scratchpad, `f4_h1j_v3.txt`).
+
+## La versión que se queda: R25b en su sitio de siempre
+
+Con la posición anterior, en la segunda vuelta: G2b 1/1, G1 1/1, G3 1/1, G4 1/1 y G2 0/2. Con la nueva: peor en G2b. Una advertencia de honestidad: son 1 y 2 pasadas por caso con Haiku, así que la diferencia en G2b (1/1 contra 0/1) es una señal débil, pero la regla era «si empeora otra cosa, vuelve».
+
+**Acumulado de G2 con R25 y R25b: 0/6** (2 + 2 + 2). El dato concreto «id de Telegram» no responde a ninguna versión de la frase. G2b (un dato concreto distinto) sí acertó una vez con R25b en su posición anterior.
+
+## Gasto
+
+**0,0165 $** (5 llamadas de Haiku 4.5, entre 0,0032 y 0,0035 $). Dentro de lo autorizado por Josem (≤ 0,10 $ para el hito). **H1j acumula 0,0753 $ de 0,10; fase 4 ≈ 0,173 $ de 3 $.** Quedan 0,0247 $ de la autorización.
+
+## Una prueba existente que habría cambiado
+
+`test_el_planner_dice_que_buscar_no_termina_el_turno` (`tests/test_calendar_descripcion.py`) exige que la regla «buscar no termina el turno» sea lo último del system del planner. Con la frase de consultas al final (la posición de la prueba), esa prueba fallaba. **Como el cambio se ha deshecho, no hay esperado que tocar.** Lo dejo apuntado por si algún día se vuelve a probar esa posición.
+
+## Desviaciones
+
+Ninguna. Los ficheros, con Edit/Write; para deshacer la posición usé `git checkout` de las dos rutas a `baaf6c8`.
+
+## Despliegue (de Josem), H1j y H1k juntos
+
+`main` está en `9f64780` (H1i ya desplegado) y es ancestro de `fase-4`, así que el merge es un avance directo. Hash para volver atrás: `9f64780`. **H1k se entrega después, en su propio informe; las órdenes de abajo valen para los dos, una vez que H1k esté aprobado** (el merge trae todo lo que haya en `fase-4`).
+
+`cd /data/AssistantStudies && git merge --ff-only fase-4 && sudo systemctl restart sebastian.service`
+
+`sudo systemctl stop sebastian.service && cd /data/AssistantStudies && git reset --hard 9f64780 && sudo systemctl start sebastian.service`
+
+## Decisiones que necesito
+
+Ninguna. Queda aprobado con G2 como límite conocido, según tu regla.
