@@ -342,6 +342,29 @@ def test_el_mensaje_ordena_por_lo_que_dice_el_juez_y_usa_una_marca_por_semaforo(
     assert "grande 2" not in texto
 
 
+def test_r1_los_candidatos_fuera_del_tope_de_40_no_se_guardan_como_vistos_y_vuelven_al_dia_siguiente(conn):
+    """H1-revision R1: con 42 candidatos al juez llegan los 40 más recientes; los 2 más antiguos no quedan en `vistos`
+    (un nuevo que solo el filtro descartó, sí)."""
+    vid = _crear(conn, filtros={"precio_min": 300, "precio_max": 2000, "excluir": []})
+    candidatos = [hacer_anuncio(id=f"t{i:02d}", titulo=f"Mac mini M4 variante {i}", modificado=AHORA - timedelta(hours=1, minutes=i))
+                  for i in range(42)]                                                             # t00 el más reciente, t41 el más antiguo
+    barato = hacer_anuncio(id="barato", titulo="Cable para Mac mini", precio="40", modificado=AHORA - timedelta(hours=1))
+    fuente = FuenteFalsa(por_defecto=candidatos + [barato])
+    cliente = ClienteFalso()
+    _pasada(BotFalso(), conn, fuente=fuente, cliente=cliente)
+    contenido = cliente.llamadas[0]["messages"][0]["content"]
+    assert contenido.count('"id"') == 40 and '"id": "t00"' in contenido and '"id": "t39"' in contenido
+    assert '"id": "t40"' not in contenido and '"id": "t41"' not in contenido
+    vistos = _vistos(conn, vid)
+    assert "t40" not in vistos and "t41" not in vistos and "barato" in vistos and len(vistos) == 41
+    assert _fila(conn, vid)["ultima_ronda"] == HOY
+
+    cliente_manana = ClienteFalso()                                                              # al día siguiente, siguen dentro de las 48 h
+    _pasada(BotFalso(), conn, reloj=lambda: datetime(2026, 11, 21, 7, 30), fuente=fuente, cliente=cliente_manana)
+    contenido = cliente_manana.llamadas[0]["messages"][0]["content"]
+    assert contenido.count('"id"') == 2 and '"id": "t40"' in contenido and '"id": "t41"' in contenido
+
+
 def test_el_precio_con_decimales_se_escribe_a_la_espanola():
     a = hacer_anuncio(id="p", precio="749.5")
     informe = Informe(elegidos=[{"id": "p", "semaforo": "MIRAR", "texto": "ok"}], cierre="x")

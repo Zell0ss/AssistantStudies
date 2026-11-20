@@ -107,8 +107,10 @@ def _hacer_ronda(conn, v: dict, ahora: datetime, bot, fuentes: dict, cliente, co
     vistos = repositorio.vistos_de(conn, v["id"], sorted({a.id for a in anuncios}))
     seleccion = seleccionar(anuncios, vistos, v["filtros"], ahora)
     candidatos = seleccion.candidatos
+    sin_juzgar = set()                                  # D65 (H1-revision R1): los que el tope deja fuera NO se guardan como vistos
     if len(candidatos) > MAX_CANDIDATOS:
         logger.warning(f"Vigilancia id={v['id']} candidatos={len(candidatos)}: solo los {MAX_CANDIDATOS} más recientes van al juez")
+        sin_juzgar = {a.id for a in candidatos[MAX_CANDIDATOS:]}
         candidatos = candidatos[:MAX_CANDIDATOS]
     cifras |= {"anuncios": len(anuncios), "nuevos": len(seleccion.nuevos), "candidatos": len(candidatos)}
 
@@ -134,9 +136,10 @@ def _hacer_ronda(conn, v: dict, ahora: datetime, bot, fuentes: dict, cliente, co
         _log(v, f"reintento(envio:{type(e).__name__})", "error", **cifras)
         return "reintento(envio)"
 
-    # Solo con el envío hecho: los vistos (también los que el filtro o el juez descartaron) y `ultima_ronda`, juntos.
+    # Solo con el envío hecho: los vistos (también los que el filtro o el juez descartaron, pero no los que el tope de
+    # candidatos dejó sin juzgar: vuelven mañana si siguen dentro de las 48 h) y `ultima_ronda`, juntos.
     try:
-        repositorio.marcar_vistos(conn, v["id"], seleccion.nuevos, ahora)
+        repositorio.marcar_vistos(conn, v["id"], [a for a in seleccion.nuevos if a.id not in sin_juzgar], ahora)
         cur = conn.cursor()
         cur.execute("UPDATE vigilancias SET ultima_ronda = %s WHERE id = %s", (ahora.date(), v["id"]))
         cur.execute("DELETE FROM vigilancia_vistos WHERE vigilancia_id = %s AND visto_en < %s",
