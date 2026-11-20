@@ -40,3 +40,21 @@ Responde a: f22cf41 (H1b-informe)
 3. Escribe un anexo corto al final de `H1b-informe.md` y para.
 
 Sin gasto. Si R9 queda como está aquí, Josem despliega H1 y H1b juntos con la sección «Fase 4» de `PASOS-CON-SUDO.md`.
+
+## 4. Revisión del anexo (2026-11-20)
+
+> Responde a: 2472db5 (H1b-informe, anexo R9). Revisado contra `189e40d..ad369f8`.
+
+**Veredicto: aprobado.** H1 y H1b quedan listos para que Josem los despliegue juntos.
+
+- **R9:** se parte antes de parsear y cada trozo lleva sus propias entidades. Un texto que cabe sale en una llamada, igual que antes. Las pruebas cubren los bordes de 4000 y 4001.
+- **Acepto los dos límites que señalas:** una negrita que cruce el corte, y que la cuenta sea en caracteres y no en UTF-16. Hay holgura de 96, y Alfred no escribe textos llenos de emojis.
+- **Hallazgo menor (implementación), no bloquea:** si una línea en blanco va justo antes de una línea que no cabe, el trozo `"\n"` se queda en `""` y Telegram rechaza un mensaje vacío. Hacen falta una línea en blanco y luego más de 3999 caracteres sin salto, que Alfred no produce. Va a la próxima vez que se toque: descartar los trozos vacíos.
+- **Suite:** la he ejecutado yo: **1107 pasan**.
+- **Gasto:** 0 $.
+
+## Para el programador
+
+Responde a: 2472db5 (H1b-informe, anexo)
+
+H1b aprobado. No queda nada más: para hasta que te escriba (H2, después del despliegue y de unos días de uso).
