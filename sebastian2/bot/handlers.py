@@ -8,6 +8,8 @@ import io
 import telebot
 from telegram_markdown import parse_markdown_to_entities
 from bot.formatter import ResponseFormatter
+from core import depuracion
+from core.memoria.ajustes import propietario_vault
 from core.orchestrator import Orchestrator
 from modules.user_settings import UserSettingsModule
 from sprites.sprite_system import SpriteSystem
@@ -73,6 +75,7 @@ def setup_handlers(bot, config):
     sprite_system = SpriteSystem()
 
     logger.info("Setting up Telegram bot handlers")
+    depuracion.limpiar()   # D72 (R20): al arrancar, fuera las trazas de más de 24 h (no lanza)
 
     def authorized(username, userid):
         """
@@ -122,6 +125,7 @@ def setup_handlers(bot, config):
 • /start, /hola - Saludo inicial
 • /help, /ayuda - Muestra esta ayuda
 • /id_me, /whoami - Muestra tu ID de Telegram
+• /debug, /debug 60, /debug off - Traza temporal de depuración (solo el propietario)
 
 **Qué puedo hacer:**
 
@@ -240,6 +244,38 @@ Para más detalle: "qué puedes hacer?" o "cómo funciona el calendario?"
             parse_mode='Markdown'
         )
         logger.info(f"{message.chat.username} changed skin to: {skin_name}")
+
+    @bot.message_handler(commands=['debug'])
+    def handle_debug(message):
+        """D72 (R17): `/debug [min]` activa la traza de depuración (con contenido, local, temporal) y `/debug off` la apaga.
+        Solo para el propietario del vault: a cualquier otro, «Este comando no está disponible» y nada más (ni la respuesta ni
+        el log dicen por qué)."""
+        if str(message.chat.id) != propietario_vault(config):
+            bot.reply_to(message, "Este comando no está disponible")
+            return
+        user_id = str(message.chat.id)
+        args = message.text.split()[1:]
+        if [a.lower() for a in args] == ["off"]:
+            depuracion.apagar(user_id)
+            bot.reply_to(message, "Depuración apagada")
+            return
+        minutos = depuracion.MINUTOS_POR_DEFECTO
+        if args:
+            try:
+                minutos = int(args[0]) if len(args) == 1 else 0
+            except ValueError:
+                minutos = 0
+            if minutos < 1:
+                bot.reply_to(message, f"Uso: /debug [minutos] (de 1 a {depuracion.MINUTOS_MAXIMOS}, por defecto "
+                                      f"{depuracion.MINUTOS_POR_DEFECTO}) o /debug off")
+                return
+        try:
+            caduca, ruta = depuracion.activar(user_id, minutos)
+        except Exception as e:
+            logger.warning(f"/debug: no se pudo activar | error={type(e).__name__}")
+            bot.reply_to(message, "No he podido activar la depuración")
+            return
+        bot.reply_to(message, f"Depuración activa hasta las {caduca:%H:%M}. Traza en {ruta}")
 
     @bot.message_handler(commands=['abort'])
     def handle_abort(message):

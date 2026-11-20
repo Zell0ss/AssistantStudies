@@ -13,6 +13,7 @@ from datetime import date, datetime
 from logcentral_client import get_logger
 from qdrant_client.models import FieldCondition, Filter, MatchValue, PointIdsList, PointStruct
 
+from core import depuracion
 from core.memoria.normalizar import normalizar
 from core.memoria.resolucion import (
     decidir_hecho, decidir_retirar_nota, resolver_atributo, resolver_entidad, valor_encaja,
@@ -49,15 +50,26 @@ class ServicioMemoria:
 
     # --- API -----------------------------------------------------------------------------
 
-    def guardar(self, user_id: str, texto: str, username: str | None = None, mensaje: str | None = None) -> dict:
+    def guardar(self, user_id: str, texto: str, username: str | None = None, mensaje: str | None = None,
+                turno: str | None = None) -> dict:
         """`texto` es lo que recibio el extractor (la frase autocontenida del planner); `mensaje`, el literal del
-        usuario en ese turno. Los dos quedan en una fuente (D41), de la que cuelgan los hechos de esta llamada."""
+        usuario en ese turno. Los dos quedan en una fuente (D41), de la que cuelgan los hechos de esta llamada.
+        `turno` (D72): id del turno si la traza de depuracion esta activa; solo sirve para trazar."""
+        catalogo = ""
         try:
-            hechos = self._extractor.extraer(texto, self.texto_catalogo(user_id, username), self._hoy())
+            catalogo = self.texto_catalogo(user_id, username)
+            hechos = self._extractor.extraer(texto, catalogo, self._hoy())
         except Exception as e:
             # Mejora, no camino critico: la memoria caida no rompe el turno (patron de MemoryModule).
             logger.warning(f"memoria.guardar: el extractor fallo: {type(e).__name__}")
+            if turno:   # D72 (R19): con contenido, pero fuera de los logs
+                depuracion.traza(user_id, turno, "extractor", {"texto": texto, "catalogo_chars": len(catalogo),
+                                                                "error": type(e).__name__})
             return {"success": False, "result": "No he podido registrar eso ahora mismo.", "data": {}}
+        if turno:       # D72 (R19): lo que recibio el extractor, el tamaño del catalogo (no el catalogo) y su `bloque.input` crudo
+            depuracion.traza(user_id, turno, "extractor", {
+                "texto": texto, "catalogo_chars": len(catalogo),
+                "bloque_input": getattr(self._extractor, "ultimo_input", None), "validados": hechos})
 
         yo = self._repo.entidad_usuario(user_id, username)
         data = {"guardados": [], "nuevos_pendientes": {"entidades": [], "atributos": []},
@@ -85,7 +97,7 @@ class ServicioMemoria:
         return {"success": True, "result": resumen, "data": data}
 
     def consultar(self, user_id: str, query: str, entidad: str | None = None, atributo: str | None = None,
-                  historial: bool = False) -> dict:
+                  historial: bool = False, turno: str | None = None) -> dict:
         """`search_memory` (plan §2.3). La entidad y el atributo se resuelven **solo por alias exacto** y la
         consulta se arma con ids: no hay SQL libre ni busqueda semantica sobre el catalogo. Lo unico semantico
         son las notas de texto libre. Si el vault tiene el proyecto, añade su valor en vivo y marca el choque
@@ -125,6 +137,10 @@ class ServicioMemoria:
                     f"vault={salida['vault'] is not None} conflictos={len(salida['conflictos'])} "
                     f"entidad={estado(entidad, ent)} atributo={estado(atributo, attr)} "
                     f"notas_sem={notas_sem} notas_palabra={notas_palabra}")
+        if turno:       # D72 (R19): los parametros de la consulta y su salida, con contenido, fuera de los logs
+            depuracion.traza(user_id, turno, "memoria_consulta", {
+                "parametros": {"query": query, "entidad": entidad, "atributo": atributo, "historial": historial},
+                "salida": salida})
         return salida
 
     @staticmethod

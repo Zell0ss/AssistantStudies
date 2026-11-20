@@ -45,6 +45,7 @@ class ToolExecutor:
         # El literal que escribió el usuario en este turno (lo pone el orquestador): la fuente de la memoria lo
         # guarda junto a la frase que reescribe el planner (D41).
         self.mensaje_del_turno: str | None = None
+        self.turno_debug: str | None = None   # D72: id del turno si la traza de depuración está activa (lo pone el orquestador)
 
     def _vault_docs_path(self):
         config = self._config if self._config is not None else get_config()
@@ -356,7 +357,13 @@ class ToolExecutor:
 
     def _mark_as_memorable(self, inputs: dict):
         # Contrato nuevo (fase 2, D31): una sola frase; el servicio extrae, resuelve y escribe.
-        return self._servicio_memoria().guardar(self._user_id, inputs['texto'], mensaje=self.mensaje_del_turno)
+        return self._servicio_memoria().guardar(self._user_id, inputs['texto'], mensaje=self.mensaje_del_turno,
+                                                **self._turno_debug_kw())
+
+    def _turno_debug_kw(self) -> dict:
+        """D72: el id del turno para la traza de depuración, solo si el orquestador lo puso (la traza estaba activa al empezar
+        el turno). Sin traza, la llamada a la memoria es exactamente la de siempre."""
+        return {"turno": self.turno_debug} if self.turno_debug else {}
 
     def _search_memory(self, inputs: dict):
         # Contrato nuevo (fase 2, plan §2.3): alias exacto + historial + notas + vault; sin `k`.
@@ -364,7 +371,8 @@ class ToolExecutor:
         # El esquema pide `query`, pero el planner a veces da solo entidad y atributo: se busca con ellos.
         query = inputs.get('query') or " ".join(x for x in (entidad, atributo) if x)
         return self._servicio_memoria().consultar(
-            self._user_id, query, entidad=entidad, atributo=atributo, historial=bool(inputs.get('historial', False)))
+            self._user_id, query, entidad=entidad, atributo=atributo, historial=bool(inputs.get('historial', False)),
+            **self._turno_debug_kw())
 
     # ── Compromisos ───────────────────────────────────────────────────────────
 

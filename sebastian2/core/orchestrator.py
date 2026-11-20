@@ -10,9 +10,11 @@ Flow:
 """
 import json
 import time
+import uuid
 from datetime import datetime, timedelta
 from logcentral_client import get_logger
 from anthropic import Anthropic, APIError, APIConnectionError, RateLimitError
+from core import depuracion
 from core.memoria.ajustes import propietario_vault
 from core.memoria.catalogo import indice_memoria
 from core.memoria.repositorio import RepositorioMemoria
@@ -271,6 +273,8 @@ _TURNO_SIN_HERRAMIENTAS = (
 # descartaba: Alfred solo decía «no he podido». Ahora, si no se ejecutó ninguna tool, el texto le llega como NOTA, después de
 # `_TURNO_SIN_HERRAMIENTAS` y sin sustituirlo (que no se ha hecho nada sigue siendo cierto). No es un dato ni algo hecho.
 _NOTA_PLANNER_MAX = 600
+# D72 (R19): el resumen de tools que recibe Alfred, en la traza de depuración, se recorta a este tamaño (el de cada tool, a 4000).
+_RECORTE_ALFRED = 12000
 
 
 def _texto_del_planner(response) -> str:
@@ -335,6 +339,16 @@ class Orchestrator:
         self._vault_path = config.get("vault_docs_path")
         self._propietario_vault = propietario_vault(config)
         self._indice_turno = None   # el índice de la memoria se calcula una vez por turno (D36)
+        self._turno_debug = None    # D72: id del turno si la traza de depuración estaba activa al empezar; None si no
+
+    def _depurando(self) -> bool:
+        return self._turno_debug is not None
+
+    def _trazar(self, etapa: str, datos) -> None:
+        """D72 (R19): una línea en la traza de depuración del usuario, con contenido. Solo si el turno empezó con la traza
+        activa; nunca va a loguru ni a LogCentral (`depuracion.traza` escribe a mano y no lanza)."""
+        if self._depurando():
+            depuracion.traza(self._user_id, self._turno_debug, etapa, datos)
 
     def _indice_del_turno(self) -> str:
         """D36: lo que consta del usuario, sin valores. Si falla, el turno sigue sin índice (patrón D22)."""
@@ -372,6 +386,10 @@ class Orchestrator:
         )
         self._track_usage(response, _MODELO_PLANNER)
         self._avisar_si_el_planner_no_decidio(response)
+        if self._depurando():       # D72 (R19): lo que decidió el planner, con el input crudo de cada tool
+            self._trazar("planner", {
+                "stop_reason": response.stop_reason, "n_mensajes": len(messages), "texto": _texto_del_planner(response),
+                "tools": [{"name": b.name, "input": b.input} for b in response.content if b.type == "tool_use"]})
         return response
 
     def _avisar_si_el_planner_no_decidio(self, response) -> None:
@@ -531,6 +549,8 @@ class Orchestrator:
                     result_content = json.dumps(raw, default=str, ensure_ascii=False)
                     tool_results_summary.append({"tool": block.name, "input": block.input, "result": raw})
                     _log_tool_execution(block.name, block.input, raw, latency_ms, result_content)
+                    if self._depurando():       # D72 (R19): el resultado de la tool, recortado
+                        self._trazar("tool", {"tool": block.name, "resultado": depuracion.recortar(result_content)})
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
@@ -545,6 +565,7 @@ class Orchestrator:
                             f"input={json.dumps(block.input, ensure_ascii=False)}"
                         )
                     had_error = True
+                    self._trazar("tool", {"tool": block.name, "error": "la tool falló"})
                     break
 
             if had_error:
@@ -601,6 +622,11 @@ class Orchestrator:
         self._turn_usage = _uso_vacio()
         self._indice_turno = None
         self._executor.mensaje_del_turno = user_message   # D41: la fuente de la memoria guarda el literal
+        # D72: el id del turno solo existe si la traza está activa ahora. Sin traza, el ejecutor y la memoria se llaman
+        # exactamente igual que antes.
+        self._turno_debug = uuid.uuid4().hex[:8] if depuracion.activa(self._user_id) else None
+        self._executor.turno_debug = self._turno_debug
+        self._trazar("mensaje", {"texto": user_message})
         logger.bind(user_id=self._user_id).info(
             # D42: el texto del usuario no va al log (olvidar lo de alguien tiene que borrarlo también de aquí): longitud y usuario.
             f"Turn start | user={self._user_id} | chars={len(user_message)}"
@@ -663,6 +689,8 @@ class Orchestrator:
                         "result": raw
                     })
                     _log_tool_execution(block.name, block.input, raw, latency_ms, result_content)
+                    if self._depurando():       # D72 (R19): el resultado de la tool, recortado
+                        self._trazar("tool", {"tool": block.name, "resultado": depuracion.recortar(result_content)})
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
@@ -677,6 +705,7 @@ class Orchestrator:
                             f"input={json.dumps(block.input, ensure_ascii=False)}"
                         )
                     had_error = True
+                    self._trazar("tool", {"tool": block.name, "error": "la tool falló"})
                     # On tool error, break out of the loop immediately
                     # so synthesis can handle graceful degradation
                     break
@@ -745,7 +774,13 @@ class Orchestrator:
             messages=(historial or []) + [{"role": "user", "content": synthesis_prompt}]
         )
         self._track_usage(response, "claude-sonnet-4-6")
-        return self._texto_de_alfred(response, _ALFRED_MAX_TOKENS)
+        texto = self._texto_de_alfred(response, _ALFRED_MAX_TOKENS)
+        if self._depurando():       # D72 (R19): lo que recibió Alfred (resumen de tools y nota del planner) y lo que contestó
+            self._trazar("alfred", {
+                "tool_results_summary": depuracion.recortar(context, _RECORTE_ALFRED) if tool_results else "",
+                "nota_planner": "" if tool_results else nota_planner,
+                "stop_reason": getattr(response, "stop_reason", None), "texto": texto})
+        return texto
 
     def _ask_user(self, question: str) -> str:
         """Have Alfred ask the user for clarification in his characteristic style."""
@@ -756,7 +791,10 @@ class Orchestrator:
             messages=[{"role": "user", "content": f"Necesito preguntarle esto al usuario: {question}"}]
         )
         self._track_usage(response, "claude-sonnet-4-6")
-        return self._texto_de_alfred(response, _ASK_MAX_TOKENS)
+        texto = self._texto_de_alfred(response, _ASK_MAX_TOKENS)
+        self._trazar("alfred_pregunta", {"pregunta": question, "stop_reason": getattr(response, "stop_reason", None),
+                                         "texto": texto})              # D72 (R19)
+        return texto
 
     def _texto_de_alfred(self, response, techo: int) -> str:
         """D68 (R7, R8): el texto de una respuesta de Alfred, sin cortes mudos ni IndexError.

@@ -109,6 +109,7 @@ class Extractor:
     def extraer(self, texto: str, catalogo: str, hoy: date) -> list[dict]:
         """Hechos de `texto`. Un fallo de la API se propaga: quien llama decide como degradar."""
         self.marcadores_descartados = 0
+        self.ultimo_input = None      # D72: `bloque.input` crudo de la última llamada, para la traza de depuración (no se loguea)
         respuesta = self._cliente.messages.create(
             model=self._modelo,
             max_tokens=_TOKENS_MAXIMOS,
@@ -124,6 +125,7 @@ class Extractor:
         if bloque is None:
             logger.warning("Extractor: la respuesta no trae la tool registrar_hechos")
             return []
+        self.ultimo_input = bloque.input
         crudos = (bloque.input or {}).get("hechos") or []
         descartes = []
         if not isinstance(crudos, list):
