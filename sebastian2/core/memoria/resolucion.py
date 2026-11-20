@@ -55,10 +55,14 @@ def _semantica(candidatos: list[dict], umbrales: dict):
 
 
 def resolver_atributo(por_alias: list[dict], semanticos: list[dict], umbrales: dict, *,
-                      tipo_entidad: str) -> Resolucion:
+                      tipo_entidad: str, tipo_valor: str | None = None) -> Resolucion:
     """`por_alias`: atributos cuyo alias normalizado coincide. `semanticos`: candidatos del catalogo
-    (de mayor a menor puntuacion), ya con `tipos_entidad`. Un atributo cuyo tipo no encaja con el de
-    la entidad cuenta como resolucion debil."""
+    (de mayor a menor puntuacion), ya con `tipos_entidad` y `tipo_valor`. Un atributo cuyo tipo no encaja con el
+    de la entidad cuenta como resolucion debil.
+
+    D69 (R12): por semantica, un `tipo_valor` distinto del del candidato tambien la hace debil. Un id (numero) y
+    un usuario (texto) no son el mismo atributo aunque suenen parecido; con una resolucion debil, `decidir_hecho`
+    manda el hecho a `nota` en lugar de sustituir. Por alias no se toca: el nombre exacto manda."""
     if len(por_alias) == 1:
         a = por_alias[0]
         return Resolucion("reutilizar", a["id"], compatible(a["tipos_entidad"], tipo_entidad), "alias", 1.0)
@@ -67,6 +71,8 @@ def resolver_atributo(por_alias: list[dict], semanticos: list[dict], umbrales: d
         return NUEVA
     mejor, fuerte, margen = encontrada
     fuerte = fuerte and compatible(mejor.get("tipos_entidad", "*"), tipo_entidad)
+    if tipo_valor is not None and mejor.get("tipo_valor", tipo_valor) != tipo_valor:
+        fuerte = False
     return Resolucion("reutilizar", mejor["id"], fuerte, "semantica", mejor["score"], margen)
 
 

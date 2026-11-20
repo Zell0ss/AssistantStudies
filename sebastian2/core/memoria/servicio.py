@@ -64,7 +64,9 @@ class ServicioMemoria:
                 "notas": [], "sin_cambio": []}
         # Una fuente por llamada, aunque la frase de varios hechos o ninguno (D41). R3 y R9: como mucho UN cierre
         # indirecto (por similitud con una nota, o por el valor) en cada turno, compartido.
-        turno = {"cierres_indirectos": 0, "fuente_id": self._repo.crear_fuente(user_id, texto, mensaje)}
+        # D69 (R11): `atributos_creados` = ids de los atributos que abrió esta llamada.
+        turno = {"cierres_indirectos": 0, "fuente_id": self._repo.crear_fuente(user_id, texto, mensaje),
+                 "atributos_creados": set()}
         for hecho in hechos:
             self._procesar(user_id, texto, hecho, data, turno)
         # Si no dejo ningun hecho (frase vacia, o todo «ya constaba»), no queda texto sin hecho (D42).
@@ -185,7 +187,7 @@ class ServicioMemoria:
     def _procesar(self, user_id: str, texto: str, hecho: dict, data: dict, turno: dict) -> None:
         retirar = hecho["operacion"] == "retirar"
         ent = self._resolver_entidad(user_id, hecho)
-        attr = self._resolver_atributo(hecho)
+        attr = self._resolver_atributo(hecho, turno["atributos_creados"])
 
         if retirar and "crear" in (ent.accion, attr.accion):
             # Olvidar algo que no existe no crea entidades ni atributos. Puede ser una nota de texto libre.
@@ -197,7 +199,9 @@ class ServicioMemoria:
 
         entidad_id = self._materializar_entidad(user_id, hecho, ent, data)
         atributo_id = self._materializar_atributo(user_id, hecho, attr, entidad_tipo=hecho["tipo_entidad"], data=data)
-        atributo = self._repo.atributo(atributo_id)
+        if attr.accion == "crear":
+            turno["atributos_creados"].add(atributo_id)          # D69 (R11): ya no es candidato semantico en esta llamada
+        atributo =self._repo.atributo(atributo_id)
         entidad = self._repo.entidad(entidad_id)
 
         vigentes = self._repo.hechos_vigentes(user_id, entidad_id, atributo_id)
@@ -256,18 +260,23 @@ class ServicioMemoria:
         fila = self._repo.entidad(entidad_id)
         return fila is not None and fila["user_id"] == user_id
 
-    def _resolver_atributo(self, hecho: dict):
-        # Los candidatos semanticos se enriquecen con `tipos_entidad` (el payload no lo lleva) para la
-        # regla de compatibilidad de tipo.
+    def _resolver_atributo(self, hecho: dict, creados_en_el_turno: frozenset | set = frozenset()):
+        # Los candidatos semanticos se enriquecen con `tipos_entidad` y `tipo_valor` (el payload no los lleva) para las
+        # reglas de compatibilidad de tipo (R12, D69).
         por_alias = self._repo.atributos_por_alias(hecho["atributo"])
         semanticos = []
         if len(por_alias) != 1:
             consulta = hecho["descripcion_atributo"] or hecho["atributo"].replace("_", " ")
             for c in self._semantica(self._catalogo.buscar_atributos, consulta):
+                # D69 (R11): un atributo creado en esta misma llamada no es candidato semantico de otro hecho de la misma
+                # frase (un hecho no sustituye a otro de su frase). Por alias exacto si se reutiliza, y arriba ya se miro.
+                if c["id"] in creados_en_el_turno:
+                    continue
                 fila = self._repo.atributo(c["id"])
                 if fila:
-                    semanticos.append({**c, "tipos_entidad": fila["tipos_entidad"]})
-        return resolver_atributo(por_alias, semanticos, self._umbrales, tipo_entidad=hecho["tipo_entidad"])
+                    semanticos.append({**c, "tipos_entidad": fila["tipos_entidad"], "tipo_valor": fila["tipo_valor"]})
+        return resolver_atributo(por_alias, semanticos, self._umbrales, tipo_entidad=hecho["tipo_entidad"],
+                                 tipo_valor=hecho["tipo_valor"])
 
     def _semantica(self, buscar, *args) -> list[dict]:
         try:
