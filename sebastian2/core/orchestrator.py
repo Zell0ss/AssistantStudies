@@ -67,9 +67,12 @@ def _recortar_corte(texto: str) -> str:
     return texto[:fin + 1] if fin > 0 else texto
 
 
+_PAPELES = ("planner", "extractor", "alfred", "otro")   # D59 (H1k, R26): quién gasta cada token de un turno
+
+
 def _uso_vacio() -> dict:
-    """Contadores de uso de un turno (telemetría)."""
-    return {"tokens_in": 0, "tokens_out": 0, "cache_read": 0, "cache_creation": 0, "models": set()}
+    """Contadores de uso de un turno (telemetría). `por_papel`: {papel: {in, out, cr, cc}}, solo los papeles con llamadas."""
+    return {"tokens_in": 0, "tokens_out": 0, "cache_read": 0, "cache_creation": 0, "models": set(), "por_papel": {}}
 
 
 def _messages_to_json(messages: list) -> str:
@@ -339,7 +342,8 @@ class Orchestrator:
         config = config if config is not None else get_config()
         self._client = Anthropic(api_key=config['anthropic_apikey'], timeout=60.0)
         self._executor = ToolExecutor(
-            db, user_id, config=config, on_usage=lambda response, model: self._track_usage(response, model))
+            db, user_id, config=config,
+            on_usage=lambda response, model: self._track_usage(response, model, "extractor"))   # D59 (R26): el extractor de la memoria
         self._repo = PendingPlanRepository(db)
         self._conversations = ConversationRepository(db)
         historial_cfg = config.get("historial", {})
@@ -373,16 +377,29 @@ class Orchestrator:
                 self._indice_turno = ""
         return self._indice_turno
 
-    def _track_usage(self, response, model: str) -> None:
-        """Accumulate model + token usage for the current turn (telemetry only)."""
+    def _track_usage(self, response, model: str, papel: str = "otro") -> None:
+        """Accumulate model + token usage for the current turn (telemetry only).
+
+        D59 (H1k, R26): además del total, el uso se acumula por `papel` (planner, extractor, alfred u otro) para saber quién
+        gasta sin caché. Un papel cuenta desde su primera llamada, aunque la respuesta no traiga `usage`."""
         self._turn_usage["models"].add(model)
+        papel = papel if papel in _PAPELES else "otro"
+        del_papel = self._turn_usage["por_papel"].setdefault(papel, {"in": 0, "out": 0, "cr": 0, "cc": 0})
         usage = getattr(response, "usage", None)
         if usage is not None:
-            self._turn_usage["tokens_in"] += getattr(usage, "input_tokens", 0) or 0
-            self._turn_usage["tokens_out"] += getattr(usage, "output_tokens", 0) or 0
+            entrada = getattr(usage, "input_tokens", 0) or 0
+            salida = getattr(usage, "output_tokens", 0) or 0
             # D59: `tokens_in` es solo lo no cacheado; la caché va aparte.
-            self._turn_usage["cache_read"] += getattr(usage, "cache_read_input_tokens", 0) or 0
-            self._turn_usage["cache_creation"] += getattr(usage, "cache_creation_input_tokens", 0) or 0
+            cache_read = getattr(usage, "cache_read_input_tokens", 0) or 0
+            cache_creation = getattr(usage, "cache_creation_input_tokens", 0) or 0
+            self._turn_usage["tokens_in"] += entrada
+            self._turn_usage["tokens_out"] += salida
+            self._turn_usage["cache_read"] += cache_read
+            self._turn_usage["cache_creation"] += cache_creation
+            del_papel["in"] += entrada
+            del_papel["out"] += salida
+            del_papel["cr"] += cache_read
+            del_papel["cc"] += cache_creation
 
     def _llamar_planner(self, messages: list):
         """Una llamada al planner (D28): modelo único, esfuerzo bajo, uso contabilizado y vigilado."""
@@ -394,7 +411,7 @@ class Orchestrator:
             messages=messages,
             **_PLANNER_EXTRA,
         )
-        self._track_usage(response, _MODELO_PLANNER)
+        self._track_usage(response, _MODELO_PLANNER, "planner")
         self._avisar_si_el_planner_no_decidio(response)
         if self._depurando():       # D72 (R19): lo que decidió el planner, con el input crudo de cada tool
             self._trazar("planner", {
@@ -453,6 +470,9 @@ class Orchestrator:
         latency_ms = round((time.perf_counter() - turn_start) * 1000, 1)
         usage = self._turn_usage
         models = ",".join(sorted(usage["models"])) or "none"
+        # D59 (H1k, R26-R27): el mismo uso, repartido por papel. Se prepara aquí y se emite detrás de `Turn end`, que no cambia.
+        por_papel = {p: usage["por_papel"][p] for p in _PAPELES if p in usage["por_papel"]}
+        log_uso = logger.bind(user_id=self._user_id, uso_por_papel=por_papel)
         logger.bind(
             user_id=self._user_id,
             iterations=iterations,
@@ -469,6 +489,9 @@ class Orchestrator:
             f"cache_read={usage['cache_read']} | cache_creation={usage['cache_creation']} | "
             f"latency_ms={latency_ms}"
         )
+        if por_papel:       # R27: `Turn uso | user=… | planner=in/out/cr/cc | …`, solo los papeles con llamadas; sin contenido
+            reparto = " | ".join(f"{p}={u['in']}/{u['out']}/{u['cr']}/{u['cc']}" for p, u in por_papel.items())
+            log_uso.info(f"Turn uso | user={self._user_id} | {reparto}")
 
     def _is_plan_reply(self, user_message: str, plan_question: str) -> bool:
         """Ask the planner model whether the user message answers the pending plan question."""
@@ -483,7 +506,7 @@ class Orchestrator:
             )}],
             **_PLANNER_EXTRA,
         )
-        self._track_usage(response, _MODELO_PLANNER)
+        self._track_usage(response, _MODELO_PLANNER, "otro")      # D59 (R26): la llamada SI/NO de «¿es una respuesta al plan?»
         # D28: la respuesta puede empezar por bloques `thinking`: se lee el primer bloque de tipo text.
         texto = next((b.text for b in response.content if b.type == "text"), None)
         if texto is None:
@@ -783,7 +806,7 @@ class Orchestrator:
             system=_ALFRED_SYSTEM,
             messages=(historial or []) + [{"role": "user", "content": synthesis_prompt}]
         )
-        self._track_usage(response, "claude-sonnet-4-6")
+        self._track_usage(response, "claude-sonnet-4-6", "alfred")
         texto = self._texto_de_alfred(response, _ALFRED_MAX_TOKENS)
         if self._depurando():       # D72 (R19): lo que recibió Alfred (resumen de tools y nota del planner) y lo que contestó
             self._trazar("alfred", {
@@ -800,7 +823,7 @@ class Orchestrator:
             system=_ALFRED_SYSTEM,
             messages=[{"role": "user", "content": f"Necesito preguntarle esto al usuario: {question}"}]
         )
-        self._track_usage(response, "claude-sonnet-4-6")
+        self._track_usage(response, "claude-sonnet-4-6", "alfred")
         texto = self._texto_de_alfred(response, _ASK_MAX_TOKENS)
         self._trazar("alfred_pregunta", {"pregunta": question, "stop_reason": getattr(response, "stop_reason", None),
                                          "texto": texto})              # D72 (R19)
