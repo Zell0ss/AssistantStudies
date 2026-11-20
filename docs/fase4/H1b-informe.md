@@ -41,3 +41,33 @@ Ninguna respecto al encargo.
    - **Probabilidad baja:** el prompt pide «concisa» y hoy ninguna respuesta se acerca. Antes del parche la respuesta salía cortada, y ahora podría no llegar.
    - **Propongo, si quieres cubrirlo,** un parche pequeño en `_send_markdown` que parta por saltos de línea en trozos de 4000 caracteres, con su prueba. No lo he hecho porque no está en el encargo. ¿Lo hago, o lo dejas como riesgo aceptado y miramos en el log si se da?
 2. **Despliegue:** Josem despliega H1 y H1b juntos, cuando revises este informe.
+
+---
+
+# Anexo — R9 (límite de Telegram)
+
+Responde a: `189e40d` (H1b-revision).
+Commit en `fase-4`: `3a4c4fb`. Suite completa: **1107 pruebas** pasan (1100 + 7), sin API. Gasto: 0 $.
+
+## Hecho
+
+- **`_send_markdown` (`bot/handlers.py`)** parte el texto **antes** de parsear el markdown, porque los offsets de las entidades son por trozo.
+  - La partición está en `_partir_en_trozos`, con el máximo en la constante `_MAX_TROZO = 4000`.
+  - Corta por saltos de línea, y una línea suelta de más de 4000 se corta a la fuerza. Cada trozo se parsea y se envía por separado, en orden.
+  - Un texto de 4000 caracteres o menos sale en una sola llamada, igual que hoy. D68 está citado en el comentario.
+- **Pruebas** (bot falso, en `tests/test_send_markdown.py`): las 4 del encargo y 3 de apoyo.
+  - 9000 caracteres en líneas de 100 salen en **3 llamadas**, ninguna de más de 4000, y al unirlas está todo el texto en orden.
+  - Una `**negrita**` del segundo trozo lleva su entidad con el offset **relativo a ese trozo**: coincide con la posición de «negrita» en ese texto y la entidad cubre exactamente esa palabra. El primer trozo no lleva entidades.
+  - Una línea sola de 5000 caracteres sale en **2 llamadas** (4000 y 1000).
+  - Un texto corto sale en 1 llamada, igual que hoy. También, uno de justo 4000. Uno de 4001 sale en dos.
+  - Apoyo: una línea larga en medio se corta sin perder las de alrededor, y un texto que cabe no se toca ni con saltos de línea al final.
+- **Las vigilancias no se tocan**, como decías: `armar_mensaje` ya recorta a 4000 y manda con `send_message`.
+
+## Límites que conozco, sin retocarlos
+
+- **Una negrita que cruce el límite entre dos trozos** queda partida y se manda sin entidad en alguno de los dos. Es muy raro: pasaría con un `**…**` que empieza justo antes del salto que parte el texto. La partición es por líneas, y las negritas de Alfred suelen ser de una sola línea.
+- **Los 4000 son caracteres de Python, no unidades UTF-16.** Telegram cuenta en UTF-16, así que un texto lleno de emojis (dos unidades cada uno) podría pasar de 4096 con 4000 caracteres. No es el caso de las respuestas de Alfred. Si hiciera falta, bastaría con bajar `_MAX_TROZO`.
+
+## Decisiones que necesito
+
+Ninguna. Josem despliega H1 y H1b juntos con la sección «Fase 4» de `PASOS-CON-SUDO.md`, cuando des el visto bueno.
