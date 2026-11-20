@@ -26,6 +26,7 @@ _ESPACIO_NOTAS = uuid.UUID("a4c1d7e0-3b52-4f6a-8d19-5e2f9c0b7a31")
 _MAX_ENTIDADES_EN_PROMPT = 60
 _NOTAS_CANDIDATAS = 8       # R3: de mas, porque las cerradas siguen en Qdrant y se descartan despues
 _MAX_NOTAS_EN_CONSULTA = 3  # search_memory: las notas mas parecidas que se devuelven
+_MAX_HECHOS_POR_PALABRAS = 20   # D73 (R23): hechos que devuelve una consulta solo con `query`
 _OPERACION_DE = {"anadir": "afirmar", "sustituir": "corregir", "retirar": "retirar"}
 
 
@@ -115,6 +116,12 @@ class ServicioMemoria:
                 # historial, con la señal para que Alfred filtre lo que viene a cuento.
                 filas = self._repo.hechos_con_nombres(user_id, ent["id"], None, solo_vigentes=True)
                 salida["atributo_no_resuelto"] = True
+            elif not entidad and not atributo:
+                # D73 (R23): una consulta solo con `query` («Telegram») tampoco contesta «nada» si hay hechos cuya entidad o cuyo
+                # atributo comparten una palabra con ella. Solo vigentes, hasta `_MAX_HECHOS_POR_PALABRAS`, y con la señal.
+                filas = self._hechos_por_palabras(user_id, self._terminos(query))
+                if filas:
+                    salida["por_palabras"] = True
         else:
             filas = self._repo.hechos_con_nombres(user_id, ent["id"] if ent else None, attr["id"] if attr else None,
                                                   solo_vigentes=False)
@@ -136,7 +143,8 @@ class ServicioMemoria:
                     f"historial={len(salida['historial'])} notas={len(salida['notas'])} "
                     f"vault={salida['vault'] is not None} conflictos={len(salida['conflictos'])} "
                     f"entidad={estado(entidad, ent)} atributo={estado(atributo, attr)} "
-                    f"notas_sem={notas_sem} notas_palabra={notas_palabra}")
+                    f"notas_sem={notas_sem} notas_palabra={notas_palabra} "
+                    f"por_palabras={len(filas) if salida.get('por_palabras') else 0}")     # D73 (R16): al final, sin mover lo anterior
         if turno:       # D72 (R19): los parametros de la consulta y su salida, con contenido, fuera de los logs
             depuracion.traza(user_id, turno, "memoria_consulta", {
                 "parametros": {"query": query, "entidad": entidad, "atributo": atributo, "historial": historial},
@@ -153,14 +161,15 @@ class ServicioMemoria:
         """Las notas de la consulta: primero las semanticas y, detras, las que contienen una palabra de la entidad o del
         atributo pedidos (D71, R15), sin repetir y hasta `_MAX_NOTAS_EN_CONSULTA`. Devuelve (notas, n semanticas, n por palabra)."""
         minimo = self._umbrales["reutilizar"]["puntuacion"]   # tentativo: se calibro para el catalogo, no para notas
-        ids = []
+        ids = []   # (R24, D73: las palabras de la `query` buscan notas igual que las de la entidad y el atributo)
         if query:
             parecidas = [c for c in self._notas_vigentes_parecidas(user_id, query) if c["score"] >= minimo]
             ids = [c["hecho_id"] for c in parecidas[:_MAX_NOTAS_EN_CONSULTA]]
         semanticas = len(ids)
         # D71 (R15): la nota «…usuario de Telegram…» no superaba el umbral semantico de `reutilizar` (calibrado para el
         # catalogo, no para notas) y `search_memory` contestaba «nada». Por palabra completa, solo notas vigentes del usuario.
-        por_palabra = [h for h in self._notas_por_palabra(user_id, entidad, atributo) if h["id"] not in ids]
+        por_palabra = [h for h in self._notas_por_palabra(user_id, self._terminos(entidad, atributo, query))
+                       if h["id"] not in ids]
         ids += [h["id"] for h in por_palabra][:_MAX_NOTAS_EN_CONSULTA - len(ids)]
         notas = []
         for hecho_id in ids:
@@ -169,11 +178,31 @@ class ServicioMemoria:
                           "desde": n["valid_from"].date().isoformat()})
         return notas, semanticas, len(ids) - semanticas
 
-    def _notas_por_palabra(self, user_id: str, entidad: str | None, atributo: str | None) -> list[dict]:
-        """Notas vigentes del usuario (la mas reciente primero) con alguna palabra completa de `entidad` o `atributo`:
-        normalizadas, troceadas por espacios y «_», de 4 letras o mas (`yo`, `de`… no buscan nada)."""
-        terminos = {t for pedido in (entidad, atributo) if pedido for t in normalizar(pedido).split()
-                    if len(t) >= 4 and t != "yo"}
+    @staticmethod
+    def _terminos(*pedidos: str | None) -> set:
+        """Los términos de búsqueda de lo pedido (entidad, atributo, query): normalizados, troceados por espacios y «_»
+        (`normalizar` ya cambia el «_» por un espacio), de 4 letras o mas, sin `yo` (D71 R15, D73 R23)."""
+        return {t for pedido in pedidos if pedido for t in normalizar(pedido).split() if len(t) >= 4 and t != "yo"}
+
+    def _hechos_por_palabras(self, user_id: str, terminos: set) -> list[dict]:
+        """D73 (R23): hechos vigentes del usuario (los mas recientes primero, hasta `_MAX_HECHOS_POR_PALABRAS`) cuya entidad
+        (nombre normalizado o alguno de sus alias) es igual a un término, o cuyo atributo tiene un término como pieza de su
+        nombre (`telegram_id` → `telegram`, `id`). El atributo `nota` queda fuera: las notas van por palabra (R15)."""
+        if not terminos:
+            return []
+        alias = self._repo.alias_de_entidades(user_id)
+        coinciden = []
+        for h in reversed(self._repo.hechos_con_nombres(user_id, None, None, solo_vigentes=True)):
+            if h["atributo"] == "nota":
+                continue
+            nombres_entidad = {normalizar(h["entidad"]), *alias.get(h["entidad_id"], [])}
+            piezas_atributo = set(normalizar(h["atributo"]).split())
+            if terminos & (nombres_entidad | piezas_atributo):
+                coinciden.append(h)
+        return coinciden[:_MAX_HECHOS_POR_PALABRAS]
+
+    def _notas_por_palabra(self, user_id: str, terminos: set) -> list[dict]:
+        """Notas vigentes del usuario (la mas reciente primero) con alguna palabra completa de `terminos`."""
         if not terminos:
             return []
         nota = self._repo.atributos_por_alias("nota")
