@@ -147,7 +147,7 @@ def _contexto_fecha(ahora: datetime | None = None) -> str:
             f"Próximos días: {', '.join(dias)}.")
 
 
-# D43: el historial lleva el texto del asistente («Anotado…», «Retirado…») y el planner lo imitaba: contestaba en texto
+# D43 y D74: el historial lleva el texto del asistente («Anotado…», «Retirado…») y el planner lo imitaba: contestaba en texto
 # «He retirado…» sin llamar a la tool (E5 y #66: 0 de 6). Con la regla en medio del prompt no bastaba; al final, justo
 # antes de decidir, y más fuerte, sí (3 de 3, diagnóstico de H3). Acotada a datos de memoria: «Guárdame esta nota» o
 # «apunta leche» tienen su propia tool.
@@ -156,6 +156,11 @@ _REGLA_ACCIONES_CON_HISTORIAL = (
     "o sus proyectos), tu respuesta de este turno tiene que ser una llamada a `mark_as_memorable`, aunque el historial "
     "parezca que ya se hizo: el historial es lo que se dijo, no lo que se ha hecho en este turno. Nunca contestes en "
     "texto que ya está hecho: aunque en el historial el asistente diga «Anotado» o «Retirado», eso fue otro turno y no cuenta."
+    # D74 (fase 4, H1j): lo mismo para las consultas. El 20/11 el planner contestó «Su telegram_id es…» en texto, sacándolo del
+    # historial, en vez de llamar a `search_memory` (D26: lo que se dijo en otro turno no es fuente).
+    "\n\nSi el usuario pregunta qué consta de él, de su gente, de sus cosas o de sus proyectos («¿qué sabes de…?», «¿qué datos "
+    "tienes de…?», «¿cuál es mi…?»), tu respuesta de este turno tiene que ser una llamada a `search_memory`, aunque el historial "
+    "parezca tener el dato: lo que se dijo en otro turno no es fuente (D26)."
 )
 
 
