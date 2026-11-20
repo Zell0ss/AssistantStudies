@@ -270,7 +270,7 @@ def _registrar_jobs(scheduler: BackgroundScheduler, bot, config: dict) -> None:
 
 def start_daily_reminder(bot, config: dict) -> BackgroundScheduler:
     """
-    Arranca el planificador del bot: resumen de la mañana, avisos de compromisos y limpieza del historial.
+    Arranca el planificador del bot: resumen de la mañana, avisos de compromisos, vigilancias y limpieza del historial.
 
     Reads reminder time from config['calendar']['daily_reminder_time'] (default '08:00').
     Sends to all authorized_ids in config.
@@ -286,6 +286,6 @@ def start_daily_reminder(bot, config: dict) -> BackgroundScheduler:
     _registrar_jobs(scheduler, bot, config)
     scheduler.start()
     reminder_time = config.get('calendar', {}).get('daily_reminder_time', '08:00')
-    logger.info(f"Planificador arrancado: resumen a las {reminder_time}, avisos cada minuto, "
+    logger.info(f"Planificador arrancado: resumen a las {reminder_time}, avisos cada minuto, vigilancias cada 15 min, "
                 f"{len(config.get('authorized_ids', []))} usuario(s)")
     return scheduler

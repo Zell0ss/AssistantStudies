@@ -381,4 +381,119 @@ Dos cosas que hay que saber antes de hacerlo:
 - El código viejo no sabe de compromisos. Una cita que tenga compromisos pendientes **no se podrá borrar** con el bot viejo (la FK de
   `compromisos.evento_id` no lleva `ON DELETE`). Si hay que borrar una cita en ese estado, se pregunta antes cómo hacerlo.
 
+## Fase 4 — Vigilancias: Sebastian busca por ti cada mañana (D63–D67)
+
+**Qué cambia al terminar:** Sebastian repite cada mañana las búsquedas de una **vigilancia** en Wallapop y te manda por Telegram un
+resumen con lo que merece la pena según tus reglas. La tuya es «Mac mini para LLM local» (8 búsquedas, a las 07:30). Dos tablas
+nuevas, `vigilancias` y `vigilancia_vistos` (migración 014), y una tarea nueva del planificador, cada 15 minutos. Las vigilancias
+son **de solo lectura**: buscan e informan, y no crean, mueven ni borran nada. Todavía no se gestionan por chat (H2): se cargan
+con un script.
+
+**Qué NO cambia:** las unidades systemd, el `config.yaml` y Qdrant. La migración **solo crea dos tablas**: no toca ninguna
+existente, así que el código anterior sigue funcionando con ellas puestas.
+
+**Rutas:** `/data/AssistantStudies` (producción, siempre en `main`) y `/data/AssistantStudies-fase4` (worktree de la rama
+`fase-4`). Hasta el paso 2, el código nuevo solo está en el worktree: por eso el paso 1 se lanza desde allí.
+
+**Gasto:** cada ronda llama a Haiku 4.5 una vez, con menos de 10 candidatos: del orden de 0,005 $ al día. Las 8 peticiones a Wallapop
+son gratis y sin clave.
+
+### Paso 0 — Requisitos y apuntes (a mano, sin sudo)
+
+La fase 3 tiene que estar desplegada y sana. Apunta tu **id de Telegram** (el que usas en `authorized_ids`): lo pide el paso 3.
+
+```bash
+bash /data/AssistantStudies/sebastian2/deploy/comprobar_fase3.sh
+git -C /data/AssistantStudies rev-parse HEAD
+git -C /data/AssistantStudies status
+```
+
+La primera debe terminar con «Todo bien.». La segunda da el hash que **tienes que apuntar**: es la vuelta atrás. La tercera debe
+decir que estás en `main` y que el árbol está limpio.
+
+### Paso 1 — Copia de seguridad y migración 014 en `sebastian_db`
+
+Es idempotente (`IF NOT EXISTS`) y no lleva `USE`: la BD la eliges tú aquí. Una sola línea, para pegar entera:
+
+```bash
+cd /data/AssistantStudies-fase4/sebastian2 && sudo mysqldump sebastian_db > ~/sebastian_db_backup_$(date +%Y%m%d_%H%M%S).sql && sudo mysql sebastian_db < db/migrations/014_vigilancias.sql && sudo mysql sebastian_db -e "SHOW TABLES LIKE 'vigilancia%';"
+```
+
+Debe salir la lista con `vigilancia_vistos` y `vigilancias`.
+
+### Paso 2 — Merge de `fase-4` en producción
+
+```bash
+cd /data/AssistantStudies && git status && git merge --ff-only fase-4
+```
+
+El bot sigue con el código viejo en memoria hasta el reinicio del paso 4.
+
+### Paso 3 — Cargar tu vigilancia
+
+Sin sudo. La variable que fija la BD es **`SEBASTIAN_DB_NAME`** (no `DB_NAME`): sin ella, la carga iría a la BD de desarrollo. Cambia
+`<tu id>` por tu id de Telegram.
+
+```bash
+cd /data/AssistantStudies/sebastian2 && SEBASTIAN_DB_NAME=sebastian_db .venv/bin/python -m scripts.vigilancias.cargar /data/library/mi-wiki/docs/Obsidian/30-projects/sebastian/vigilancias/mac-mini.yaml --user <tu id>
+```
+
+Tiene que imprimir **«Escribiendo en BD: sebastian_db»** y una línea «creada id=… «Mac mini para LLM local»». Si dice otra BD, no
+sigas. Es seguro repetirlo: actualiza la vigilancia sin duplicarla.
+
+**Ojo con la hora a la que lo haces.** Si cargas la vigilancia con su ventana de hoy ya cerrada (pasadas las 09:30 con `hora` a las 07:30), la
+primera pasada tras el reinicio te manda una vez «⚠️ Hoy no pude hacer la vigilancia…», porque no sabe que acabas de crearla. Es
+inofensivo y esperado ese día, y no se repite. Para evitarlo, haz este paso antes de las 09:30, o carga con la `hora` retrasada unos 20
+minutos, como en el paso 6.
+
+### Paso 4 — Reiniciar
+
+```bash
+sudo systemctl restart sebastian.service
+```
+
+### Paso 5 — Comprobar (solo lectura)
+
+```bash
+bash /data/AssistantStudies/sebastian2/deploy/comprobar_fase4.sh
+```
+
+No usa sudo, no escribe en ninguna BD, no llama a ninguna API y **no manda nada por Telegram**. Comprueba que producción está en `main`
+con la fase 4, que las dos unidades siguen fijando `sebastian_db`, que el log de arranque dice que el bot escribe en `sebastian_db` y que
+el planificador arrancó **con las vigilancias**, que `sebastian_db` tiene las dos tablas con sus columnas y tu vigilancia activa y con
+hora, cuántas rondas ha habido desde el reinicio y que no hay errores en LogCentral. No imprime consultas, reglas ni títulos (D42).
+Termina con `Todo bien.` o con la lista de FALLOS.
+
+### Paso 6 — La primera ronda
+
+La ronda sale **cada día entre las 07:30 y las 09:30** (la tarea mira cada 15 minutos; la ventana es de 2 horas). Mañana por la
+mañana tendría que llegarte un mensaje que empieza por «🔎 Mac mini para LLM local · <día/mes>». Si no hay nada nuevo que merezca la
+pena, llega igualmente: «Nada nuevo que merezca la pena.» es la prueba de que corrió. Si a las 09:30 no ha salido, llega un
+«⚠️ Hoy no pude hacer la vigilancia…». Díselo entonces al arquitecto, con la hora, y ejecuta
+`logcentral query --source sebastian --grep "Vigilancia id="`.
+
+Para verla **hoy**, sin esperar a mañana: copia el YAML a `/tmp`, cambia `hora` a unos 20 minutos más tarde y cárgalo con el comando del
+paso 3 (apuntando a la copia). Cuando haya salido la ronda, vuelve a cargar el original del vault: el nombre es el mismo y la hora vuelve
+a las 07:30. Esa ronda de hoy deja sus anuncios como vistos: mañana solo saldrán los nuevos.
+
+### Si hay que deshacerlo
+
+Las tablas nuevas no molestan al código viejo, así que basta con volver al `main` anterior (el hash del paso 0) y reiniciar. Cambia
+`<hash>` por el que apuntaste, y pega la línea entera:
+
+```bash
+sudo systemctl stop sebastian.service && cd /data/AssistantStudies && git reset --hard <hash> && sudo systemctl start sebastian.service
+```
+
+Dos cosas que hay que saber antes de hacerlo:
+
+- **No se ejecuta `DROP TABLE vigilancias` sin preguntar**: borraría tu vigilancia y lo que lleva visto, y la tabla no estorba.
+- Para **pausar la vigilancia sin tocar el código** (por ejemplo, si Wallapop corta la API y llegan avisos de fallo cada mañana), en una sola línea:
+
+```bash
+sudo mysql sebastian_db -e "UPDATE vigilancias SET activa = 0 WHERE nombre = 'Mac mini para LLM local';"
+```
+
+  Para reactivarla, vuelve a cargar el YAML (paso 3): `activa` vale verdadero por defecto.
+
 Las colecciones de Qdrant y la memoria de la fase 2 no cambian en esta fase.
